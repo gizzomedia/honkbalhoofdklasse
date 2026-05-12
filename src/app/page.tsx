@@ -157,7 +157,7 @@ export default async function HomePage() {
               {['#', 'Team', 'W', 'L', 'PCT'].map(h => (
                 <span key={h} className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center first:text-left">{h}</span>
               ))}
-              <span className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center hidden md:block">PCT</span>
+              <span className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center hidden md:block">G</span>
             </div>
 
             <div className="divide-y divide-[#0a1620]">
