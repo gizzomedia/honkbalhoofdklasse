@@ -45,8 +45,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
               ].map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={src} alt="sponsor" className="h-10 object-contain opacity-70 hover:opacity-100 transition-opacity shrink-0" />
+                <div key={i} className="w-28 h-9 flex items-center justify-center shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="sponsor" className="max-w-full max-h-full object-contain opacity-70 hover:opacity-100 transition-opacity" />
+                </div>
               ))}
             </div>
           </div>
