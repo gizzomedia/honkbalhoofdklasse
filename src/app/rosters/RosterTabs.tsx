@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import type { StaticRosters } from '@/lib/rosters-data'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -22,51 +23,33 @@ const TEAM_NAMES: Record<string, string> = {
 }
 const TEAM_ORDER = ['neptunus', 'pirates', 'kinheim', 'hcaw', 'twins', 'pioniers', 'uvv']
 
-const POSITION_GROUPS: { label: string; short: string; positions: string[] }[] = [
-  { label: 'Pitchers',  short: 'P',  positions: ['SP', 'RP'] },
-  { label: 'Infield',   short: 'IF', positions: ['C', '1B', '2B', '3B', 'SS'] },
-  { label: 'Outfield',  short: 'OF', positions: ['LF', 'CF', 'RF', 'DH', 'OF', 'IF', 'UT', 'PH', 'PR', 'EH'] },
+type Section = { label: string; short: string; filter: (pos: string) => boolean }
+
+const SECTIONS: Section[] = [
+  { label: 'Pitchers',        short: 'P',   filter: pos => pos === 'P' },
+  { label: 'Catchers',        short: 'C',   filter: pos => pos === 'C' },
+  { label: 'Infield',         short: 'IF',  filter: pos => pos === 'IF' || pos === 'C/IF' },
+  { label: 'Outfield',        short: 'OF',  filter: pos => pos === 'OF' },
+  { label: 'Utility',         short: 'UTL', filter: pos => pos === 'UTL' || pos === 'DH' },
 ]
 
-const POSITION_LABEL: Record<string, string> = {
-  SP: 'SP', RP: 'RP',
-  C: 'C', '1B': '1B', '2B': '2B', '3B': '3B', SS: 'SS',
-  LF: 'LF', CF: 'CF', RF: 'RF', DH: 'DH',
-  OF: 'OF', IF: 'IF', UT: 'UT', PH: 'PH', PR: 'PR', EH: 'EH',
-}
-
-export type RosterPlayer = {
-  name: string
-  uniform: string
-  primaryPos: string
-}
-
-export type Rosters = Record<string, RosterPlayer[]>
-
-function formatName(raw: string): string {
-  const parts = raw.split(' ')
-  if (parts.length < 2) return raw
-  // Format: "LASTNAME Firstname" → "Firstname Lastname"
-  const last = parts[0]
-  const first = parts.slice(1).join(' ')
-  const lastCap = last.charAt(0) + last.slice(1).toLowerCase()
-  return `${first} ${lastCap}`
-}
-
-export default function RosterTabs({ rosters }: { rosters: Rosters }) {
-  const availableTeams = TEAM_ORDER.filter(t => rosters[t] && rosters[t].length > 0)
+export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
+  const availableTeams = TEAM_ORDER.filter(t => rosters[t])
   const [activeTeam, setActiveTeam] = useState(availableTeams[0] ?? '')
 
-  const players = rosters[activeTeam] ?? []
+  const team = rosters[activeTeam]
+  const players = team?.players ?? []
+  const coaches = team?.coaches ?? []
+  const color = TEAM_COLORS[activeTeam] ?? '#1e335a'
 
   return (
     <div className="space-y-6">
-      {/* Team tabs — horizontal scroll on mobile */}
+      {/* Team tabs */}
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
         <div className="flex gap-2 min-w-max">
           {availableTeams.map(teamId => {
             const active = teamId === activeTeam
-            const color = TEAM_COLORS[teamId] ?? '#1e335a'
+            const tc = TEAM_COLORS[teamId] ?? '#1e335a'
             return (
               <button
                 key={teamId}
@@ -74,11 +57,11 @@ export default function RosterTabs({ rosters }: { rosters: Rosters }) {
                 className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wide transition-all shrink-0 ${
                   active ? 'text-white' : 'bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] hover:text-white'
                 }`}
-                style={active ? { backgroundColor: color } : {}}
+                style={active ? { backgroundColor: tc } : {}}
               >
                 <div
                   className="w-6 h-6 rounded flex items-center justify-center shrink-0 p-0.5"
-                  style={{ backgroundColor: active ? 'rgba(255,255,255,0.2)' : color }}
+                  style={{ backgroundColor: active ? 'rgba(255,255,255,0.2)' : tc }}
                 >
                   <Image
                     src={TEAM_LOGOS[teamId]}
@@ -96,69 +79,130 @@ export default function RosterTabs({ rosters }: { rosters: Rosters }) {
         </div>
       </div>
 
-      {/* Roster grid */}
-      <div className="space-y-5">
-        {POSITION_GROUPS.map(group => {
-          const groupPlayers = players
-            .filter(p => group.positions.includes(p.primaryPos))
-            .sort((a, b) => {
-              const na = Number(a.uniform) || 99
-              const nb = Number(b.uniform) || 99
-              return na - nb
-            })
-          if (groupPlayers.length === 0) return null
+      {/* Player sections */}
+      <div className="space-y-6">
+        {SECTIONS.map(section => {
+          const sectionPlayers = players
+            .filter(p => section.filter(p.pos))
+            .sort((a, b) => (Number(a.uniform) || 99) - (Number(b.uniform) || 99))
+          if (sectionPlayers.length === 0) return null
 
           return (
-            <div key={group.short}>
-              {/* Position header */}
+            <div key={section.short}>
               <div className="flex items-center gap-3 mb-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: TEAM_COLORS[activeTeam] ?? '#1e335a' }}
+                  style={{ backgroundColor: color }}
                 >
-                  <span className="font-display font-800 text-white text-xs">{group.short}</span>
+                  <span className="font-display font-800 text-white text-xs">{section.short}</span>
                 </div>
                 <div>
                   <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
-                    <strong>{group.label}</strong>
+                    <strong>{section.label}</strong>
                   </h2>
                   <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
-                    {groupPlayers.length} speler{groupPlayers.length !== 1 ? 's' : ''}
+                    {sectionPlayers.length} player{sectionPlayers.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
 
-              {/* Player cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {groupPlayers.map((player, i) => (
-                  <div
-                    key={i}
-                    className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-3 py-3 flex items-center gap-3 hover:bg-[var(--card-hover)] transition-colors"
-                  >
-                    {/* Jersey number */}
-                    <span
-                      className="font-display font-800 text-base w-7 text-center shrink-0 leading-none"
-                      style={{ color: TEAM_COLORS[activeTeam] ?? 'var(--accent)' }}
-                    >
-                      {player.uniform || '–'}
-                    </span>
-                    {/* Name */}
-                    <p className="font-display font-800 text-sm uppercase text-white leading-tight truncate flex-1">
-                      <strong>{formatName(player.name)}</strong>
-                    </p>
-                    {/* Position badge */}
-                    <span
-                      className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0"
-                      style={{ backgroundColor: TEAM_COLORS[activeTeam] ?? '#1e335a' }}
-                    >
-                      {POSITION_LABEL[player.primaryPos] ?? player.primaryPos}
-                    </span>
-                  </div>
-                ))}
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center px-3 py-2 w-10">#</th>
+                      <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-left px-3 py-2">Name</th>
+                      <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center px-3 py-2 w-14">POS</th>
+                      <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center px-3 py-2 w-14">B/T</th>
+                      <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center px-3 py-2 w-14">YOB</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sectionPlayers.map((player, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors"
+                      >
+                        <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10" style={{ color }}>
+                          {player.uniform || '–'}
+                        </td>
+                        <td className="font-display font-800 text-sm text-white px-3 py-2.5">
+                          {player.name}
+                        </td>
+                        <td className="text-center px-3 py-2.5 w-14">
+                          <span
+                            className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white"
+                            style={{ backgroundColor: color }}
+                          >
+                            {player.pos}
+                          </span>
+                        </td>
+                        <td className="font-display font-700 text-xs text-[var(--muted)] text-center px-3 py-2.5 w-14">
+                          {player.bt}
+                        </td>
+                        <td className="font-display font-700 text-xs text-[var(--muted)] text-center px-3 py-2.5 w-14">
+                          {player.yob}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )
         })}
+
+        {/* Coaching Staff */}
+        {coaches.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ backgroundColor: color }}
+              >
+                <span className="font-display font-800 text-white text-[9px]">STF</span>
+              </div>
+              <div>
+                <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
+                  <strong>Coaching Staff</strong>
+                </h2>
+                <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
+                  {coaches.length} staff member{coaches.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center px-3 py-2 w-10">#</th>
+                    <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-left px-3 py-2">Name</th>
+                    <th className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-left px-3 py-2">Role</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coaches.map((coach, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors"
+                    >
+                      <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10" style={{ color }}>
+                        {coach.uniform || '–'}
+                      </td>
+                      <td className="font-display font-800 text-sm text-white px-3 py-2.5">
+                        {coach.name}
+                      </td>
+                      <td className="font-display font-700 text-xs text-[var(--muted)] px-3 py-2.5">
+                        {coach.role}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

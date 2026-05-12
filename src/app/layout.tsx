@@ -42,10 +42,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',
               ].map((src, i) => (
                 <div key={i} className="w-28 h-9 flex items-center justify-center shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
