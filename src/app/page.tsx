@@ -27,19 +27,76 @@ const TEAM_SHORT: Record<string, string> = {
   hcaw: 'HCA', twins: 'TWI', pioniers: 'PIO', uvv: 'UVV',
 }
 
+type NewsItem = { title: string; link: string }
+type LeaderEntry = { name: string; team: string; value: string }
+type MiniLeaders = { batters: LeaderEntry[]; pitchers: LeaderEntry[] }
+
+const KNBSB_TEAM_MAP: Record<string, string> = {
+  NEP: 'Neptunus', AMS: 'Pirates', PIR: 'Pirates', HCA: 'HCAW',
+  KIN: 'Kinheim', PIO: 'Pioniers', UVV: 'UVV', TWI: 'Twins',
+}
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'nl-NL,nl;q=0.9',
+  'Origin': 'https://stats.knbsbstats.nl',
+}
+
+async function getNews(): Promise<NewsItem[]> {
+  try {
+    const res = await fetch(
+      'https://honkbalsoftbal.nl/wp-json/wp/v2/posts?per_page=15&_fields=title,link',
+      { next: { revalidate: 1800 } }
+    )
+    const data = await res.json()
+    return (data as { title: { rendered: string }; link: string }[]).map(p => ({
+      title: p.title.rendered.replace(/&#8211;/g, '–').replace(/&amp;/g, '&').replace(/&#8217;/g, "'"),
+      link: p.link,
+    }))
+  } catch { return [] }
+}
+
+async function getMiniLeaders(): Promise<MiniLeaders> {
+  try {
+    const [batRes, pitRes] = await Promise.all([
+      fetch('https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=batting&round=&team=&split=&language=en',
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/batting' }, next: { revalidate: 3600 } }),
+      fetch('https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=pitching&round=&team=&split=&language=en',
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/pitching' }, next: { revalidate: 3600 } }),
+    ])
+    const batData = (await batRes.json()).data ?? []
+    const pitData = (await pitRes.json()).data ?? []
+    const avgCat = batData.find((c: { type: string }) => c.type === 'avg')?.data ?? []
+    const eraCat = pitData.find((c: { type: string }) => c.type === 'era')?.data ?? []
+    const toEntry = (p: Record<string, unknown>, value: string): LeaderEntry => ({
+      name: String(p.lastname ?? '').charAt(0) + String(p.lastname ?? '').slice(1).toLowerCase(),
+      team: KNBSB_TEAM_MAP[String(p.team)] ?? String(p.team),
+      value,
+    })
+    return {
+      batters:  avgCat.slice(0, 4).map((p: Record<string, unknown>) => toEntry(p, String(p.avg ?? ''))),
+      pitchers: eraCat.slice(0, 4).map((p: Record<string, unknown>) => toEntry(p, String(p.era ?? ''))),
+    }
+  } catch { return { batters: [], pitchers: [] } }
+}
+
 async function getData() {
   const today = new Date().toISOString().split('T')[0]
-  const [standRes, resultsRes, upcomingRes, mediaRes] = await Promise.all([
+  const [standRes, resultsRes, upcomingRes, mediaRes, news, leaders] = await Promise.all([
     supabase.from('standings').select('*').eq('season', 2026).order('wins', { ascending: false }).order('win_pct', { ascending: false }),
     supabase.from('games').select('*').eq('status', 'final').order('game_date', { ascending: false }).limit(6),
-    supabase.from('games').select('*').eq('status', 'scheduled').gte('game_date', today).order('game_date', { ascending: true }).limit(4),
+    supabase.from('games').select('*').eq('status', 'scheduled').gte('game_date', today).order('game_date', { ascending: true }).limit(3),
     supabase.from('media').select('id,type,title,url,thumbnail_url,published_at').order('published_at', { ascending: false }).limit(8),
+    getNews(),
+    getMiniLeaders(),
   ])
   return {
     standings: standRes.data ?? [],
     results: resultsRes.data ?? [],
     upcoming: upcomingRes.data ?? [],
     media: mediaRes.data ?? [],
+    news,
+    leaders,
   }
 }
 
@@ -73,7 +130,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export default async function HomePage() {
-  const { standings, results, upcoming, media } = await getData()
+  const { standings, results, upcoming, media, news, leaders } = await getData()
   const nextGame = upcoming[0]
   const leader = standings[0]
 
@@ -82,6 +139,31 @@ export default async function HomePage() {
 
       {/* ── HERO ── */}
       <HeroSlideshow />
+
+      {/* ── NEWS TICKER ── */}
+      {news.length > 0 && (
+        <div className="bg-[var(--accent)] flex items-stretch overflow-hidden">
+          <div className="shrink-0 bg-black/20 px-4 flex items-center">
+            <span className="font-display font-800 text-xs text-white uppercase tracking-widest whitespace-nowrap">Nieuws</span>
+          </div>
+          <div className="overflow-hidden flex-1">
+            <div className="flex animate-marquee items-center h-10" style={{ width: 'max-content' }}>
+              {[...news, ...news].map((item, i) => (
+                <a
+                  key={i}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-display font-700 text-sm text-white hover:text-white/80 transition-colors whitespace-nowrap px-8"
+                >
+                  {item.title}
+                  <span className="mx-6 opacity-40">·</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── RECENTE UITSLAGEN ── */}
       {results.length > 0 && (
@@ -139,9 +221,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── STAND + NEXT MATCH ── */}
+      {/* ── STAND + NEXT MATCH + LEADERS ── */}
       <section className="py-14 px-6 md:px-12 border-t border-[#0f1e2e]">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-6 gap-8">
 
           {/* STAND — left, 3 cols */}
           <div className="lg:col-span-3">
@@ -191,54 +273,78 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* NEXT MATCH — right, 2 cols */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            <SectionLabel>Aankomend</SectionLabel>
-
-            {upcoming.map((g, i) => {
-              const isNext = i === 0
-              return (
-                <div key={g.id}
-                  className={`relative overflow-hidden border ${isNext ? 'border-[var(--accent)]/40 bg-[#0f1e2e]' : 'border-[#0f1e2e] bg-[#080f18]'}`}>
-                  {isNext && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)]" />}
-                  <div className="p-5">
-                    {isNext && (
-                      <span className="inline-block font-display font-800 text-[10px] text-[var(--accent)] uppercase tracking-[0.2em] bg-[var(--accent)]/10 px-2 py-1 mb-4">
-                        Volgende Wedstrijd
-                      </span>
-                    )}
-                    <p className="font-display font-700 text-xs text-[#4a6a8a] uppercase tracking-widest mb-4">
-                      {formatDate(g.game_date)}{g.game_time ? ` · ${g.game_time.slice(0, 5)}` : ''}
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center gap-2 flex-1">
-                        <TeamLogo teamId={g.away_team_id} size={isNext ? 52 : 36} />
-                        <span className="font-display font-800 text-xs uppercase text-white text-center">{TEAM_SHORT[g.away_team_id]}</span>
-                      </div>
-                      <div className="text-center px-2">
-                        <p className="font-display font-800 italic text-2xl text-[#4a6a8a]">VS</p>
-                      </div>
-                      <div className="flex flex-col items-center gap-2 flex-1">
-                        <TeamLogo teamId={g.home_team_id} size={isNext ? 52 : 36} />
-                        <span className="font-display font-800 text-xs uppercase text-white text-center">{TEAM_SHORT[g.home_team_id]}</span>
-                      </div>
+          {/* NEXT MATCH — 2 cols */}
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            <SectionLabel>Upcoming</SectionLabel>
+            {upcoming.map((g, i) => (
+              <div key={g.id}
+                className={`relative overflow-hidden border ${i === 0 ? 'border-[var(--accent)]/40 bg-[#0f1e2e]' : 'border-[#0f1e2e] bg-[#080f18]'}`}>
+                {i === 0 && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)]" />}
+                <div className="p-4">
+                  <p className="font-display font-700 text-xs text-[#4a6a8a] uppercase tracking-widest mb-3">
+                    {formatDate(g.game_date)}{g.game_time ? ` · ${g.game_time.slice(0, 5)}` : ''}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                      <TeamLogo teamId={g.away_team_id} size={36} />
+                      <span className="font-display font-800 text-[11px] uppercase text-white text-center">{TEAM_SHORT[g.away_team_id]}</span>
                     </div>
-                    {isNext && (
-                      <Link href="/schema"
-                        className="mt-5 block w-full bg-[var(--accent)] py-3 text-center font-display font-800 text-sm uppercase text-white tracking-widest hover:bg-[#e53500] transition-colors">
-                        Voorspel de uitslag →
-                      </Link>
-                    )}
+                    <div className="text-center px-1">
+                      <p className="font-display font-800 italic text-lg text-[#4a6a8a]">VS</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                      <TeamLogo teamId={g.home_team_id} size={36} />
+                      <span className="font-display font-800 text-[11px] uppercase text-white text-center">{TEAM_SHORT[g.home_team_id]}</span>
+                    </div>
                   </div>
                 </div>
-              )
-            })}
-
+              </div>
+            ))}
             {upcoming.length === 0 && (
-              <div className="border border-[#0f1e2e] p-8 text-center">
-                <p className="font-display font-700 text-[#4a6a8a] uppercase text-sm">Geen wedstrijden gepland</p>
+              <div className="border border-[#0f1e2e] p-6 text-center">
+                <p className="font-display font-700 text-[#4a6a8a] uppercase text-sm">No games scheduled</p>
               </div>
             )}
+          </div>
+
+          {/* MINI LEADERS — 1 col */}
+          <div className="lg:col-span-1">
+            <SectionLabel>Leaders</SectionLabel>
+            <div className="space-y-4">
+              {/* Batting */}
+              <div>
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Batting AVG</p>
+                <div className="space-y-1">
+                  {leaders.batters.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="font-display font-700 text-xs text-[#4a6a8a] w-4 shrink-0">{i + 1}</span>
+                      <p className="font-display font-800 text-xs uppercase text-white truncate flex-1">
+                        {p.name}
+                      </p>
+                      <span className="font-display font-800 text-xs text-[var(--accent)] shrink-0">{p.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Pitching */}
+              <div>
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">ERA</p>
+                <div className="space-y-1">
+                  {leaders.pitchers.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="font-display font-700 text-xs text-[#4a6a8a] w-4 shrink-0">{i + 1}</span>
+                      <p className="font-display font-800 text-xs uppercase text-white truncate flex-1">
+                        {p.name}
+                      </p>
+                      <span className="font-display font-800 text-xs text-[var(--accent)] shrink-0">{p.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Link href="/leaders" className="block font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest hover:underline">
+                All leaders →
+              </Link>
+            </div>
           </div>
         </div>
       </section>

@@ -4,20 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-
-const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
-  { href: '/',            label: 'Home' },
-  { href: '/stand',       label: 'Stand' },
-  { href: '/livescores',  label: 'Live' },
-  { href: '/schema',      label: 'Schema' },
-  { href: '/uitslagen',   label: 'Uitslagen' },
-  { href: '/leaders',     label: 'Leaders' },
-  { href: '/livestream',  label: 'Livestream' },
-  { href: '/nieuws',      label: 'Nieuws' },
-  { href: '/rosters',     label: 'Rosters' },
-  { href: '/social',      label: 'Social' },
-  { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'Honkbalsoftbal.tv', external: true },
-]
+import { useLanguage } from '@/lib/language'
 
 export default function NavBar() {
   const [open, setOpen] = useState(false)
@@ -25,6 +12,21 @@ export default function NavBar() {
   const pathname = usePathname()
   const isHome = pathname === '/'
   const transparent = isHome && !scrolled
+  const { lang, t, toggle } = useLanguage()
+
+  const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
+    { href: '/',            label: t.home },
+    { href: '/stand',       label: t.standings },
+    { href: '/livescores',  label: t.live },
+    { href: '/schema',      label: t.schedule },
+    { href: '/uitslagen',   label: t.results },
+    { href: '/leaders',     label: t.leaders },
+    { href: '/livestream',  label: t.livestream },
+    { href: '/nieuws',      label: t.news },
+    { href: '/rosters',     label: t.rosters },
+    { href: '/social',      label: t.social },
+    { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'Honkbalsoftbal.tv', external: true },
+  ]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -79,6 +81,14 @@ export default function NavBar() {
             </Link>
           ))}
         </div>
+
+        {/* Language toggle */}
+        <button
+          onClick={toggle}
+          className="hidden lg:flex items-center gap-1 font-display font-800 text-xs uppercase tracking-widest border border-white/20 rounded px-2 py-1 text-white/60 hover:text-white hover:border-white/40 transition-colors shrink-0"
+        >
+          {lang === 'en' ? 'NL' : 'EN'}
+        </button>
 
         {/* Hamburger */}
         <button

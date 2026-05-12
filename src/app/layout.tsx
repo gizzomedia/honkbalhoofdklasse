@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import NavBar from '@/components/NavBar'
+import { LanguageProvider } from '@/lib/language'
 import './globals.css'
 
 const barlowCondensed = Barlow_Condensed({
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <body>
+        <LanguageProvider>
         <NavBar />
 
         <main className="pt-20">
@@ -54,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
 
+        </LanguageProvider>
         <footer className="border-t border-[var(--border)] bg-[var(--card)]">
           <div className="max-w-5xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
