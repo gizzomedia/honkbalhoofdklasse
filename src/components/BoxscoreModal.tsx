@@ -149,7 +149,7 @@ export default function BoxscoreModal({
           <>
             {/* Inning score table */}
             <div className="px-3 pb-2 overflow-x-auto">
-              <table className="w-full border-collapse text-center min-w-max mx-auto">
+              <table className="border-collapse text-center mx-auto">
                 <thead>
                   <tr>
                     <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-left w-24">Team</th>
