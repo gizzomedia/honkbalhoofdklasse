@@ -45,7 +45,7 @@ const BROWSER_HEADERS = {
 async function getNews(): Promise<NewsItem[]> {
   try {
     const res = await fetch(
-      'https://honkbalsoftbal.nl/wp-json/wp/v2/posts?per_page=15&_fields=title,link',
+      'https://honkbalsoftbal.nl/wp-json/wp/v2/posts?categories=544&per_page=15&_fields=title,link',
       { next: { revalidate: 1800 } }
     )
     const data = await res.json()

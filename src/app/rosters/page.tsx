@@ -41,11 +41,9 @@ async function buildRosters(): Promise<Rosters> {
     const schedData = await schedRes.json()
     const allGames: Record<string, unknown>[] = schedData.games ?? []
 
-    // Take last 21 finished games (covers all 7 teams at least 3x)
+    // Use all finished games for complete roster coverage
     const finishedIds = allGames
       .filter(g => String(g.gamestatus) === '2' || String(g.gamestatus) === '3')
-      .sort((a, b) => String(b.start ?? '').localeCompare(String(a.start ?? '')))
-      .slice(0, 21)
       .map(g => String(g.id))
 
     // Fetch all boxscores in parallel
@@ -154,7 +152,7 @@ export default async function RostersPage() {
           <strong>Rosters</strong>
         </h1>
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
-          Spelers gesorteerd op positie · gebaseerd op recente wedstrijden
+          Based on all played games this season
         </p>
       </div>
       <RosterTabs rosters={rosters} />
