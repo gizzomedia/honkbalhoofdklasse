@@ -15,7 +15,7 @@ const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: '/livestream',  label: 'Livestream' },
   { href: '/nieuws',      label: 'Nieuws' },
   { href: '/social',      label: 'Social' },
-  { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'TV', external: true },
+  { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'Honkbalsoftbal.tv', external: true },
 ]
 
 export default function NavBar() {
