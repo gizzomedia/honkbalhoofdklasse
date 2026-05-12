@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  --accent:  #fe3d00;
+  --navy:    #1e335a;
+  --gold:    #F5C200;
+  --bg:      #ffffff;
+  --card:    #111E2E;
+  --card-hover: #162435;
+  --border:  #1E2E42;
+  --text:    #FFFFFF;
+  --muted:   #8BA0B8;
+}
+
+@theme {
+  --color-accent:  #fe3d00;
+  --color-navy:    #1e335a;
+  --color-gold:    #F5C200;
+  --color-bg:      #ffffff;
+  --color-card:    #111E2E;
+  --color-border:  #1E2E42;
+  --color-muted:   #8BA0B8;
+
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-body:    'Inter', sans-serif;
+}
+
+html, body {
+  background-color: #0D1520;
+  color: #ffffff;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+@keyframes progress {
+  from { width: 0% }
+  to   { width: 100% }
+}
+
+.animate-progress {
+  animation: progress linear forwards;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
