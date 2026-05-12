@@ -36,11 +36,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="overflow-hidden">
             <div className="flex animate-marquee gap-16 items-center" style={{ width: 'max-content' }}>
               {[
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603906/nouzoos_logo_transp_c6ayxz.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603906/nouzoos_logo_transp_c6ayxz.png',
+                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
                 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
