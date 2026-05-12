@@ -123,10 +123,10 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
                         key={i}
                         className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors"
                       >
-                        <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10" style={{ color }}>
+                        <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10 text-white">
                           {player.uniform || '–'}
                         </td>
-                        <td className="font-display font-800 text-sm text-white px-3 py-2.5">
+                        <td className="font-display font-800 text-base text-white px-3 py-2.5">
                           {player.name}
                         </td>
                         <td className="text-center px-3 py-2.5 w-14">
@@ -187,7 +187,7 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
                       key={i}
                       className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors"
                     >
-                      <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10" style={{ color }}>
+                      <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10 text-white">
                         {coach.uniform || '–'}
                       </td>
                       <td className="font-display font-800 text-sm text-white px-3 py-2.5">

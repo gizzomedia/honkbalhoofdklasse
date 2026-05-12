@@ -38,20 +38,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="overflow-hidden">
             <div className="flex animate-marquee gap-16 items-center" style={{ width: 'max-content' }}>
               {[
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',
-                'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',
-              ].map((src, i) => (
-                <div key={i} className="w-28 h-9 flex items-center justify-center shrink-0">
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',                    w: 'w-[129px]', h: 'h-[41px]' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png', w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp', w: 'w-28',   h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',                    w: 'w-[129px]', h: 'h-[41px]' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png', w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp', w: 'w-28',   h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
+              ].map(({ src, w, h }, i) => (
+                <div key={i} className={`${w} ${h} flex items-center justify-center shrink-0`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={src} alt="sponsor" className="max-w-full max-h-full object-contain opacity-70 hover:opacity-100 transition-opacity" />
                 </div>
