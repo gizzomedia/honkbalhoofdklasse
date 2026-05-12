@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_LINKS = [
+const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: '/',            label: 'Home' },
   { href: '/stand',       label: 'Stand' },
   { href: '/livescores',  label: 'Live' },
@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { href: '/livestream',  label: 'Livestream' },
   { href: '/nieuws',      label: 'Nieuws' },
   { href: '/social',      label: 'Social' },
+  { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'TV', external: true },
 ]
 
 export default function NavBar() {
@@ -55,7 +56,17 @@ export default function NavBar() {
 
         {/* Desktop nav */}
         <div className="hidden lg:flex gap-6 text-sm font-display font-700 uppercase tracking-wider">
-          {NAV_LINKS.map(link => (
+          {NAV_LINKS.map(link => link.external ? (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-white text-white/60"
+            >
+              {link.label}
+            </a>
+          ) : (
             <Link
               key={link.href}
               href={link.href}
@@ -83,7 +94,17 @@ export default function NavBar() {
       {/* Mobile menu */}
       <div className={`lg:hidden overflow-hidden transition-all duration-300 ${open ? 'max-h-96' : 'max-h-0'}`}>
         <div className="bg-[var(--card)] border-t border-[var(--border)] px-4 py-4 grid grid-cols-2 gap-1">
-          {NAV_LINKS.map(link => (
+          {NAV_LINKS.map(link => link.external ? (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors text-white/60 hover:text-white hover:bg-[var(--card-hover)]"
+            >
+              {link.label}
+            </a>
+          ) : (
             <Link
               key={link.href}
               href={link.href}
