@@ -1,32 +1,147 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/language'
 
+type NavItem = { href: string; label: string; external?: boolean }
+type NavGroup = { label: string; items: NavItem[] }
+
+function useNavGroups(): NavGroup[] {
+  const { t } = useLanguage()
+  return [
+    {
+      label: 'Scores',
+      items: [
+        { href: '/livescores',  label: t.live },
+        { href: '/schema',      label: t.schedule },
+        { href: '/uitslagen',   label: t.results },
+      ],
+    },
+    {
+      label: 'Stats',
+      items: [
+        { href: '/stand',   label: t.standings },
+        { href: '/leaders', label: t.leaders },
+        { href: '/rosters', label: t.rosters },
+      ],
+    },
+    {
+      label: 'Media',
+      items: [
+        { href: '/nieuws',     label: t.news },
+        { href: '/livestream', label: t.livestream },
+        { href: '/social',     label: t.social },
+      ],
+    },
+  ]
+}
+
+function DropdownMenu({ group, pathname }: { group: NavGroup; pathname: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const isActive = group.items.some(i => i.href === pathname)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${isActive ? 'text-white' : 'text-white/60'}`}
+      >
+        {group.label}
+        <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-2 bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xl z-50 min-w-[160px]">
+          {group.items.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className={`block px-4 py-2.5 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:bg-[var(--card-hover)] hover:text-white ${pathname === item.href ? 'text-[var(--accent)]' : 'text-white/70'}`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LangDropdown() {
+  const { lang, toggle } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  const options = [
+    { code: 'en', flag: '🇬🇧', label: 'English' },
+    { code: 'nl', flag: '🇳🇱', label: 'Nederlands' },
+  ]
+  const current = options.find(o => o.code === lang)!
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 font-display font-700 text-sm text-white/70 hover:text-white transition-colors border border-white/20 hover:border-white/40 rounded-lg px-2.5 py-1.5"
+      >
+        <span>{current.flag}</span>
+        <span className="uppercase tracking-wider text-xs">{current.code.toUpperCase()}</span>
+        <svg className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 mt-2 bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xl z-50 min-w-[150px]">
+          {options.map(opt => (
+            <button
+              key={opt.code}
+              onClick={() => { if (opt.code !== lang) toggle(); setOpen(false) }}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 font-display font-700 text-sm transition-colors hover:bg-[var(--card-hover)] ${opt.code === lang ? 'text-[var(--accent)]' : 'text-white/70 hover:text-white'}`}
+            >
+              <span>{opt.flag}</span>
+              <span>{opt.label}</span>
+              {opt.code === lang && <span className="ml-auto text-[var(--accent)]">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function NavBar() {
   const [open, setOpen] = useState(false)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const isHome = pathname === '/'
   const transparent = isHome && !scrolled
-  const { lang, t, toggle } = useLanguage()
-
-  const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
-    { href: '/',            label: t.home },
-    { href: '/stand',       label: t.standings },
-    { href: '/livescores',  label: t.live },
-    { href: '/schema',      label: t.schedule },
-    { href: '/uitslagen',   label: t.results },
-    { href: '/leaders',     label: t.leaders },
-    { href: '/livestream',  label: t.livestream },
-    { href: '/nieuws',      label: t.news },
-    { href: '/rosters',     label: t.rosters },
-    { href: '/social',      label: t.social },
-    { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'Honkbalsoftbal.tv', external: true },
-  ]
+  const { t } = useLanguage()
+  const groups = useNavGroups()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -34,7 +149,7 @@ export default function NavBar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => { setOpen(false); setOpenGroup(null) }, [pathname])
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -58,37 +173,29 @@ export default function NavBar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden lg:flex gap-6 text-sm font-display font-700 uppercase tracking-wider">
-          {NAV_LINKS.map(link => link.external ? (
-            <a
-              key={link.href}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-white text-white/60"
-            >
-              {link.label}
-            </a>
-          ) : (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`transition-colors hover:text-white ${
-                pathname === link.href ? 'text-white' : 'text-white/60'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        <div className="hidden lg:flex items-center gap-6">
+          <Link
+            href="/"
+            className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === '/' ? 'text-white' : 'text-white/60'}`}
+          >
+            {t.home}
+          </Link>
 
-        {/* Language toggle */}
-        <button
-          onClick={toggle}
-          className="hidden lg:flex items-center gap-1 font-display font-800 text-xs uppercase tracking-widest border border-white/20 rounded px-2 py-1 text-white/60 hover:text-white hover:border-white/40 transition-colors shrink-0"
-        >
-          {lang === 'en' ? 'NL' : 'EN'}
-        </button>
+          {groups.map(group => (
+            <DropdownMenu key={group.label} group={group} pathname={pathname} />
+          ))}
+
+          <a
+            href="https://app.honkbalsoftbal.tv/nl/home"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-display font-700 text-sm uppercase tracking-wider text-white/60 hover:text-white transition-colors"
+          >
+            Honkbalsoftbal.tv
+          </a>
+
+          <LangDropdown />
+        </div>
 
         {/* Hamburger */}
         <button
@@ -103,31 +210,48 @@ export default function NavBar() {
       </div>
 
       {/* Mobile menu */}
-      <div className={`lg:hidden overflow-hidden transition-all duration-300 ${open ? 'max-h-96' : 'max-h-0'}`}>
-        <div className="bg-[var(--card)] border-t border-[var(--border)] px-4 py-4 grid grid-cols-2 gap-1">
-          {NAV_LINKS.map(link => link.external ? (
-            <a
-              key={link.href}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors text-white/60 hover:text-white hover:bg-[var(--card-hover)]"
-            >
-              {link.label}
-            </a>
-          ) : (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${
-                pathname === link.href
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'
-              }`}
-            >
-              {link.label}
-            </Link>
+      <div className={`lg:hidden overflow-hidden transition-all duration-300 ${open ? 'max-h-[600px]' : 'max-h-0'}`}>
+        <div className="bg-[var(--card)] border-t border-[var(--border)] px-4 py-4 space-y-1">
+          {/* Home */}
+          <Link href="/"
+            className={`block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === '/' ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
+            {t.home}
+          </Link>
+
+          {/* Groups */}
+          {groups.map(group => (
+            <div key={group.label}>
+              <button
+                onClick={() => setOpenGroup(openGroup === group.label ? null : group.label)}
+                className="w-full flex items-center justify-between font-display font-800 text-xs uppercase tracking-widest text-[var(--muted)] px-4 py-2"
+              >
+                {group.label}
+                <svg className={`w-3 h-3 transition-transform ${openGroup === group.label ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {openGroup === group.label && (
+                <div className="grid grid-cols-2 gap-1 pl-2">
+                  {group.items.map(item => (
+                    <Link key={item.href} href={item.href}
+                      className={`font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
+
+          {/* External + Lang */}
+          <a href="https://app.honkbalsoftbal.tv/nl/home" target="_blank" rel="noopener noreferrer"
+            className="block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl text-white/60 hover:text-white hover:bg-[var(--card-hover)] transition-colors">
+            Honkbalsoftbal.tv
+          </a>
+
+          <div className="pt-2 border-t border-[var(--border)] mt-2 px-4">
+            <LangDropdown />
+          </div>
         </div>
       </div>
     </nav>

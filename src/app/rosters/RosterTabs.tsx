@@ -23,19 +23,17 @@ const TEAM_NAMES: Record<string, string> = {
 const TEAM_ORDER = ['neptunus', 'pirates', 'kinheim', 'hcaw', 'twins', 'pioniers', 'uvv']
 
 const POSITION_GROUPS: { label: string; short: string; positions: string[] }[] = [
-  { label: 'Starting Pitchers', short: 'SP', positions: ['SP'] },
-  { label: 'Relief Pitchers',   short: 'RP', positions: ['RP'] },
-  { label: 'Catcher',           short: 'C',  positions: ['C'] },
-  { label: 'First Base',        short: '1B', positions: ['1B'] },
-  { label: 'Second Base',       short: '2B', positions: ['2B'] },
-  { label: 'Third Base',        short: '3B', positions: ['3B'] },
-  { label: 'Shortstop',         short: 'SS', positions: ['SS'] },
-  { label: 'Left Field',        short: 'LF', positions: ['LF'] },
-  { label: 'Center Field',      short: 'CF', positions: ['CF'] },
-  { label: 'Right Field',       short: 'RF', positions: ['RF'] },
-  { label: 'Designated Hitter', short: 'DH', positions: ['DH'] },
-  { label: 'Utility / Pinch',   short: 'UT', positions: ['OF', 'IF', 'UT', 'PH', 'PR', 'EH'] },
+  { label: 'Pitchers',  short: 'P',  positions: ['SP', 'RP'] },
+  { label: 'Infield',   short: 'IF', positions: ['C', '1B', '2B', '3B', 'SS'] },
+  { label: 'Outfield',  short: 'OF', positions: ['LF', 'CF', 'RF', 'DH', 'OF', 'IF', 'UT', 'PH', 'PR', 'EH'] },
 ]
+
+const POSITION_LABEL: Record<string, string> = {
+  SP: 'SP', RP: 'RP',
+  C: 'C', '1B': '1B', '2B': '2B', '3B': '3B', SS: 'SS',
+  LF: 'LF', CF: 'CF', RF: 'RF', DH: 'DH',
+  OF: 'OF', IF: 'IF', UT: 'UT', PH: 'PH', PR: 'PR', EH: 'EH',
+}
 
 export type RosterPlayer = {
   name: string
@@ -118,7 +116,7 @@ export default function RosterTabs({ rosters }: { rosters: Rosters }) {
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                   style={{ backgroundColor: TEAM_COLORS[activeTeam] ?? '#1e335a' }}
                 >
-                  <span className="font-display font-800 text-white text-sm">{group.short}</span>
+                  <span className="font-display font-800 text-white text-xs">{group.short}</span>
                 </div>
                 <div>
                   <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
@@ -139,15 +137,22 @@ export default function RosterTabs({ rosters }: { rosters: Rosters }) {
                   >
                     {/* Jersey number */}
                     <span
-                      className="font-display font-800 text-lg w-8 text-center shrink-0 leading-none"
+                      className="font-display font-800 text-base w-7 text-center shrink-0 leading-none"
                       style={{ color: TEAM_COLORS[activeTeam] ?? 'var(--accent)' }}
                     >
                       {player.uniform || '–'}
                     </span>
                     {/* Name */}
-                    <p className="font-display font-800 text-sm uppercase text-white leading-tight truncate">
+                    <p className="font-display font-800 text-sm uppercase text-white leading-tight truncate flex-1">
                       <strong>{formatName(player.name)}</strong>
                     </p>
+                    {/* Position badge */}
+                    <span
+                      className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0"
+                      style={{ backgroundColor: TEAM_COLORS[activeTeam] ?? '#1e335a' }}
+                    >
+                      {POSITION_LABEL[player.primaryPos] ?? player.primaryPos}
+                    </span>
                   </div>
                 ))}
               </div>
