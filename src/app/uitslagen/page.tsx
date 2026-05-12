@@ -1,7 +1,9 @@
-import { supabase } from '@/lib/supabase'
-import Image from 'next/image'
+'use client'
 
-export const revalidate = 120
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { supabase } from '@/lib/supabase'
+import BoxscoreModal from '@/components/BoxscoreModal'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -23,21 +25,12 @@ const TEAM_NAMES: Record<string, string> = {
 
 type Game = {
   id: number
+  external_id: string
   game_date: string
   home_team_id: string
   away_team_id: string
   home_score: number | null
   away_score: number | null
-  status: string
-}
-
-async function getResults() {
-  const { data } = await supabase
-    .from('games').select('*')
-    .eq('status', 'final')
-    .order('game_date', { ascending: false })
-    .limit(30)
-  return data ?? []
 }
 
 function TeamLogo({ teamId }: { teamId: string }) {
@@ -54,30 +47,28 @@ function TeamLogo({ teamId }: { teamId: string }) {
 }
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function ResultCard({ game }: { game: Game }) {
+function ResultCard({ game, onClick }: { game: Game; onClick: () => void }) {
   const homeWon = game.home_score !== null && game.away_score !== null && game.home_score > game.away_score
   const awayWon = game.home_score !== null && game.away_score !== null && game.away_score > game.home_score
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3">
-
-      {/* Datum + Final */}
+    <button
+      onClick={onClick}
+      className="w-full text-left bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 hover:border-[var(--accent)]/50 hover:bg-[var(--card-hover)] transition-all cursor-pointer group"
+    >
       <div className="flex items-center justify-between mb-2.5">
         <p className="font-display font-800 text-sm uppercase text-white leading-none">
           {formatDate(game.game_date)}
         </p>
-        <p className="font-display font-800 italic text-sm text-[var(--accent)] uppercase">
-          <strong>Final</strong>
+        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest group-hover:text-[var(--accent)] transition-colors">
+          Boxscore →
         </p>
       </div>
 
-      {/* Teams + score */}
       <div className="flex items-center gap-2">
-        {/* Away */}
         <div className={`flex items-center gap-2 flex-1 min-w-0 justify-end ${awayWon ? '' : 'opacity-50'}`}>
           <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
             <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
@@ -85,7 +76,6 @@ function ResultCard({ game }: { game: Game }) {
           <TeamLogo teamId={game.away_team_id} />
         </div>
 
-        {/* Score */}
         <div className="shrink-0 w-14 text-center">
           {game.away_score !== null && game.home_score !== null ? (
             <p className="font-display font-800 text-xl text-white tracking-tight">
@@ -98,7 +88,6 @@ function ResultCard({ game }: { game: Game }) {
           )}
         </div>
 
-        {/* Home */}
         <div className={`flex items-center gap-2 flex-1 min-w-0 ${homeWon ? '' : 'opacity-50'}`}>
           <TeamLogo teamId={game.home_team_id} />
           <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
@@ -106,29 +95,59 @@ function ResultCard({ game }: { game: Game }) {
           </p>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
-export default async function UitslagenPage() {
-  const results = await getResults()
+export default function UitslagenPage() {
+  const [results, setResults] = useState<Game[]>([])
+  const [selected, setSelected] = useState<Game | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('games')
+      .select('id, external_id, game_date, home_team_id, away_team_id, home_score, away_score')
+      .eq('status', 'final')
+      .order('game_date', { ascending: false })
+      .limit(30)
+      .then(({ data }) => setResults((data ?? []) as Game[]))
+  }, [])
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
-      <div>
-        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
-        <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
-          <strong>Uitslagen</strong>
-        </h1>
+    <>
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
+        <div>
+          <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
+          <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
+            <strong>Uitslagen</strong>
+          </h1>
+        </div>
+
+        {results.length === 0 ? (
+          <div className="flex items-center gap-3 py-8">
+            <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Laden…</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {results.map(g => (
+              <ResultCard key={g.id} game={g} onClick={() => setSelected(g)} />
+            ))}
+          </div>
+        )}
       </div>
 
-      {results.length === 0 ? (
-        <p className="font-display font-700 text-[var(--muted)] text-xl uppercase">Nog geen uitslagen beschikbaar</p>
-      ) : (
-        <div className="space-y-2">
-          {results.map(g => <ResultCard key={g.id} game={g} />)}
-        </div>
+      {selected && (
+        <BoxscoreModal
+          gameId={selected.external_id}
+          awayId={selected.away_team_id}
+          homeId={selected.home_team_id}
+          awayScore={selected.away_score}
+          homeScore={selected.home_score}
+          gameDate={selected.game_date}
+          onClose={() => setSelected(null)}
+        />
       )}
-    </div>
+    </>
   )
 }
