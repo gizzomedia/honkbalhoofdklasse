@@ -14,6 +14,7 @@ const NAV_LINKS: { href: string; label: string; external?: boolean }[] = [
   { href: '/leaders',     label: 'Leaders' },
   { href: '/livestream',  label: 'Livestream' },
   { href: '/nieuws',      label: 'Nieuws' },
+  { href: '/rosters',     label: 'Rosters' },
   { href: '/social',      label: 'Social' },
   { href: 'https://app.honkbalsoftbal.tv/nl/home', label: 'Honkbalsoftbal.tv', external: true },
 ]

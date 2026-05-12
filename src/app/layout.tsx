@@ -76,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     ['/leaders', 'Leaders'],
                     ['/livestream', 'Livestream'],
                     ['/nieuws', 'Nieuws'],
+                    ['/rosters', 'Rosters'],
                   ].map(([href, label]) => (
                     <a key={href} href={href} className="font-display font-700 text-sm text-[var(--muted)] hover:text-white transition-colors uppercase tracking-wide">
                       {label}
