@@ -76,13 +76,13 @@ export default async function StandPage() {
       {/* Tabel */}
       <div className="rounded-2xl overflow-hidden border border-[var(--border)]">
         {/* Kolomkoppen */}
-        <div className="grid grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
+        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
           <span>#</span>
           <span>Team</span>
-          <span className="text-center">G</span>
           <span className="text-center">W</span>
           <span className="text-center">L</span>
           <span className="text-center">PCT</span>
+          <span className="text-center hidden md:block">G</span>
         </div>
 
         {standings.map((s, i) => {
@@ -99,7 +99,7 @@ export default async function StandPage() {
             <div
               key={s.team_id}
               className={`
-                grid grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-5 py-4
+                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-4 md:px-5 py-4
                 items-center border-b border-[var(--border)] last:border-0
                 transition-colors
                 ${isLeader
@@ -151,42 +151,23 @@ export default async function StandPage() {
               </div>
 
               {/* Stats */}
-              <span className={`text-center font-display font-600 text-lg ${isLeader ? 'text-white' : 'text-white'}`}>
-                {s.games_played}
-              </span>
-              <span className={`text-center font-display font-800 text-lg ${isLeader ? 'text-white' : 'text-white'}`}>
+              <span className={`text-center font-display font-800 text-base ${isLeader ? 'text-white' : 'text-white'}`}>
                 {s.wins}
               </span>
-              <span className={`text-center font-display font-600 text-lg ${isLeader ? 'text-white/70' : 'text-[var(--muted)]'}`}>
+              <span className={`text-center font-display font-600 text-base ${isLeader ? 'text-white/70' : 'text-[var(--muted)]'}`}>
                 {s.losses}
               </span>
               <span className={`text-center font-display font-700 text-base ${isLeader ? 'text-white' : 'text-[var(--accent)]'}`}>
                 {pct}
+              </span>
+              <span className={`text-center font-display font-600 text-base hidden md:block ${isLeader ? 'text-white' : 'text-white'}`}>
+                {s.games_played}
               </span>
             </div>
           )
         })}
       </div>
 
-      {/* Runs diff cards */}
-      {standings.length > 0 && (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {standings.slice(0, 4).map(s => (
-            <div key={s.team_id} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4">
-              <p className="font-display font-700 uppercase text-xs text-[var(--muted)] tracking-widest mb-1">
-                {TEAM_NAMES[s.team_id] ?? s.team_id}
-              </p>
-              <p className="font-display font-800 text-2xl text-white">
-                {s.runs_scored}
-                <span className="text-[var(--muted)] font-600 text-lg"> RS</span>
-              </p>
-              <p className="font-display font-600 text-sm text-[var(--muted)]">
-                {s.runs_allowed} RA · {s.runs_scored - s.runs_allowed > 0 ? '+' : ''}{s.runs_scored - s.runs_allowed} diff
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
 
     </div>
   )

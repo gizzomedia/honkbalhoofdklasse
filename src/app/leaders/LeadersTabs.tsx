@@ -172,7 +172,8 @@ function CategoryCard({ category }: { category: KnbsbCategory }) {
                     <strong>{TEAM_SHORT[teamKey] ?? String(player.team ?? '').slice(0, 3)}</strong>
                   </span>
                   <p className="font-display font-800 text-[1.2rem] uppercase leading-none truncate text-white">
-                    <strong>{name}</strong>
+                    <span className="hidden sm:inline"><strong>{name.split(' ').slice(0, -1).join(' ')} </strong></span>
+                    <strong>{name.split(' ').at(-1)}</strong>
                   </p>
                 </div>
                 <p className={`font-display font-800 text-lg text-center ${isFirst ? 'text-white' : 'text-[var(--accent)]'}`}>

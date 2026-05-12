@@ -30,6 +30,7 @@ export default function PredictionWidget({
   const [awayVotes, setAwayVotes] = useState(0)
   const [votedFor, setVotedFor] = useState<'home' | 'away' | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     const voterId = getVoterId()
@@ -56,17 +57,20 @@ export default function PredictionWidget({
     if (votedFor || loading) return
     const voterId = getVoterId()
 
-    const { error } = await supabase
+    const { error: err } = await supabase
       .from('predictions')
       .upsert(
         { game_id: gameId, predicted_winner: side, voter_id: voterId },
         { onConflict: 'game_id,voter_id' }
       )
 
-    if (!error) {
+    if (!err) {
       setVotedFor(side)
       if (side === 'home') setHomeVotes(v => v + 1)
       else setAwayVotes(v => v + 1)
+    } else {
+      console.error('Prediction error:', err)
+      setError(true)
     }
   }
 
@@ -75,6 +79,13 @@ export default function PredictionWidget({
   const homePct = total > 0 ? Math.round((homeVotes / total) * 100) : 50
 
   if (loading) return null
+  if (error) return (
+    <div className="border-t border-[var(--border)] pt-3 mt-1">
+      <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
+        Stemmen tijdelijk niet beschikbaar
+      </p>
+    </div>
+  )
 
   return (
     <div className="border-t border-[var(--border)] pt-3 mt-1">

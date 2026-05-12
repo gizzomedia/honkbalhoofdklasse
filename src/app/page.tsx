@@ -153,10 +153,11 @@ export default async function HomePage() {
             </div>
 
             {/* Header row */}
-            <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 px-4 pb-3 border-b border-[#0f1e2e]">
-              {['#', 'Team', 'G', 'W', 'L', 'PCT'].map(h => (
+            <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 px-4 pb-3 border-b border-[#0f1e2e]">
+              {['#', 'Team', 'W', 'L', 'PCT'].map(h => (
                 <span key={h} className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center first:text-left">{h}</span>
               ))}
+              <span className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center hidden md:block">PCT</span>
             </div>
 
             <div className="divide-y divide-[#0a1620]">
@@ -165,14 +166,14 @@ export default async function HomePage() {
                 const isFirst = i === 0
                 return (
                   <div key={s.team_id}
-                    className={`grid grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 items-center px-4 py-3.5 transition-colors ${
+                    className={`grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 items-center px-4 py-3.5 transition-colors ${
                       isFirst ? 'bg-[var(--accent)]/10 border-l-[3px] border-[var(--accent)]' : 'hover:bg-[#0a1620]'
                     }`}>
-                    <span className={`font-display font-800 text-base ${isFirst ? 'text-[var(--accent)]' : 'text-[#4a6a8a]'}`}>{i + 1}</span>
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <TeamLogo teamId={s.team_id} size={38} />
-                      <div>
-                        <p className="font-display font-800 text-base uppercase text-white leading-none truncate">
+                    <span className={`font-display font-800 text-sm ${isFirst ? 'text-[var(--accent)]' : 'text-[#4a6a8a]'}`}>{i + 1}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TeamLogo teamId={s.team_id} size={32} />
+                      <div className="min-w-0">
+                        <p className="font-display font-800 text-sm uppercase text-white leading-none truncate">
                           {TEAM_NAMES[s.team_id] ?? s.team_id}
                         </p>
                         {isFirst && (
@@ -180,10 +181,10 @@ export default async function HomePage() {
                         )}
                       </div>
                     </div>
-                    <span className="font-display font-700 text-base text-white text-center">{s.games_played}</span>
-                    <span className="font-display font-800 text-base text-white text-center">{s.wins}</span>
-                    <span className="font-display font-600 text-base text-[#4a6a8a] text-center">{s.losses}</span>
-                    <span className={`font-display font-800 text-base text-center ${isFirst ? 'text-[var(--accent)]' : 'text-white'}`}>{pct}</span>
+                    <span className="font-display font-800 text-sm text-white text-center">{s.wins}</span>
+                    <span className="font-display font-600 text-sm text-[#4a6a8a] text-center">{s.losses}</span>
+                    <span className={`font-display font-800 text-sm text-center ${isFirst ? 'text-[var(--accent)]' : 'text-white'}`}>{pct}</span>
+                    <span className="font-display font-700 text-sm text-white text-center hidden md:block">{s.games_played}</span>
                   </div>
                 )
               })}
