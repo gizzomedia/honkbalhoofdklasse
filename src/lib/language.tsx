@@ -12,14 +12,22 @@ const translations = {
     recentResults: 'Recent Results', standingsTitle: 'Standings', upcoming: 'Upcoming',
     allResults: 'All results →', fullStandings: 'Full →', predict: 'Predict the result →',
     noGames: 'No games scheduled',
+    newsLabel: 'News →', media: 'Media', allMedia: 'All media →',
+    allLeaders: 'All leaders →', currentLeader: 'Current Leader', fullStandingsBtn: 'Full Standings',
+    final: 'Final', leader: 'Leader',
+    battingAvg: 'Batting AVG',
   },
   nl: {
     home: 'Home', standings: 'Stand', live: 'Live', schedule: 'Schema',
     results: 'Uitslagen', leaders: 'Leaders', livestream: 'Livestream',
     news: 'Nieuws', rosters: 'Rosters', social: 'Social', awards: 'Awards',
-    recentResults: 'Recente Uitslagen', standingsTitle: 'Hoofdklasse Stand', upcoming: 'Aankomend',
+    recentResults: 'Recente Uitslagen', standingsTitle: 'Stand', upcoming: 'Aankomend',
     allResults: 'Alle uitslagen →', fullStandings: 'Volledig →', predict: 'Voorspel de uitslag →',
     noGames: 'Geen wedstrijden gepland',
+    newsLabel: 'Nieuws →', media: 'Media', allMedia: 'Alle media →',
+    allLeaders: 'Alle leaders →', currentLeader: 'Huidige Leider', fullStandingsBtn: 'Volledige Stand',
+    final: 'Definitief', leader: 'Leider',
+    battingAvg: 'Slaggemiddelde',
   },
 }
 

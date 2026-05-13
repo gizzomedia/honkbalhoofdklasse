@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-export const revalidate = 300
+export const revalidate = 86400
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -40,6 +40,20 @@ const POS_LABELS: Record<string, string> = {
   'C/IF': 'Catcher / Infielder', UTL: 'Utility', DH: 'Designated Hitter',
 }
 
+type BattingRow  = { year:string; age:string; lg:string; team:string; g:string; ab:string; r:string; h:string; d:string; t:string; hr:string; rbi:string; bb:string; so:string; avg:string; obp:string; slg:string }
+type PitchingRow = { year:string; age:string; lg:string; team:string; w:string; l:string; era:string; g:string; gs:string; sv:string; ip:string; h:string; bb:string; so:string; whip:string }
+
+async function getCareerStats(bbrefId: string): Promise<{ batting: BattingRow[]; pitching: PitchingRow[] }> {
+  try {
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://honkbalhoofdklasse.com'
+    const res = await fetch(`${base}/api/career-stats?id=${encodeURIComponent(bbrefId)}`, {
+      next: { revalidate: 86400 },
+    })
+    if (!res.ok) return { batting: [], pitching: [] }
+    return res.json()
+  } catch { return { batting: [], pitching: [] } }
+}
+
 async function getPlayerPhotos(playerName: string): Promise<{ banner_url: string | null; headshot_url: string | null }> {
   const { data } = await supabase
     .from('player_photos')
@@ -62,9 +76,10 @@ export default async function PlayerProfilePage({
   const player = roster.players.find(p => slugify(p.name) === playerSlug)
   if (!player) notFound()
 
-  const [awards, photos] = await Promise.all([
+  const [awards, photos, career] = await Promise.all([
     Promise.resolve(getAwardsByPlayer(player.name)),
     getPlayerPhotos(player.name),
+    player.bbref_id ? getCareerStats(player.bbref_id) : Promise.resolve({ batting: [], pitching: [] }),
   ])
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
@@ -244,6 +259,100 @@ export default async function PlayerProfilePage({
               View all awards →
             </Link>
           </div>
+        </section>
+      )}
+
+      {/* Career Stats */}
+      {(career.batting.length > 0 || career.pitching.length > 0) && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-6 bg-[var(--accent)] shrink-0" />
+            <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
+              <strong>Career Stats</strong>
+            </h2>
+            {player.bbref_id && (
+              <a
+                href={`https://www.baseball-reference.com/register/player.fcgi?id=${player.bbref_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto font-display font-700 text-[10px] text-[var(--muted)] hover:text-white uppercase tracking-widest transition-colors"
+              >
+                Baseball Reference →
+              </a>
+            )}
+          </div>
+
+          {career.batting.length > 0 && (
+            <div className="mb-5">
+              <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Batting</p>
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      {['Year','Age','Lg','Team','G','AB','R','H','2B','3B','HR','RBI','BB','SO','AVG','OBP','SLG'].map(h => (
+                        <th key={h} className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest px-2 py-2 text-center whitespace-nowrap first:text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {career.batting.map((row, i) => {
+                      const isCareer = row.year === 'Career'
+                      return (
+                        <tr key={i} className={`border-b border-[var(--border)] last:border-0 ${isCareer ? 'bg-[var(--accent)]/5 font-bold' : 'hover:bg-[var(--card-hover)]'} transition-colors`}>
+                          <td className={`font-display font-800 px-2 py-2 text-left whitespace-nowrap ${isCareer ? 'text-[var(--accent)]' : 'text-white'}`}>{row.year}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-[var(--muted)]">{row.age}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-[var(--muted)] whitespace-nowrap">{row.lg}</td>
+                          <td className="font-display font-800 px-2 py-2 text-center text-white whitespace-nowrap">{row.team}</td>
+                          {[row.g,row.ab,row.r,row.h,row.d,row.t,row.hr,row.rbi,row.bb,row.so].map((v,j) => (
+                            <td key={j} className="font-display font-700 px-2 py-2 text-center text-white">{v||'–'}</td>
+                          ))}
+                          <td className="font-display font-800 px-2 py-2 text-center" style={{ color: teamColor }}>{row.avg||'–'}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-white">{row.obp||'–'}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-white">{row.slg||'–'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {career.pitching.length > 0 && (
+            <div>
+              <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Pitching</p>
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      {['Year','Age','Lg','Team','W','L','ERA','G','GS','SV','IP','H','BB','SO','WHIP'].map(h => (
+                        <th key={h} className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest px-2 py-2 text-center whitespace-nowrap first:text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {career.pitching.map((row, i) => {
+                      const isCareer = row.year === 'Career'
+                      return (
+                        <tr key={i} className={`border-b border-[var(--border)] last:border-0 ${isCareer ? 'bg-[var(--accent)]/5' : 'hover:bg-[var(--card-hover)]'} transition-colors`}>
+                          <td className={`font-display font-800 px-2 py-2 text-left whitespace-nowrap ${isCareer ? 'text-[var(--accent)]' : 'text-white'}`}>{row.year}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-[var(--muted)]">{row.age}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-[var(--muted)] whitespace-nowrap">{row.lg}</td>
+                          <td className="font-display font-800 px-2 py-2 text-center text-white whitespace-nowrap">{row.team}</td>
+                          <td className="font-display font-800 px-2 py-2 text-center text-white">{row.w||'–'}</td>
+                          <td className="font-display font-700 px-2 py-2 text-center text-white">{row.l||'–'}</td>
+                          <td className="font-display font-800 px-2 py-2 text-center" style={{ color: teamColor }}>{row.era||'–'}</td>
+                          {[row.g,row.gs,row.sv,row.ip,row.h,row.bb,row.so,row.whip].map((v,j) => (
+                            <td key={j} className="font-display font-700 px-2 py-2 text-center text-white">{v||'–'}</td>
+                          ))}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

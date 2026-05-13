@@ -1,4 +1,4 @@
-export type Player = { uniform: string; name: string; pos: string; bt: string; yob: number; instagram?: string }
+export type Player = { uniform: string; name: string; pos: string; bt: string; yob: number; instagram?: string; bbref_id?: string }
 export type Coach  = { uniform: string; name: string; role: string }
 export type TeamRoster = { players: Player[]; coaches: Coach[] }
 export type StaticRosters = Record<string, TeamRoster>
@@ -208,7 +208,7 @@ export const ROSTERS: StaticRosters = {
       { uniform: '11', name: 'Dienston Manuela',      pos: 'P',  bt: 'L/L', yob: 1993 },
       { uniform: '9',  name: 'Nando Mostaert',        pos: 'IF', bt: 'R/R', yob: 2006 },
       { uniform: '6',  name: 'Rob Paller',            pos: 'OF', bt: 'L/R', yob: 1993 },
-      { uniform: '2',  name: 'Thijmen Peters',        pos: 'IF', bt: 'R/R', yob: 2001 },
+      { uniform: '2',  name: 'Thijmen Peters',        pos: 'IF', bt: 'R/R', yob: 2001, bbref_id: 'peters000thi' },
       { uniform: '28', name: 'Axel Poesmans',         pos: 'C',  bt: 'R/R', yob: 1996 },
       { uniform: '44', name: 'Yves Poesmans',         pos: 'OF', bt: 'R/R', yob: 1996 },
       { uniform: '30', name: 'Rens Romgens',          pos: 'P',  bt: 'R/R', yob: 2004 },
