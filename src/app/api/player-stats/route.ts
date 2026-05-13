@@ -13,8 +13,10 @@ export async function GET(req: NextRequest) {
   const name = searchParams.get('name') ?? ''
   const type = searchParams.get('type') === 'pitching' ? 'pitching' : 'batting'
 
-  const lastName = name.trim().split(' ').at(-1)?.toUpperCase() ?? ''
-  if (!lastName) return NextResponse.json({ seasonStats: null, seriesLog: [] })
+  const nameParts = name.trim().split(/\s+/)
+  const lastWord = nameParts.at(-1)?.toUpperCase() ?? ''
+  const fullLastPart = nameParts.slice(1).join(' ').toUpperCase() // "VAN DER MEER" for "Stijn van der Meer"
+  if (!lastWord) return NextResponse.json({ seasonStats: null, seriesLog: [] })
 
   let seasonStats: Record<string, unknown> | null = null
   try {
@@ -32,7 +34,14 @@ export async function GET(req: NextRequest) {
     const data = await res.json()
     const categories: Array<{ type: string; data: Record<string, unknown>[] }> = data.data ?? []
     for (const cat of categories) {
-      const found = cat.data.find(p => String(p.lastname ?? '').toUpperCase() === lastName)
+      const found = cat.data.find((p: Record<string, unknown>) => {
+        const knbsbLast = String(p.lastname ?? '').toUpperCase()
+        return (
+          knbsbLast === lastWord ||
+          knbsbLast === fullLastPart ||
+          knbsbLast.endsWith(' ' + lastWord)
+        )
+      })
       if (found) { seasonStats = found; break }
     }
   } catch { /* ignore */ }
@@ -46,7 +55,7 @@ export async function GET(req: NextRequest) {
     .from(table)
     .select(select)
     .eq('season', 2026)
-    .ilike('full_name', `%${lastName}%`)
+    .ilike('full_name', `%${lastWord}%`)
     .neq('series_week', 'season')
     .order('series_week', { ascending: true })
 

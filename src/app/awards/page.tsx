@@ -46,7 +46,6 @@ export default function AwardsPage() {
             <section key={cat.key} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
               {/* Category header */}
               <div className="flex items-center gap-4 px-6 py-5 border-b border-[var(--border)]">
-                <span className="text-3xl shrink-0">{cat.icon}</span>
                 <div>
                   <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
                     <strong>{cat.nl}</strong>

@@ -133,16 +133,18 @@ export default async function PlayerProfilePage({
               return (
                 <div key={i}
                   className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 flex items-center gap-4">
-                  <span className="text-3xl shrink-0">{cat?.icon ?? '🏆'}</span>
                   <div>
                     <p className="font-display font-800 text-base uppercase text-white leading-tight">
-                      {cat?.nl ?? award.category}
+                      {cat?.en ?? cat?.nl ?? award.category}
                     </p>
+                    {award.label && (
+                      <p className="font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest mt-0.5">{award.label}</p>
+                    )}
                     <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-0.5">
-                      Seizoen {award.season}
+                      Season {award.season}
                     </p>
                     {award.note && (
-                      <p className="font-display font-700 text-xs text-[var(--accent)] mt-1">{award.note}</p>
+                      <p className="font-display font-700 text-xs text-[var(--muted)] mt-1 italic">{award.note}</p>
                     )}
                   </div>
                 </div>
@@ -159,12 +161,12 @@ export default async function PlayerProfilePage({
             </h2>
           </div>
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 text-center">
-            <p className="font-display font-800 text-xl uppercase text-[var(--muted)] italic">Nog geen awards</p>
+            <p className="font-display font-800 text-xl uppercase text-[var(--muted)] italic">No awards yet</p>
             <p className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-widest mt-2">
-              Awards verschijnen hier zodra ze bekend zijn
+              Awards will appear here once announced
             </p>
             <Link href="/awards" className="inline-block mt-4 font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest hover:underline">
-              Bekijk alle awards →
+              View all awards →
             </Link>
           </div>
         </section>

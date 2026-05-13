@@ -32,7 +32,7 @@ function useNavGroups(): NavGroup[] {
     {
       label: 'Media',
       items: [
-        { href: '/nieuws',     label: t.news },
+        { href: 'https://honkbalsoftbal.nl/?cat=544', label: t.news },
         { href: '/livestream', label: t.livestream },
         { href: '/social',     label: t.social },
       ],
@@ -67,16 +67,18 @@ function DropdownMenu({ group, pathname }: { group: NavGroup; pathname: string }
 
       {open && (
         <div className="absolute top-full left-0 mt-2 bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xl z-50 min-w-[160px]">
-          {group.items.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`block px-4 py-2.5 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:bg-[var(--card-hover)] hover:text-white ${pathname === item.href ? 'text-[var(--accent)]' : 'text-white/70'}`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {group.items.map(item => {
+            const cls = `block px-4 py-2.5 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:bg-[var(--card-hover)] hover:text-white ${pathname === item.href ? 'text-[var(--accent)]' : 'text-white/70'}`
+            return item.href.startsWith('http') ? (
+              <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={cls}>
+                {item.label}
+              </a>
+            ) : (
+              <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={cls}>
+                {item.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>
@@ -233,12 +235,18 @@ export default function NavBar() {
               </button>
               {openGroup === group.label && (
                 <div className="grid grid-cols-2 gap-1 pl-2">
-                  {group.items.map(item => (
-                    <Link key={item.href} href={item.href}
-                      className={`font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
-                      {item.label}
-                    </Link>
-                  ))}
+                  {group.items.map(item => {
+                    const cls = `font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`
+                    return item.href.startsWith('http') ? (
+                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link key={item.href} href={item.href} className={cls}>
+                        {item.label}
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
             </div>
