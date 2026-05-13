@@ -5,6 +5,11 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(url, key)
 
+export const supabaseAdmin = createClient(
+  url,
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? key
+)
+
 export type Standing = {
   team_id: string
   team_name: string
