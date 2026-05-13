@@ -203,18 +203,33 @@ export async function GET(req: NextRequest) {
     gamesFound: 0,
   }
 
+  // pitch_ip in stenwessel is displayed innings: 7.0 = 7 inn, 2.1 = 2 inn + 1 out
+  function ipToOuts(ip: number): number {
+    const inn = Math.floor(ip)
+    const frac = Math.round((ip - inn) * 10) // .1→1, .2→2
+    return inn * 3 + frac
+  }
+
   let foundPlayer = false
 
   for (const data of boxScores) {
     if (!data) continue
-    const players = extractPlayersFromBoxScore(data)
-    const matched = players.find(p => matchesName(p, name))
+    const allPlayers = extractPlayersFromBoxScore(data)
+
+    // Deduplicate within this game: keep one record per player (highest ab wins)
+    const seen = new Map<string, BoxScorePlayer>()
+    for (const p of allPlayers) {
+      const key = `${p.firstname}_${p.lastname}`.toLowerCase()
+      const existing = seen.get(key)
+      if (!existing || n(p.ab) > n(existing.ab)) seen.set(key, p)
+    }
+
+    const matched = [...seen.values()].find(p => matchesName(p, name))
     if (!matched) continue
 
     foundPlayer = true
     agg.gamesFound++
 
-    // Batting
     agg.ab      += n(matched.ab)
     agg.h       += n(matched.h)
     agg.hr      += n(matched.hr)
@@ -229,8 +244,8 @@ export async function GET(req: NextRequest) {
     agg.sh      += n(matched.sh)
     agg.hbp     += n(matched.hbp)
 
-    // Pitching — pitch_ip is stored as total outs
-    agg.pitch_outs   += n(matched.pitch_ip)
+    // pitch_ip is innings display format — convert to outs before summing
+    agg.pitch_outs   += ipToOuts(n(matched.pitch_ip))
     agg.pitch_gs     += n(matched.pitch_gs)
     agg.pitch_er     += n(matched.pitch_er)
     agg.pitch_so     += n(matched.pitch_so)
@@ -275,8 +290,8 @@ export async function GET(req: NextRequest) {
       r: agg.r,
       bb: agg.bb,
       so: agg.so,
-      '2b': agg.double,
-      '3b': agg.triple,
+      double: agg.double,
+      triple: agg.triple,
       sb: agg.sb,
       sf: agg.sf,
       sh: agg.sh,
