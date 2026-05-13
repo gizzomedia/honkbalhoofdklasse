@@ -56,7 +56,7 @@ export default async function SocialPage() {
             </div>
             <div>
               <p className="font-display font-800 text-xl text-white uppercase"><strong>@honkbalhoofdklasse</strong></p>
-              <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-wider mt-0.5">KNBSB Hoofdklasse · Nieuws & Media</p>
+              <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-wider mt-0.5">KNBSB Hoofdklasse · News &amp; Media</p>
             </div>
           </div>
           <a

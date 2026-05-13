@@ -65,11 +65,11 @@ export default async function StandPage() {
       {/* Header */}
       <div className="mb-8">
         <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">
-          Seizoen 2026
+          Season 2026
         </p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
           <strong>Hoofdklasse</strong>
-          <span className="text-[var(--accent)]"> Standen</span>
+          <span className="text-[var(--accent)]"> Standings</span>
         </h1>
       </div>
 

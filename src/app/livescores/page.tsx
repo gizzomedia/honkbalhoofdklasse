@@ -205,7 +205,7 @@ export default function LivescoresPage() {
           {/* Geen live */}
           {!hasLive && (
             <div className="border border-[var(--border)] rounded-xl px-6 py-10 text-center">
-              <p className="font-display font-800 text-xl uppercase text-[var(--muted)] italic mb-1">Geen live wedstrijden</p>
+              <p className="font-display font-800 text-xl uppercase text-[var(--muted)] italic mb-1">No live games</p>
               <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
                 Tijdens wedstrijddagen verschijnen scores hier automatisch
               </p>

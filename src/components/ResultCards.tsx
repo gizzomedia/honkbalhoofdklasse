@@ -75,7 +75,7 @@ export default function ResultCards({ games }: { games: Game[] }) {
         <div className="flex items-center gap-3">
           <div className="w-1 h-6 bg-[var(--accent)]" />
           <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
-            <strong>Recente Uitslagen</strong>
+            <strong>Recent Results</strong>
           </h2>
         </div>
         <Link href="/uitslagen" className="font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest hover:underline">

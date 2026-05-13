@@ -154,7 +154,7 @@ function CategoryCard({ category, statType, onSelect }: {
         <span />
       </div>
       {category.data.length === 0 ? (
-        <p className="px-5 py-3 font-display font-700 text-[var(--muted)] text-sm uppercase">Geen data</p>
+        <p className="px-5 py-3 font-display font-700 text-[var(--muted)] text-sm uppercase">No data</p>
       ) : (
         <div className="divide-y divide-[var(--border)]">
           {category.data.map((player, i) => {
@@ -206,7 +206,7 @@ function SeasonCategoryGrid({ categories, statType, onSelect }: {
   onSelect: OnSelect
 }) {
   if (categories.length === 0) {
-    return <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest py-10 text-center">Geen data beschikbaar</p>
+    return <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest py-10 text-center">No data available</p>
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -234,7 +234,7 @@ function LeaderTable<T extends Row>({ title, rows, columns, statType, onSelect }
     return (
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
         <h2 className="font-display font-800 italic text-2xl uppercase text-white mb-2"><strong>{title}</strong></h2>
-        <p className="font-display text-[var(--muted)] text-sm uppercase">Geen data beschikbaar</p>
+        <p className="font-display text-[var(--muted)] text-sm uppercase">No data available</p>
       </div>
     )
   }
@@ -409,7 +409,7 @@ export default function LeadersTabs({
               {seriesLabel ?? 'This Week'}
             </TabButton>
             <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
-              Seizoen 2026
+              Season 2026
             </TabButton>
           </div>
           <div className="flex gap-2">

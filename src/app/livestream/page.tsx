@@ -93,7 +93,7 @@ export default async function LivestreamPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-10">
       <div>
-        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
+        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Season 2026</p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
           <strong>Livestream</strong>
           <span className="text-[var(--accent)]"> Hub</span>
@@ -215,7 +215,7 @@ export default async function LivestreamPage() {
 
       {streams.length === 0 && liveNow.length === 0 && (
         <div className="text-center py-20">
-          <p className="font-display font-800 text-2xl uppercase text-[var(--muted)] italic">Nog geen streams beschikbaar</p>
+          <p className="font-display font-800 text-2xl uppercase text-[var(--muted)] italic">No streams available yet</p>
           <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest mt-2">
             Streams worden hier toegevoegd zodra ze bekend zijn
           </p>
