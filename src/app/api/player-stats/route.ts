@@ -6,7 +6,7 @@ const BASE_URL = 'https://boxscore.stenwessel.nl/api'
 
 interface ScheduleGame {
   id: string
-  gamestatus: string
+  gamestatus: string | number
   [key: string]: unknown
 }
 
@@ -105,7 +105,7 @@ async function fetchFinishedGameIds(): Promise<string[]> {
     : Object.values(json ?? {}).find(v => Array.isArray(v)) as ScheduleGame[] ?? []
 
   return games
-    .filter(g => g.gamestatus === '2' || g.gamestatus === '3')
+    .filter(g => String(g.gamestatus) === '2' || String(g.gamestatus) === '3')
     .map(g => String(g.id))
 }
 
