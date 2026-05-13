@@ -33,6 +33,8 @@ type Game = {
   away_score: number | null
 }
 
+type StandingsEntry = { team_id: string; wins: number; losses: number }
+
 function TeamLogo({ teamId }: { teamId: string }) {
   const logo = TEAM_LOGOS[teamId]
   const color = TEAM_COLORS[teamId] ?? '#1e335a'
@@ -50,7 +52,7 @@ function formatDate(dateStr: string) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function ResultCard({ game, onClick }: { game: Game; onClick: () => void }) {
+function ResultCard({ game, standingsMap, onClick }: { game: Game; standingsMap: Record<string, StandingsEntry>; onClick: () => void }) {
   const homeWon = game.home_score !== null && game.away_score !== null && game.home_score > game.away_score
   const awayWon = game.home_score !== null && game.away_score !== null && game.away_score > game.home_score
 
@@ -70,9 +72,16 @@ function ResultCard({ game, onClick }: { game: Game; onClick: () => void }) {
 
       <div className="flex items-center gap-2">
         <div className={`flex items-center gap-2 flex-1 min-w-0 justify-end ${awayWon ? '' : 'opacity-50'}`}>
-          <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
-            <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
-          </p>
+          <div className="flex flex-col items-end min-w-0 flex-1">
+            <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
+              <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
+            </p>
+            {standingsMap[game.away_team_id] && (
+              <span className="font-display font-600 text-xs text-[var(--muted)]">
+                {standingsMap[game.away_team_id].wins}-{standingsMap[game.away_team_id].losses}
+              </span>
+            )}
+          </div>
           <TeamLogo teamId={game.away_team_id} />
         </div>
 
@@ -90,9 +99,16 @@ function ResultCard({ game, onClick }: { game: Game; onClick: () => void }) {
 
         <div className={`flex items-center gap-2 flex-1 min-w-0 ${homeWon ? '' : 'opacity-50'}`}>
           <TeamLogo teamId={game.home_team_id} />
-          <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
-            <strong>{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</strong>
-          </p>
+          <div className="flex flex-col min-w-0 flex-1">
+            <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
+              <strong>{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</strong>
+            </p>
+            {standingsMap[game.home_team_id] && (
+              <span className="font-display font-600 text-xs text-[var(--muted)]">
+                {standingsMap[game.home_team_id].wins}-{standingsMap[game.home_team_id].losses}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>
@@ -101,16 +117,29 @@ function ResultCard({ game, onClick }: { game: Game; onClick: () => void }) {
 
 export default function UitslagenPage() {
   const [results, setResults] = useState<Game[]>([])
+  const [standingsMap, setStandingsMap] = useState<Record<string, StandingsEntry>>({})
   const [selected, setSelected] = useState<Game | null>(null)
 
   useEffect(() => {
-    supabase
-      .from('games')
-      .select('id, external_id, game_date, home_team_id, away_team_id, home_score, away_score')
-      .eq('status', 'final')
-      .order('game_date', { ascending: false })
-      .limit(30)
-      .then(({ data }) => setResults((data ?? []) as Game[]))
+    Promise.all([
+      supabase
+        .from('games')
+        .select('id, external_id, game_date, home_team_id, away_team_id, home_score, away_score')
+        .eq('status', 'final')
+        .order('game_date', { ascending: false })
+        .limit(30),
+      supabase
+        .from('standings')
+        .select('team_id, wins, losses')
+        .eq('season', 2026),
+    ]).then(([gamesRes, standingsRes]) => {
+      setResults((gamesRes.data ?? []) as Game[])
+      const map: Record<string, StandingsEntry> = {}
+      for (const s of (standingsRes.data ?? []) as StandingsEntry[]) {
+        map[s.team_id] = s
+      }
+      setStandingsMap(map)
+    })
   }, [])
 
   return (
@@ -131,7 +160,7 @@ export default function UitslagenPage() {
         ) : (
           <div className="space-y-2">
             {results.map(g => (
-              <ResultCard key={g.id} game={g} onClick={() => setSelected(g)} />
+              <ResultCard key={g.id} game={g} standingsMap={standingsMap} onClick={() => setSelected(g)} />
             ))}
           </div>
         )}

@@ -32,15 +32,27 @@ type Game = {
   venue: string | null
 }
 
+type StandingsEntry = { team_id: string; wins: number; losses: number }
+
 async function getSchedule() {
   const today = new Date().toISOString().split('T')[0]
-  const { data } = await supabase
-    .from('games').select('*')
-    .eq('status', 'scheduled')
-    .gte('game_date', today)
-    .order('game_date', { ascending: true })
-    .limit(30)
-  return data ?? []
+  const [gamesRes, standingsRes] = await Promise.all([
+    supabase
+      .from('games').select('*')
+      .eq('status', 'scheduled')
+      .gte('game_date', today)
+      .order('game_date', { ascending: true })
+      .limit(30),
+    supabase
+      .from('standings')
+      .select('team_id, wins, losses')
+      .eq('season', 2026),
+  ])
+  const standingsMap: Record<string, StandingsEntry> = {}
+  for (const s of (standingsRes.data ?? []) as StandingsEntry[]) {
+    standingsMap[s.team_id] = s
+  }
+  return { games: gamesRes.data ?? [], standingsMap }
 }
 
 function TeamLogo({ teamId }: { teamId: string }) {
@@ -61,7 +73,7 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function GameCard({ game }: { game: Game }) {
+function GameCard({ game, standingsMap }: { game: Game; standingsMap: Record<string, StandingsEntry> }) {
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
       <div className="px-4 pt-3 pb-1">
@@ -85,9 +97,16 @@ function GameCard({ game }: { game: Game }) {
         <div className="flex items-center gap-2">
           {/* Away */}
           <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-            <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
-              <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
-            </p>
+            <div className="flex flex-col items-end min-w-0 flex-1">
+              <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
+                <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
+              </p>
+              {standingsMap[game.away_team_id] && (
+                <span className="font-display font-600 text-xs text-[var(--muted)]">
+                  {standingsMap[game.away_team_id].wins}-{standingsMap[game.away_team_id].losses}
+                </span>
+              )}
+            </div>
             <TeamLogo teamId={game.away_team_id} />
           </div>
 
@@ -98,9 +117,16 @@ function GameCard({ game }: { game: Game }) {
           {/* Home */}
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <TeamLogo teamId={game.home_team_id} />
-            <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
-              <strong>{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</strong>
-            </p>
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
+                <strong>{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</strong>
+              </p>
+              {standingsMap[game.home_team_id] && (
+                <span className="font-display font-600 text-xs text-[var(--muted)]">
+                  {standingsMap[game.home_team_id].wins}-{standingsMap[game.home_team_id].losses}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -117,7 +143,7 @@ function GameCard({ game }: { game: Game }) {
 }
 
 export default async function SchemaPage() {
-  const games = await getSchedule()
+  const { games, standingsMap } = await getSchedule()
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
@@ -132,7 +158,7 @@ export default async function SchemaPage() {
         <p className="font-display font-700 text-[var(--muted)] text-xl uppercase">Geen wedstrijden gepland</p>
       ) : (
         <div className="space-y-2">
-          {games.map(g => <GameCard key={g.id} game={g} />)}
+          {games.map(g => <GameCard key={g.id} game={g} standingsMap={standingsMap} />)}
         </div>
       )}
     </div>
