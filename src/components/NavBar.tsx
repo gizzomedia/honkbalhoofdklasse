@@ -26,6 +26,7 @@ function useNavGroups(): NavGroup[] {
         { href: '/stand',   label: t.standings },
         { href: '/leaders', label: t.leaders },
         { href: '/rosters', label: t.rosters },
+        { href: '/immaculate-grid', label: 'Grid' },
         { href: '/awards',  label: t.awards },
       ],
     },
