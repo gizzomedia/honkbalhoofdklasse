@@ -106,7 +106,7 @@ export default function PlayerStatsModal({
             {/* Banner with gradient + overlaid content */}
             <div className="relative h-36 w-full overflow-hidden">
               <Image src={bannerUrl} alt={playerName} fill className="object-cover object-top" priority />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/70" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/55" />
 
               {/* Close button */}
               <button
