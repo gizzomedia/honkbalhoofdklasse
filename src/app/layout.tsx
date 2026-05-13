@@ -81,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     ['/schema', 'Schema'],
                     ['/uitslagen', 'Uitslagen'],
                     ['/leaders', 'Leaders'],
+                    ['/awards', 'Awards'],
                     ['/livestream', 'Livestream'],
                     ['/nieuws', 'Nieuws'],
                     ['/rosters', 'Rosters'],
