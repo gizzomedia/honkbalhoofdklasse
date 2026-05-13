@@ -69,7 +69,7 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
 
 function formatSeriesLabel(seriesWeek: string): string {
   const d = new Date(seriesWeek + 'T12:00:00')
-  return `Serie ${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
+  return `Series ${d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
 }
 
 export default async function LeadersPage() {

@@ -55,11 +55,11 @@ function TeamLogo({ teamId, size = 44 }: { teamId: string | null; size?: number 
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+  return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
 function ScoreRow({ game, isLive = false }: { game: Game; isLive?: boolean }) {

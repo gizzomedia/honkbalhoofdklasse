@@ -25,7 +25,7 @@ async function getArticles() {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 export default async function NieuwsPage() {

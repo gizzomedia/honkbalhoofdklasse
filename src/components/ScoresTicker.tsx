@@ -44,7 +44,7 @@ function TeamLogo({ teamId }: { teamId: string }) {
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
 }
 
 export default function ScoresTicker({ games }: { games: Game[] }) {

@@ -53,7 +53,7 @@ function TeamLogo({ teamId }: { teamId: string }) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function ResultCard({ game, standingsMap, onClick }: { game: Game; standingsMap: Record<string, StandingsEntry>; onClick: () => void }) {

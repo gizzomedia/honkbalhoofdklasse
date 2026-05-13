@@ -25,7 +25,7 @@ async function getMedia() {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+  return new Date(dateStr).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
 }
 
 export default async function SocialPage() {

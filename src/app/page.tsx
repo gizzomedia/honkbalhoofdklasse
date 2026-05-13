@@ -115,7 +115,7 @@ function TeamLogo({ teamId, size = 40 }: { teamId: string; size?: number }) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
 }
 
 function SectionLabel({ children }: { children: string }) {
@@ -276,7 +276,7 @@ export default async function HomePage() {
                           {TEAM_NAMES[s.team_id] ?? s.team_id}
                         </p>
                         {isFirst && (
-                          <p className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest mt-0.5">Leider</p>
+                          <p className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest mt-0.5">Leader</p>
                         )}
                       </div>
                     </div>
@@ -435,7 +435,7 @@ export default async function HomePage() {
             <div className="flex items-center gap-5">
               <TeamLogo teamId={leader.team_id} size={64} />
               <div>
-                <p className="font-display font-700 text-white/70 uppercase tracking-[0.3em] text-xs mb-1">Huidig leider</p>
+                <p className="font-display font-700 text-white/70 uppercase tracking-[0.3em] text-xs mb-1">Current Leader</p>
                 <p className="font-display font-800 italic text-4xl uppercase text-white leading-none">
                   <strong>{TEAM_NAMES[leader.team_id] ?? leader.team_id}</strong>
                 </p>
@@ -454,7 +454,7 @@ export default async function HomePage() {
               ))}
               <Link href="/stand"
                 className="border-2 border-white px-6 py-3 font-display font-800 text-sm uppercase text-white hover:bg-white hover:text-[var(--accent)] transition-colors tracking-widest">
-                Volledige Stand
+                Full Standings
               </Link>
             </div>
           </div>

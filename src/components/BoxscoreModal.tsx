@@ -86,7 +86,7 @@ export default function BoxscoreModal({
   const awayWon = (awayScore ?? 0) > (homeScore ?? 0)
   const homeWon = (homeScore ?? 0) > (awayScore ?? 0)
 
-  const formattedDate = new Date(gameDate + 'T12:00:00').toLocaleDateString('nl-NL', {
+  const formattedDate = new Date(gameDate + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 

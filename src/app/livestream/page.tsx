@@ -75,11 +75,11 @@ async function getData() {
 
 function formatDateTime(dt: string) {
   const d = new Date(dt)
-  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 export default async function LivestreamPage() {

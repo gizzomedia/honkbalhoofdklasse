@@ -1,10 +1,11 @@
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { AWARD_CATEGORIES, getAwardsByPlayer } from '@/lib/awards-data'
+import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-export const revalidate = false
+export const revalidate = 300
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -39,6 +40,16 @@ const POS_LABELS: Record<string, string> = {
   'C/IF': 'Catcher / Infielder', UTL: 'Utility', DH: 'Designated Hitter',
 }
 
+async function getPlayerPhotos(playerName: string): Promise<{ banner_url: string | null; headshot_url: string | null }> {
+  const { data } = await supabase
+    .from('player_photos')
+    .select('banner_url, headshot_url')
+    .ilike('player_name', playerName)
+    .limit(1)
+    .maybeSingle()
+  return data ?? { banner_url: null, headshot_url: null }
+}
+
 export default async function PlayerProfilePage({
   params,
 }: {
@@ -51,7 +62,10 @@ export default async function PlayerProfilePage({
   const player = roster.players.find(p => slugify(p.name) === playerSlug)
   if (!player) notFound()
 
-  const awards = getAwardsByPlayer(player.name)
+  const [awards, photos] = await Promise.all([
+    Promise.resolve(getAwardsByPlayer(player.name)),
+    getPlayerPhotos(player.name),
+  ])
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
   const teamName = TEAM_NAMES[teamId] ?? teamId
@@ -71,51 +85,112 @@ export default async function PlayerProfilePage({
 
       {/* Player header card */}
       <div className="relative rounded-2xl overflow-hidden border border-[var(--border)]">
-        {/* Team color background */}
-        <div className="absolute inset-0" style={{ backgroundColor: teamColor, opacity: 0.15 }} />
-        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: teamColor }} />
+        {photos.banner_url ? (
+          /* MLB-style: full banner photo */
+          <div className="relative">
+            <div className="relative h-48 md:h-64 w-full overflow-hidden">
+              <Image
+                src={photos.banner_url}
+                alt={player.name}
+                fill
+                className="object-cover object-top"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1220]" />
+            </div>
 
-        <div className="relative p-6 md:p-8 flex items-center gap-6 flex-wrap">
-          {/* Team logo */}
-          <div className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 p-3"
-            style={{ backgroundColor: teamColor }}>
-            <Image src={teamLogo} alt={teamId} width={60} height={60} className="object-contain w-full h-full" />
-          </div>
+            <div className="relative px-6 pb-6 -mt-16 flex items-end gap-5 flex-wrap">
+              {/* Round headshot over banner */}
+              {photos.headshot_url && (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-[#0a1220] shrink-0 shadow-xl">
+                  <Image src={photos.headshot_url} alt={player.name} fill className="object-cover" />
+                </div>
+              )}
 
-          {/* Player info */}
-          <div className="flex-1 min-w-0">
-            <p className="font-display font-700 text-xs uppercase tracking-widest mb-1"
-              style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
-              {teamName}
-            </p>
-            <h1 className="font-display font-800 italic text-4xl md:text-5xl uppercase text-white leading-none tracking-tight">
-              <strong>{player.name}</strong>
-            </h1>
-            <div className="flex items-center gap-4 mt-3 flex-wrap">
-              <span className="font-display font-800 text-lg text-white/60">#{player.uniform}</span>
-              <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{posLabel}</span>
-              <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">B/T: {player.bt}</span>
-              <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{age} jaar</span>
-              <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">Geb. {player.yob}</span>
+              {/* Player info */}
+              <div className="flex-1 min-w-0 pb-1">
+                <p className="font-display font-700 text-xs uppercase tracking-widest mb-1"
+                  style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
+                  {teamName}
+                </p>
+                <h1 className="font-display font-800 italic text-4xl md:text-5xl uppercase text-white leading-none tracking-tight">
+                  <strong>{player.name}</strong>
+                </h1>
+                <div className="flex items-center gap-4 mt-2 flex-wrap">
+                  <span className="font-display font-800 text-lg text-white/60">#{player.uniform}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{posLabel}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">B/T: {player.bt}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{age} yrs</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">Born {player.yob}</span>
+                </div>
+              </div>
+
+              {/* Instagram */}
+              {player.instagram && (
+                <a
+                  href={`https://instagram.com/${player.instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white transition-colors shrink-0 self-end"
+                  style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  @{player.instagram}
+                </a>
+              )}
             </div>
           </div>
+        ) : (
+          /* Fallback: team color card */
+          <>
+            <div className="absolute inset-0" style={{ backgroundColor: teamColor, opacity: 0.15 }} />
+            <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: teamColor }} />
 
-          {/* Instagram link als beschikbaar */}
-          {player.instagram && (
-            <a
-              href={`https://instagram.com/${player.instagram}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white transition-colors shrink-0"
-              style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-              @{player.instagram}
-            </a>
-          )}
-        </div>
+            <div className="relative p-6 md:p-8 flex items-center gap-6 flex-wrap">
+              {/* Team logo */}
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0 p-3"
+                style={{ backgroundColor: teamColor }}>
+                <Image src={teamLogo} alt={teamId} width={60} height={60} className="object-contain w-full h-full" />
+              </div>
+
+              {/* Player info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-700 text-xs uppercase tracking-widest mb-1"
+                  style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
+                  {teamName}
+                </p>
+                <h1 className="font-display font-800 italic text-4xl md:text-5xl uppercase text-white leading-none tracking-tight">
+                  <strong>{player.name}</strong>
+                </h1>
+                <div className="flex items-center gap-4 mt-3 flex-wrap">
+                  <span className="font-display font-800 text-lg text-white/60">#{player.uniform}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{posLabel}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">B/T: {player.bt}</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{age} yrs</span>
+                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">Born {player.yob}</span>
+                </div>
+              </div>
+
+              {/* Instagram link */}
+              {player.instagram && (
+                <a
+                  href={`https://instagram.com/${player.instagram}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white transition-colors shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)' }}
+                >
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  @{player.instagram}
+                </a>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Awards sectie */}
@@ -177,14 +252,14 @@ export default async function PlayerProfilePage({
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1 h-6 bg-[var(--accent)] shrink-0" />
           <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
-            <strong>Statistieken</strong>
+            <strong>Stats</strong>
           </h2>
         </div>
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="font-display font-800 text-base uppercase text-white">KNBSB Stats</p>
             <p className="font-display font-700 text-sm text-[var(--muted)] mt-1">
-              Bekijk volledige statistieken op de officiële KNBSB stats website
+              View full statistics on the official KNBSB stats website
             </p>
           </div>
           <a
@@ -193,7 +268,7 @@ export default async function PlayerProfilePage({
             rel="noopener noreferrer"
             className="shrink-0 bg-[var(--accent)] px-5 py-2.5 font-display font-800 text-sm uppercase tracking-wider text-white hover:bg-[var(--accent)]/80 transition-colors rounded-lg"
           >
-            Stats bekijken →
+            View Stats →
           </a>
         </div>
       </section>
@@ -203,14 +278,14 @@ export default async function PlayerProfilePage({
         <div className="flex items-center gap-3 mb-6">
           <div className="w-1 h-6 bg-[var(--accent)] shrink-0" />
           <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
-            <strong>Foto&apos;s</strong>
+            <strong>Photos</strong>
           </h2>
         </div>
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <p className="font-display font-800 text-base uppercase text-white">@honkbalhoofdklasse</p>
             <p className="font-display font-700 text-sm text-[var(--muted)] mt-1">
-              Volg ons op Instagram voor de laatste foto&apos;s en video&apos;s
+              Follow us on Instagram for the latest photos and videos
             </p>
           </div>
           <a
@@ -223,7 +298,7 @@ export default async function PlayerProfilePage({
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
             </svg>
-            Volgen
+            Follow
           </a>
         </div>
       </section>
