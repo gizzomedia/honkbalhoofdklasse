@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 
 const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#e41d30', uvv: '#db002f',
+  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
+  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3261ed', uvv: '#db002f',
 }
 const TEAM_LOGOS: Record<string, string> = {
   neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',

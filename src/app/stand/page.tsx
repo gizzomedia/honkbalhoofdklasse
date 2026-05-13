@@ -5,11 +5,11 @@ export const revalidate = 300
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31',
-  pirates:  '#ffc425',
+  pirates:  '#0f6f38',
   kinheim:  '#c0232e',
   hcaw:     '#f5b51a',
   twins:    '#ee7e1a',
-  pioniers: '#e41d30',
+  pioniers: '#3261ed',
   uvv:      '#db002f',
 }
 
