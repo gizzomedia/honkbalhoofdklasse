@@ -130,7 +130,9 @@ export default function PlayerStatsModal({
     if (bbrefId) {
       fetches.push(
         fetch(`/api/career-stats?id=${encodeURIComponent(bbrefId)}`)
-          .then(r => r.json()).then(setCareer)
+          .then(r => r.json())
+          .then(d => { if (Array.isArray(d?.batting)) setCareer(d) })
+          .catch(() => {})
       )
     }
     Promise.all(fetches).finally(() => setLoading(false))

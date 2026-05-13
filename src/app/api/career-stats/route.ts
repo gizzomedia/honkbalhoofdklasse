@@ -80,7 +80,7 @@ function parsePitching(html: string) {
 
 export async function GET(req: NextRequest) {
   const bbrefId = req.nextUrl.searchParams.get('id')
-  if (!bbrefId || !/^[a-z0-9]+$/.test(bbrefId)) {
+  if (!bbrefId || !/^[a-z0-9-]+$/.test(bbrefId)) {
     return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
   }
 
