@@ -143,15 +143,19 @@ function CategoryCard({ category, statType, onSelect }: {
 
   return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
-      <div className="grid items-center px-5 pt-4 pb-2 gap-3" style={{ gridTemplateColumns: gridCols }}>
-        <span />
+      <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex items-baseline gap-2">
           <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>{stat}</strong></h2>
           {qualifier && (
             <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider">{qualifier}</span>
           )}
         </div>
-        <span />
+        {category.type === 'sb' && (
+          <div className="h-7 w-14 flex items-center justify-end shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png" alt="SSK" className="max-h-full max-w-full object-contain opacity-90" />
+          </div>
+        )}
       </div>
       {category.data.length === 0 ? (
         <p className="px-5 py-3 font-display font-700 text-[var(--muted)] text-sm uppercase">No data</p>
