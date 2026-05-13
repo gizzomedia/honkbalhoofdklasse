@@ -18,14 +18,6 @@ export type AwardCategory = {
 
 export const AWARD_CATEGORIES: AwardCategory[] = [
   {
-    key: 'hottest-player-week',
-    nl: 'Totaalwarmte Hottest Player of the Week',
-    en: 'Totaalwarmte Hottest Player of the Week',
-    icon: '🔥',
-    description: 'Most impressive performance of the week',
-    sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
-  },
-  {
     key: 'pitcher-of-month',
     nl: 'SSK Pitcher of the Month',
     en: 'SSK Pitcher of the Month',
@@ -40,6 +32,14 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     icon: '🏏',
     description: 'Best hitting performance of the month',
     sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
+  },
+  {
+    key: 'hottest-player-week',
+    nl: 'Totaalwarmte Hottest Player of the Week',
+    en: 'Totaalwarmte Hottest Player of the Week',
+    icon: '🔥',
+    description: 'Most impressive performance of the week',
+    sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
   },
 ]
 
