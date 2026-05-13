@@ -195,7 +195,7 @@ export const ROSTERS: StaticRosters = {
     players: [
       { uniform: '27', name: 'Nelmerson Angela',      pos: 'P',  bt: 'L/L', yob: 1998 },
       { uniform: '16', name: 'Railison Bentura',       pos: 'IF', bt: 'R/R', yob: 2000 },
-      { uniform: '13', name: 'Luuk Bun',              pos: 'OF', bt: 'R/R', yob: 2002 },
+      { uniform: '13', name: 'Luuk Bun',              pos: 'OF', bt: 'R/R', yob: 2002, bbref_id: 'bun---000luu' },
       { uniform: '10', name: 'Lucas Den Duijn',        pos: 'P',  bt: 'R/R', yob: 2004 },
       { uniform: '7',  name: 'Dion Frank',            pos: 'C',  bt: 'R/R', yob: 2001 },
       { uniform: '26', name: 'Terrence Garcia',        pos: 'IF', bt: 'L/L', yob: 1994 },
