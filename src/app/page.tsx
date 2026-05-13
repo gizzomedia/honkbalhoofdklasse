@@ -151,7 +151,7 @@ export default async function HomePage() {
           </div>
           <div className="overflow-hidden flex-1">
             <div className="flex animate-marquee items-center h-10" style={{ width: 'max-content' }}>
-              {[...news, ...news].map((item, i) => (
+              {news.map((item, i) => (
                 <a
                   key={i}
                   href={item.link}
