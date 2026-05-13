@@ -32,10 +32,13 @@ type Game = {
   awayScore: number | null
 }
 
+type StandingsEntry = { wins: number; losses: number }
+
 type Data = {
   live: Game[]
   finished: Game[]
   upcoming: Game[]
+  standings: Record<string, StandingsEntry>
   updatedAt: string
 }
 
@@ -62,7 +65,7 @@ function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
-function ScoreRow({ game, isLive = false }: { game: Game; isLive?: boolean }) {
+function ScoreRow({ game, isLive = false, standings = {} }: { game: Game; isLive?: boolean; standings?: Record<string, StandingsEntry> }) {
   const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0)
   const awayWon = (game.awayScore ?? 0) > (game.homeScore ?? 0)
   const isFinal = game.status === 'final'
@@ -98,9 +101,16 @@ function ScoreRow({ game, isLive = false }: { game: Game; isLive?: boolean }) {
         <div className="flex items-center gap-3">
           {/* Away */}
           <div className={`flex items-center gap-2 flex-1 min-w-0 justify-end ${isFinal && !awayWon ? 'opacity-40' : ''}`}>
-            <p className="font-display font-800 text-base md:text-lg uppercase text-white text-right leading-none truncate">
-              <strong>{TEAM_NAMES[game.awayId ?? ''] ?? game.awayId ?? '–'}</strong>
-            </p>
+            <div className="text-right min-w-0">
+              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-none truncate">
+                <strong>{TEAM_NAMES[game.awayId ?? ''] ?? game.awayId ?? '–'}</strong>
+              </p>
+              {game.awayId && standings[game.awayId] && (
+                <p className="font-display font-600 text-[11px] text-[var(--muted)] leading-none mt-0.5">
+                  {standings[game.awayId].wins}-{standings[game.awayId].losses}
+                </p>
+              )}
+            </div>
             <TeamLogo teamId={game.awayId} size={40} />
           </div>
 
@@ -120,9 +130,16 @@ function ScoreRow({ game, isLive = false }: { game: Game; isLive?: boolean }) {
           {/* Home */}
           <div className={`flex items-center gap-2 flex-1 min-w-0 ${isFinal && !homeWon ? 'opacity-40' : ''}`}>
             <TeamLogo teamId={game.homeId} size={40} />
-            <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-none truncate">
-              <strong>{TEAM_NAMES[game.homeId ?? ''] ?? game.homeId ?? '–'}</strong>
-            </p>
+            <div className="min-w-0">
+              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-none truncate">
+                <strong>{TEAM_NAMES[game.homeId ?? ''] ?? game.homeId ?? '–'}</strong>
+              </p>
+              {game.homeId && standings[game.homeId] && (
+                <p className="font-display font-600 text-[11px] text-[var(--muted)] leading-none mt-0.5">
+                  {standings[game.homeId].wins}-{standings[game.homeId].losses}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -197,7 +214,7 @@ export default function LivescoresPage() {
                 <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Live Nu</strong></h2>
               </div>
               <div className="space-y-3">
-                {data.live.map(g => <ScoreRow key={g.id} game={g} isLive />)}
+                {data.live.map(g => <ScoreRow key={g.id} game={g} isLive standings={data.standings ?? {}} />)}
               </div>
             </section>
           )}
@@ -220,7 +237,7 @@ export default function LivescoresPage() {
                 <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Afgerond</strong></h2>
               </div>
               <div className="space-y-2">
-                {data.finished.map(g => <ScoreRow key={g.id} game={g} />)}
+                {data.finished.map(g => <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} />)}
               </div>
             </section>
           )}
@@ -233,7 +250,7 @@ export default function LivescoresPage() {
                 <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Aankomend</strong></h2>
               </div>
               <div className="space-y-2">
-                {data.upcoming.map(g => <ScoreRow key={g.id} game={g} />)}
+                {data.upcoming.map(g => <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} />)}
               </div>
             </section>
           )}

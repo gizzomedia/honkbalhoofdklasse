@@ -130,7 +130,18 @@ export async function GET() {
       awayScore: null,
     }))
 
-    return NextResponse.json({ live, finished, upcoming, updatedAt: new Date().toISOString() })
+    // Standings for record display
+    const { data: standingsRows } = await supabase
+      .from('standings')
+      .select('team_id, wins, losses')
+      .eq('season', new Date().getFullYear())
+
+    const standings: Record<string, { wins: number; losses: number }> = {}
+    for (const s of standingsRows ?? []) {
+      standings[s.team_id] = { wins: s.wins, losses: s.losses }
+    }
+
+    return NextResponse.json({ live, finished, upcoming, standings, updatedAt: new Date().toISOString() })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
