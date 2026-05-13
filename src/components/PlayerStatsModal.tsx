@@ -162,8 +162,8 @@ export default function PlayerStatsModal({
           /* MLB-style header with banner photo */
           <div className="relative shrink-0 border-b border-[var(--border)]">
             {/* Banner with gradient + overlaid content */}
-            <div className="relative h-36 w-full overflow-hidden">
-              <Image src={bannerUrl} alt={playerName} fill className="object-cover object-top" priority />
+            <div className="relative h-36 md:h-48 w-full overflow-hidden">
+              <Image src={bannerUrl} alt={playerName} fill className="object-cover object-[center_20%]" priority />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80" />
 
               {/* Close button */}
