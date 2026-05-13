@@ -3,6 +3,19 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
+import { ROSTERS } from '@/lib/rosters-data'
+
+type CareerBatRow  = { year:string; lg:string; team:string; g:string; ab:string; h:string; hr:string; rbi:string; avg:string; obp:string; slg:string }
+type CareerPitRow  = { year:string; lg:string; team:string; w:string; l:string; era:string; ip:string; so:string; whip:string }
+type CareerStats   = { batting: CareerBatRow[]; pitching: CareerPitRow[] }
+
+function findBbrefId(playerName: string): string | undefined {
+  const norm = playerName.toLowerCase().trim()
+  for (const roster of Object.values(ROSTERS)) {
+    const p = roster.players.find(p => p.name.toLowerCase() === norm)
+    if (p?.bbref_id) return p.bbref_id
+  }
+}
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -100,17 +113,28 @@ export default function PlayerStatsModal({
   onClose: () => void
 }) {
   const [data, setData] = useState<PlayerData | null>(null)
+  const [career, setCareer] = useState<CareerStats | null>(null)
   const [loading, setLoading] = useState(true)
   const awards = getAwardsByPlayer(playerName)
+  const bbrefId = findBbrefId(playerName)
 
   useEffect(() => {
     setLoading(true)
     setData(null)
-    fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}&type=${statType}`)
-      .then(r => r.json())
-      .then(setData)
-      .finally(() => setLoading(false))
-  }, [playerName, statType])
+    setCareer(null)
+
+    const fetches: Promise<void>[] = [
+      fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}&type=${statType}`)
+        .then(r => r.json()).then(setData),
+    ]
+    if (bbrefId) {
+      fetches.push(
+        fetch(`/api/career-stats?id=${encodeURIComponent(bbrefId)}`)
+          .then(r => r.json()).then(setCareer)
+      )
+    }
+    Promise.all(fetches).finally(() => setLoading(false))
+  }, [playerName, statType, bbrefId])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -276,6 +300,89 @@ export default function PlayerStatsModal({
             </>
           )}
         </div>
+
+        {/* Career stats from Baseball Reference */}
+        {career && (career.batting.length > 0 || career.pitching.length > 0) && (
+          <div className="border-t border-[var(--border)] px-4 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Career Stats</p>
+              {bbrefId && (
+                <a
+                  href={`https://www.baseball-reference.com/register/player.fcgi?id=${bbrefId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest hover:underline"
+                >
+                  Baseball Reference →
+                </a>
+              )}
+            </div>
+
+            {career.batting.length > 0 && (
+              <div className="overflow-x-auto mb-3">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      {['Year','Lg','Team','G','AB','H','HR','RBI','AVG','OBP','SLG'].map(h => (
+                        <th key={h} className="font-display font-700 text-[var(--muted)] uppercase tracking-widest px-1.5 py-1 text-center whitespace-nowrap first:text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {career.batting.map((row, i) => {
+                      const isCareer = row.year === 'Career'
+                      return (
+                        <tr key={i} className={`border-b border-[var(--border)] last:border-0 ${isCareer ? 'border-t border-[var(--border)]' : ''}`}>
+                          <td className={`font-display font-800 px-1.5 py-1.5 text-left whitespace-nowrap ${isCareer ? 'text-[var(--accent)]' : 'text-white'}`}>{row.year}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-[var(--muted)] whitespace-nowrap">{row.lg}</td>
+                          <td className="font-display font-800 px-1.5 py-1.5 text-center text-white whitespace-nowrap">{row.team}</td>
+                          {[row.g, row.ab, row.h, row.hr, row.rbi].map((v, j) => (
+                            <td key={j} className="font-display font-700 px-1.5 py-1.5 text-center text-white">{v || '–'}</td>
+                          ))}
+                          <td className="font-display font-800 px-1.5 py-1.5 text-center" style={{ color: teamColor }}>{row.avg || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.obp || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.slg || '–'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {career.pitching.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      {['Year','Lg','Team','W','L','ERA','IP','SO','WHIP'].map(h => (
+                        <th key={h} className="font-display font-700 text-[var(--muted)] uppercase tracking-widest px-1.5 py-1 text-center whitespace-nowrap first:text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {career.pitching.map((row, i) => {
+                      const isCareer = row.year === 'Career'
+                      return (
+                        <tr key={i} className={`border-b border-[var(--border)] last:border-0 ${isCareer ? 'border-t border-[var(--border)]' : ''}`}>
+                          <td className={`font-display font-800 px-1.5 py-1.5 text-left whitespace-nowrap ${isCareer ? 'text-[var(--accent)]' : 'text-white'}`}>{row.year}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-[var(--muted)] whitespace-nowrap">{row.lg}</td>
+                          <td className="font-display font-800 px-1.5 py-1.5 text-center text-white whitespace-nowrap">{row.team}</td>
+                          <td className="font-display font-800 px-1.5 py-1.5 text-center text-white">{row.w || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.l || '–'}</td>
+                          <td className="font-display font-800 px-1.5 py-1.5 text-center" style={{ color: teamColor }}>{row.era || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.ip || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.so || '–'}</td>
+                          <td className="font-display font-700 px-1.5 py-1.5 text-center text-white">{row.whip || '–'}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="border-t border-[var(--border)] px-5 py-3">
           <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest text-center">
