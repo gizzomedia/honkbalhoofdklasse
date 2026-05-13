@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -68,6 +69,7 @@ export default function PlayerStatsModal({
   const [data, setData] = useState<PlayerData | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'stats' | 'log'>('stats')
+  const awards = getAwardsByPlayer(playerName)
 
   useEffect(() => {
     setLoading(true)
@@ -133,7 +135,7 @@ export default function PlayerStatsModal({
                   : 'text-[var(--muted)] border-transparent hover:text-white'
               }`}
             >
-              {t === 'stats' ? 'Seizoensstats' : 'Serie Log'}
+              {t === 'stats' ? 'Season Stats' : 'Game Log'}
             </button>
           ))}
         </div>
@@ -149,10 +151,10 @@ export default function PlayerStatsModal({
               {!st ? (
                 <div className="text-center py-8">
                   <p className="font-display font-700 text-[var(--muted)] text-sm uppercase">
-                    Geen seizoensstats gevonden
+                    No season stats found
                   </p>
                   <p className="font-display font-700 text-[var(--muted)] text-xs mt-1">
-                    Seizoen 2026
+                    Season 2026
                   </p>
                 </div>
               ) : statType === 'batting' ? (
@@ -188,13 +190,43 @@ export default function PlayerStatsModal({
                   <StatBox label="CG"  value={s(st.pitch_cg)} />
                 </div>
               )}
+
+              {/* Awards */}
+              {awards.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-[var(--border)]">
+                  <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">Awards</p>
+                  <div className="space-y-2">
+                    {awards.map((award, i) => {
+                      const cat = AWARD_CATEGORIES.find(c => c.key === award.category)
+                      return (
+                        <div key={i} className="flex items-center justify-between bg-[#0f1e2e] rounded-lg px-3 py-2.5 border border-[var(--border)]">
+                          <div>
+                            <p className="font-display font-800 text-sm uppercase text-white leading-none">
+                              {cat?.en ?? award.category}
+                            </p>
+                            {award.label && (
+                              <p className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest mt-0.5">{award.label}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-display font-700 text-xs text-[var(--muted)] uppercase">Season {award.season}</p>
+                            {award.note && (
+                              <p className="font-display font-700 text-[10px] text-[var(--muted)] italic mt-0.5">{award.note}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
               {!data?.seriesLog?.length ? (
                 <div className="text-center py-8">
                   <p className="font-display font-700 text-[var(--muted)] text-sm uppercase">
-                    Geen serie data gevonden
+                    No game log data found
                   </p>
                 </div>
               ) : (
@@ -262,7 +294,7 @@ export default function PlayerStatsModal({
 
         <div className="border-t border-[var(--border)] px-5 py-3">
           <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest text-center">
-            Stats: KNBSB · Seizoen 2026
+            Stats: KNBSB · Season 2026
           </p>
         </div>
       </div>

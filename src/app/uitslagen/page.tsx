@@ -158,14 +158,14 @@ export default function UitslagenPage() {
         <div>
           <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
-            <strong>Uitslagen</strong>
+            <strong>Results</strong>
           </h1>
         </div>
 
         {results.length === 0 ? (
           <div className="flex items-center gap-3 py-8">
             <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-            <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Laden…</p>
+            <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Loading…</p>
           </div>
         ) : (
           <div className="space-y-2">

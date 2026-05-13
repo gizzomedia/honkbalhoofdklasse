@@ -160,12 +160,12 @@ export default async function SchemaPage() {
       <div>
         <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
-          <strong>Schema</strong>
+          <strong>Schedule</strong>
         </h1>
       </div>
 
       {games.length === 0 ? (
-        <p className="font-display font-700 text-[var(--muted)] text-xl uppercase">Geen wedstrijden gepland</p>
+        <p className="font-display font-700 text-[var(--muted)] text-xl uppercase">No games scheduled</p>
       ) : (
         <div className="space-y-2">
           {games.map(g => <GameCard key={g.id} game={g} standingsMap={standingsMap} />)}

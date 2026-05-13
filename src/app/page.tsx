@@ -145,9 +145,9 @@ export default async function HomePage() {
       {news.length > 0 && (
         <div className="bg-[var(--accent)] flex items-stretch overflow-hidden">
           <div className="shrink-0 bg-black/20 px-4 flex items-center">
-            <Link href="/nieuws" className="font-display font-800 text-xs text-white uppercase tracking-widest whitespace-nowrap hover:text-white/70 transition-colors">
-              Nieuws →
-            </Link>
+            <a href="https://honkbalsoftbal.nl/?cat=544" target="_blank" rel="noopener noreferrer" className="font-display font-800 text-xs text-white uppercase tracking-widest whitespace-nowrap hover:text-white/70 transition-colors">
+              News →
+            </a>
           </div>
           <div className="overflow-hidden flex-1">
             <div className="flex animate-marquee items-center h-10" style={{ width: 'max-content' }}>
@@ -173,7 +173,7 @@ export default async function HomePage() {
         <section className="bg-[#04080f] pt-20 pb-14 px-6 md:px-12">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-end justify-between mb-8">
-              <SectionLabel>Recente Uitslagen</SectionLabel>
+              <SectionLabel>Recent Results</SectionLabel>
               <Link href="/uitslagen" className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-[0.2em] hover:underline hidden sm:block">
                 Alle uitslagen →
               </Link>
