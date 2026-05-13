@@ -35,8 +35,8 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
   },
   {
     key: 'hitter-of-month',
-    nl: 'Batking Hitter of the Month',
-    en: 'Batking Hitter of the Month',
+    nl: 'Batking Europe Hitter of the Month',
+    en: 'Batking Europe Hitter of the Month',
     icon: '🏏',
     description: 'Best hitting performance of the month',
     sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',

@@ -68,8 +68,7 @@ export default async function StandPage() {
           Season 2026
         </p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
-          <strong>Hoofdklasse</strong>
-          <span className="text-[var(--accent)]"> Standings</span>
+          <strong>Standings</strong>
         </h1>
       </div>
 
@@ -144,7 +143,7 @@ export default async function StandPage() {
                   )}
                   {isLeader && (
                     <p className="text-white text-xs mt-0.5 font-display font-800 uppercase tracking-wider">
-                      Leider
+                      Leader
                     </p>
                   )}
                 </div>
@@ -154,7 +153,7 @@ export default async function StandPage() {
               <span className={`text-center font-display font-800 text-base ${isLeader ? 'text-white' : 'text-white'}`}>
                 {s.wins}
               </span>
-              <span className={`text-center font-display font-600 text-base ${isLeader ? 'text-white/70' : 'text-[var(--muted)]'}`}>
+              <span className="text-center font-display font-600 text-base text-white">
                 {s.losses}
               </span>
               <span className={`text-center font-display font-700 text-base ${isLeader ? 'text-white' : 'text-[var(--accent)]'}`}>
