@@ -34,7 +34,7 @@ export default function AwardsPage() {
           <strong>Awards</strong>
         </h1>
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
-          Onderscheidingen van het 2026 seizoen
+          Season 2026 award winners
         </p>
       </div>
 
@@ -45,22 +45,28 @@ export default function AwardsPage() {
           return (
             <section key={cat.key} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
               {/* Category header */}
-              <div className="flex items-center gap-4 px-6 py-5 border-b border-[var(--border)]">
+              <div className="flex items-center justify-between gap-4 px-6 py-5 border-b border-[var(--border)]">
                 <div>
                   <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
-                    <strong>{cat.nl}</strong>
+                    <strong>{cat.en}</strong>
                   </h2>
                   <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-0.5">
                     {cat.description}
                   </p>
                 </div>
+                {cat.sponsorLogo && (
+                  <div className="h-8 w-24 flex items-center justify-end shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={cat.sponsorLogo} alt="sponsor" className="max-h-full max-w-full object-contain opacity-80" />
+                  </div>
+                )}
               </div>
 
               {/* Winners list */}
               {winners.length === 0 ? (
                 <div className="px-6 py-8 text-center">
                   <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">
-                    Nog geen winnaar bekendgemaakt
+                    No winner announced yet
                   </p>
                 </div>
               ) : (
