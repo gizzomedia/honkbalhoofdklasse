@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
     )
     const data = await res.json()
     const categories: Array<{ type: string; data: Record<string, unknown>[] }> = data.data ?? []
+    // Merge data from ALL categories where the player appears so no stat is missing
+    const merged: Record<string, unknown> = {}
     for (const cat of categories) {
       const found = cat.data.find((p: Record<string, unknown>) => {
         const knbsbLast = String(p.lastname ?? '').toUpperCase()
@@ -42,8 +44,15 @@ export async function GET(req: NextRequest) {
           knbsbLast.endsWith(' ' + lastWord)
         )
       })
-      if (found) { seasonStats = found; break }
+      if (found) {
+        for (const [k, v] of Object.entries(found)) {
+          if (merged[k] === null || merged[k] === undefined || merged[k] === '') {
+            merged[k] = v
+          }
+        }
+      }
     }
+    if (Object.keys(merged).length > 0) seasonStats = merged
   } catch { /* ignore */ }
 
   const table = type === 'pitching' ? 'pitching_stats' : 'batting_stats'
