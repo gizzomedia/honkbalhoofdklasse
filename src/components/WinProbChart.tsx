@@ -118,22 +118,24 @@ export default function WinProbChart({
         {/* Win probability line */}
         <path d={linePath} fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* X axis labels */}
-        {points.map((p, i) =>
-          showLabel(i) ? (
+        {/* X axis labels — show inning number only at top-of-inning points */}
+        {points.map((p, i) => {
+          const inningNum = p.label.startsWith('T') ? p.label.slice(1) : null
+          if (!inningNum) return null
+          return (
             <text
               key={i}
               x={xPos(i, n)}
               y={H - 4}
               textAnchor="middle"
-              fontSize={7.5}
-              fill="rgba(255,255,255,0.35)"
+              fontSize={8}
+              fill="rgba(255,255,255,0.4)"
               fontFamily="system-ui"
             >
-              {p.label === 'Start' ? 'S' : p.label}
+              {inningNum}
             </text>
-          ) : null
-        )}
+          )
+        })}
 
         {/* Data points */}
         {points.map((p, i) => (
