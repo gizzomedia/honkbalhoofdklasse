@@ -1,4 +1,5 @@
-import { AWARD_CATEGORIES, AWARDS, SEASONS, getAwardsBySeason } from '@/lib/awards-data'
+import { AWARD_CATEGORIES, AWARDS } from '@/lib/awards-data'
+import { slugify } from '@/lib/rosters-data'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -22,123 +23,101 @@ const TEAM_NAMES: Record<string, string> = {
   hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
 }
 
-function slugify(name: string): string {
-  return name.toLowerCase()
-    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e')
-    .replace(/[ìíîï]/g, 'i').replace(/[òóôõöø]/g, 'o')
-    .replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c').replace(/[ñ]/g, 'n')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
 export default function AwardsPage() {
-  const currentSeason = 2026
+  const season2026 = AWARDS.filter(a => a.season === 2026)
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-16">
+    <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-12">
       <div>
-        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Hoofdklasse</p>
+        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Hoofdklasse · Seizoen 2026</p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
           <strong>Awards</strong>
         </h1>
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
-          Jaarlijkse onderscheidingen van de Hoofdklasse
+          Onderscheidingen van het 2026 seizoen
         </p>
       </div>
 
-      {SEASONS.map(season => {
-        const seasonAwards = getAwardsBySeason(season)
-        const isCurrent = season === currentSeason
+      <div className="space-y-8">
+        {AWARD_CATEGORIES.map(cat => {
+          const winners = season2026.filter(a => a.category === cat.key)
 
-        return (
-          <section key={season}>
-            {/* Season header */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-1 h-8 bg-[var(--accent)] shrink-0" />
-              <div>
-                <h2 className="font-display font-800 italic text-4xl uppercase text-white leading-none">
-                  <strong>Seizoen {season}</strong>
-                </h2>
-                {isCurrent && (
-                  <p className="font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest mt-1">
-                    Seizoen in uitvoering · Awards worden einde seizoen bekendgemaakt
+          return (
+            <section key={cat.key} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
+              {/* Category header */}
+              <div className="flex items-center gap-4 px-6 py-5 border-b border-[var(--border)]">
+                <span className="text-3xl shrink-0">{cat.icon}</span>
+                <div>
+                  <h2 className="font-display font-800 italic text-2xl uppercase text-white leading-none">
+                    <strong>{cat.nl}</strong>
+                  </h2>
+                  <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-0.5">
+                    {cat.description}
                   </p>
-                )}
+                </div>
               </div>
-            </div>
 
-            {/* Award categories grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {AWARD_CATEGORIES.map(cat => {
-                const award = seasonAwards.find(a => a.category === cat.key)
-
-                return (
-                  <div key={cat.key}
-                    className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
-                    {/* Award color bar */}
-                    <div className="h-[3px]"
-                      style={{ backgroundColor: award ? (TEAM_COLORS[award.teamId] ?? 'var(--accent)') : '#1E2E42' }} />
-
-                    <div className="p-5">
-                      <div className="flex items-start gap-3 mb-4">
-                        <span className="text-2xl shrink-0 mt-0.5">{cat.icon}</span>
-                        <div>
-                          <p className="font-display font-800 text-sm uppercase text-white leading-tight">
-                            {cat.nl}
-                          </p>
-                          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-0.5">
-                            {cat.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      {award ? (
-                        <Link
-                          href={`/rosters/${award.teamId}/${slugify(award.playerName)}`}
-                          className="flex items-center gap-3 group"
-                        >
-                          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1"
-                            style={{ backgroundColor: TEAM_COLORS[award.teamId] ?? '#1e335a' }}>
-                            <Image
-                              src={TEAM_LOGOS[award.teamId]}
-                              alt={award.teamId}
-                              width={28}
-                              height={28}
-                              className="object-contain w-full h-full"
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-display font-800 text-base uppercase text-white group-hover:text-[var(--accent)] transition-colors leading-tight truncate">
-                              {award.playerName}
-                            </p>
-                            <p className="font-display font-700 text-xs text-[var(--muted)] uppercase">
-                              {TEAM_NAMES[award.teamId] ?? award.teamId}
-                            </p>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-[#0a1220] border border-[#1a2a3a] flex items-center justify-center shrink-0">
-                            <span className="text-[var(--muted)] text-lg">?</span>
-                          </div>
-                          <p className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wide">
-                            {isCurrent ? 'TBD' : 'Geen data'}
-                          </p>
+              {/* Winners list */}
+              {winners.length === 0 ? (
+                <div className="px-6 py-8 text-center">
+                  <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">
+                    Nog geen winnaar bekendgemaakt
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-[var(--border)]">
+                  {winners.map((award, i) => (
+                    <Link
+                      key={i}
+                      href={`/rosters/${award.teamId}/${slugify(award.playerName)}`}
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-[var(--card-hover)] transition-colors group"
+                    >
+                      {/* Label (week/month) */}
+                      {award.label && (
+                        <div className="shrink-0 w-16">
+                          <span className="font-display font-800 text-xs uppercase tracking-widest text-[var(--accent)]">
+                            {award.label}
+                          </span>
                         </div>
                       )}
 
-                      {award?.note && (
-                        <p className="font-display font-700 text-xs text-[var(--muted)] mt-3 italic">
+                      {/* Team logo */}
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 p-1.5"
+                        style={{ backgroundColor: TEAM_COLORS[award.teamId] ?? '#1e335a' }}>
+                        <Image
+                          src={TEAM_LOGOS[award.teamId]}
+                          alt={award.teamId}
+                          width={28} height={28}
+                          className="object-contain w-full h-full"
+                        />
+                      </div>
+
+                      {/* Player info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display font-800 text-lg uppercase text-white group-hover:text-[var(--accent)] transition-colors leading-tight truncate">
+                          <strong>{award.playerName}</strong>
+                        </p>
+                        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
+                          {TEAM_NAMES[award.teamId] ?? award.teamId}
+                        </p>
+                      </div>
+
+                      {/* Note */}
+                      {award.note && (
+                        <p className="font-display font-700 text-xs text-[var(--muted)] shrink-0 hidden sm:block max-w-[140px] text-right">
                           {award.note}
                         </p>
                       )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )
-      })}
+
+                      <span className="font-display font-700 text-xs text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors shrink-0">→</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          )
+        })}
+      </div>
     </div>
   )
 }

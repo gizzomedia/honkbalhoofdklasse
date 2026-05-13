@@ -22,6 +22,10 @@ const TEAM_NAMES: Record<string, string> = {
   neptunus: 'Neptunus', pirates: 'Amsterdam Pirates', kinheim: 'Kinheim',
   hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
 }
+const TEAM_SHORT: Record<string, string> = {
+  neptunus: 'Neptunus', pirates: 'Pirates', kinheim: 'Kinheim',
+  hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
+}
 
 type Game = {
   id: number
@@ -74,7 +78,10 @@ function ResultCard({ game, standingsMap, onClick }: { game: Game; standingsMap:
         <div className={`flex items-center gap-2 flex-1 min-w-0 justify-end ${awayWon ? '' : 'opacity-50'}`}>
           <div className="flex flex-col items-end min-w-0 flex-1">
             <p className="font-display font-800 text-base md:text-xl uppercase text-white text-right leading-none truncate">
-              <strong>{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</strong>
+              <strong>
+                <span className="hidden sm:inline">{TEAM_NAMES[game.away_team_id] ?? game.away_team_id}</span>
+                <span className="sm:hidden">{TEAM_SHORT[game.away_team_id] ?? game.away_team_id}</span>
+              </strong>
             </p>
             {standingsMap[game.away_team_id] && (
               <span className="font-display font-600 text-xs text-[var(--muted)]">
@@ -101,7 +108,10 @@ function ResultCard({ game, standingsMap, onClick }: { game: Game; standingsMap:
           <TeamLogo teamId={game.home_team_id} />
           <div className="flex flex-col min-w-0 flex-1">
             <p className="font-display font-800 text-base md:text-xl uppercase text-white leading-none truncate">
-              <strong>{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</strong>
+              <strong>
+                <span className="hidden sm:inline">{TEAM_NAMES[game.home_team_id] ?? game.home_team_id}</span>
+                <span className="sm:hidden">{TEAM_SHORT[game.home_team_id] ?? game.home_team_id}</span>
+              </strong>
             </p>
             {standingsMap[game.home_team_id] && (
               <span className="font-display font-600 text-xs text-[var(--muted)]">

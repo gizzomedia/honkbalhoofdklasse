@@ -1,0 +1,271 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+
+const TEAM_COLORS: Record<string, string> = {
+  neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
+  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#e41d30', uvv: '#db002f',
+}
+const TEAM_LOGOS: Record<string, string> = {
+  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
+  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
+  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
+  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
+  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
+  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
+  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
+}
+const TEAM_NAMES: Record<string, string> = {
+  neptunus: 'Curaçao Neptunus', pirates: 'Amsterdam Pirates', kinheim: 'Kinheim',
+  hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
+}
+
+type PlayerData = {
+  seasonStats: Record<string, unknown> | null
+  seriesLog: Record<string, unknown>[]
+}
+
+function fmtIp(v: unknown): string {
+  const n = Number(v)
+  if (isNaN(n)) return '-'
+  if (Number.isInteger(n)) return `${Math.floor(n / 3)}.${n % 3}`
+  return n.toFixed(1)
+}
+
+function s(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '-'
+  return String(v)
+}
+
+function fmtAvg(v: unknown): string {
+  if (v === null || v === undefined || v === '') return '-'
+  const n = Number(v)
+  if (!isNaN(n) && n <= 1) return n.toFixed(3).replace('0.', '.')
+  return String(v)
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-[#0f1e2e] rounded-lg p-3 text-center border border-[var(--border)]">
+      <p className="font-display font-800 text-lg text-white leading-none">{value}</p>
+      <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest mt-1">{label}</p>
+    </div>
+  )
+}
+
+export default function PlayerStatsModal({
+  playerName,
+  teamId,
+  statType,
+  onClose,
+}: {
+  playerName: string
+  teamId: string
+  statType: 'batting' | 'pitching'
+  onClose: () => void
+}) {
+  const [data, setData] = useState<PlayerData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<'stats' | 'log'>('stats')
+
+  useEffect(() => {
+    setLoading(true)
+    setData(null)
+    fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}&type=${statType}`)
+      .then(r => r.json())
+      .then(setData)
+      .finally(() => setLoading(false))
+  }, [playerName, statType])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
+  const teamLogo = TEAM_LOGOS[teamId]
+  const st = data?.seasonStats
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg bg-[#0a1220] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]"
+          style={{ background: `linear-gradient(135deg, ${teamColor}30, transparent)` }}>
+          <div className="flex items-center gap-3">
+            {teamLogo && (
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1.5 shrink-0"
+                style={{ backgroundColor: teamColor }}>
+                <Image src={teamLogo} alt={teamId} width={28} height={28} className="object-contain w-full h-full" />
+              </div>
+            )}
+            <div>
+              <p className="font-display font-800 italic text-xl uppercase text-white leading-none">
+                <strong>{playerName}</strong>
+              </p>
+              <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5"
+                style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
+                {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-[var(--card-hover)] flex items-center justify-center text-[var(--muted)] hover:text-white transition-colors text-xl leading-none shrink-0"
+          >×</button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border-b border-[var(--border)]">
+          {(['stats', 'log'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`flex-1 py-3 font-display font-800 text-xs uppercase tracking-widest transition-colors border-b-2 ${
+                tab === t
+                  ? 'text-white border-[var(--accent)]'
+                  : 'text-[var(--muted)] border-transparent hover:text-white'
+              }`}
+            >
+              {t === 'stats' ? 'Seizoensstats' : 'Serie Log'}
+            </button>
+          ))}
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : tab === 'stats' ? (
+            <>
+              {!st ? (
+                <div className="text-center py-8">
+                  <p className="font-display font-700 text-[var(--muted)] text-sm uppercase">
+                    Geen seizoensstats gevonden
+                  </p>
+                  <p className="font-display font-700 text-[var(--muted)] text-xs mt-1">
+                    Seizoen 2026
+                  </p>
+                </div>
+              ) : statType === 'batting' ? (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <StatBox label="AVG" value={s(st.avg)} />
+                  <StatBox label="AB"  value={s(st.ab)} />
+                  <StatBox label="H"   value={s(st.h)} />
+                  <StatBox label="HR"  value={s(st.hr)} />
+                  <StatBox label="RBI" value={s(st.rbi)} />
+                  <StatBox label="R"   value={s(st.r)} />
+                  <StatBox label="BB"  value={s(st.bb)} />
+                  <StatBox label="SO"  value={s(st.so)} />
+                  <StatBox label="SB"  value={s(st.sb)} />
+                  <StatBox label="2B"  value={s(st.double)} />
+                  <StatBox label="3B"  value={s(st.triple)} />
+                  <StatBox label="OBP" value={s(st.obp)} />
+                  <StatBox label="SLG" value={s(st.slg)} />
+                  <StatBox label="PA"  value={s(st.pa)} />
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <StatBox label="ERA" value={s(st.era)} />
+                  <StatBox label="IP"  value={fmtIp(st.pitch_ip)} />
+                  <StatBox label="W"   value={s(st.pitch_win)} />
+                  <StatBox label="L"   value={s(st.pitch_loss)} />
+                  <StatBox label="SV"  value={s(st.pitch_save)} />
+                  <StatBox label="SO"  value={s(st.pitch_so)} />
+                  <StatBox label="BB"  value={s(st.pitch_bb)} />
+                  <StatBox label="H"   value={s(st.pitch_h)} />
+                  <StatBox label="ER"  value={s(st.pitch_er)} />
+                  <StatBox label="App" value={s(st.pitch_appear)} />
+                  <StatBox label="GS"  value={s(st.pitch_gs)} />
+                  <StatBox label="CG"  value={s(st.pitch_cg)} />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {!data?.seriesLog?.length ? (
+                <div className="text-center py-8">
+                  <p className="font-display font-700 text-[var(--muted)] text-sm uppercase">
+                    Geen serie data gevonden
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[var(--border)]">
+                        <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-left">Serie</th>
+                        {statType === 'batting' ? (
+                          <>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">AB</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">H</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">HR</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">RBI</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest py-2 px-2 text-center">AVG</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">IP</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">H</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">ER</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">K</th>
+                            <th className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2 px-2 text-center">BB</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.seriesLog.map((row, i) => {
+                        const week = String(row.series_week ?? '')
+                        const d = new Date(week + 'T12:00:00')
+                        const label = isNaN(d.getTime())
+                          ? week
+                          : `Serie ${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}`
+                        return (
+                          <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--card-hover)] transition-colors">
+                            <td className="font-display font-700 text-xs text-[var(--muted)] py-2.5 px-2 whitespace-nowrap">{label}</td>
+                            {statType === 'batting' ? (
+                              <>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.at_bats)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.hits)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.home_runs)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.rbi)}</td>
+                                <td className="font-display font-800 text-sm text-[var(--accent)] py-2.5 px-2 text-center">{fmtAvg(row.avg)}</td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.innings_pitched)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.hits_allowed)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.earned_runs)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.strikeouts)}</td>
+                                <td className="font-display font-700 text-sm text-white py-2.5 px-2 text-center">{s(row.walks)}</td>
+                              </>
+                            )}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="border-t border-[var(--border)] px-5 py-3">
+          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest text-center">
+            Stats: KNBSB · Seizoen 2026
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}

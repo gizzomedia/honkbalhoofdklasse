@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import PlayerStatsModal from '@/components/PlayerStatsModal'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -14,21 +15,16 @@ const KNBSB_TEAM_MAP: Record<string, string> = {
   NEP: 'neptunus', AMS: 'pirates', PIR: 'pirates', HCA: 'hcaw',
   KIN: 'kinheim', PIO: 'pioniers', UVV: 'uvv', TWI: 'twins',
 }
-// Clean ugly PITCH_ prefixed labels from KNBSB API
 const LABEL_OVERRIDE: Record<string, string> = {
-  PITCH_APPEAR: 'App',
-  PITCH_SHO: 'SHO',
-  PITCH_SHA: 'SHA',
-  PITCH_SFA: 'SFA',
-  PITCH_WP: 'WP',
-  PITCH_HBP: 'HBP',
-  PITCH_IBB: 'IBB',
-  PITCH_BK: 'BK',
+  PITCH_APPEAR: 'App', PITCH_SHO: 'SHO', PITCH_SHA: 'SHA',
+  PITCH_SFA: 'SFA', PITCH_WP: 'WP', PITCH_HBP: 'HBP',
+  PITCH_IBB: 'IBB', PITCH_BK: 'BK',
 }
 
 type Row = Record<string, unknown>
 type Period = 'week' | 'season'
 type Category = 'hitting' | 'pitching'
+type OnSelect = (name: string, teamId: string, statType: 'batting' | 'pitching') => void
 
 export type KnbsbCategory = {
   type: string
@@ -86,25 +82,17 @@ function getStatValue(type: string, p: Row): string {
   return map[type]?.() ?? '-'
 }
 
-// Two-pass: any numeric position followed by a '-' gets T-prefix on both
 function assignRanks(players: Row[]): string[] {
   const positions: (number | '-')[] = players.map(p => {
     const pos = p.position
     return (pos === '-' || pos === undefined) ? '-' : Number(pos)
   })
-
-  // Find which numeric positions have at least one '-' after them
   const hasTie = new Set<number>()
   let lastNum = 1
   for (const pos of positions) {
-    if (pos === '-') {
-      hasTie.add(lastNum)
-    } else {
-      lastNum = pos
-    }
+    if (pos === '-') hasTie.add(lastNum)
+    else lastNum = pos
   }
-
-  // Assign display ranks
   lastNum = 1
   return positions.map(pos => {
     if (pos === '-') return `T${lastNum}`
@@ -117,7 +105,6 @@ function parseKnbsbName(player: Row): string {
   const nameHtml = String(player.name ?? '')
   if (nameHtml) {
     const parts = nameHtml.replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean)
-    // parts[0] = LASTNAME (all caps), parts[1] = display firstname (nickname)
     if (parts.length >= 2) return `${parts[1]} ${parts[0]}`
   }
   const first = String(player.firstname ?? '').split(' ')[0]
@@ -125,7 +112,11 @@ function parseKnbsbName(player: Row): string {
   return `${first} ${last}`.trim()
 }
 
-function CategoryCard({ category }: { category: KnbsbCategory }) {
+function CategoryCard({ category, statType, onSelect }: {
+  category: KnbsbCategory
+  statType: 'batting' | 'pitching'
+  onSelect: OnSelect
+}) {
   const { stat, qualifier } = parseLabel(category.label)
   const ranks = assignRanks(category.data)
   const gridCols = '1.5rem 1fr 3.5rem'
@@ -154,9 +145,10 @@ function CategoryCard({ category }: { category: KnbsbCategory }) {
             const value = getStatValue(category.type, player)
 
             return (
-              <div
+              <button
                 key={i}
-                className={`grid items-center px-5 py-2.5 gap-3 transition-colors ${
+                onClick={() => onSelect(name, teamKey, statType)}
+                className={`w-full grid items-center px-5 py-2.5 gap-3 transition-colors text-left ${
                   isFirst ? 'bg-[var(--accent)]' : 'hover:bg-[var(--card-hover)]'
                 }`}
                 style={{ gridTemplateColumns: gridCols }}
@@ -179,7 +171,7 @@ function CategoryCard({ category }: { category: KnbsbCategory }) {
                 <p className={`font-display font-800 text-lg text-center ${isFirst ? 'text-white' : 'text-[var(--accent)]'}`}>
                   <strong>{value}</strong>
                 </p>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -188,14 +180,18 @@ function CategoryCard({ category }: { category: KnbsbCategory }) {
   )
 }
 
-function SeasonCategoryGrid({ categories }: { categories: KnbsbCategory[] }) {
+function SeasonCategoryGrid({ categories, statType, onSelect }: {
+  categories: KnbsbCategory[]
+  statType: 'batting' | 'pitching'
+  onSelect: OnSelect
+}) {
   if (categories.length === 0) {
     return <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest py-10 text-center">Geen data beschikbaar</p>
   }
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {categories.map(cat => (
-        <CategoryCard key={cat.type} category={cat} />
+        <CategoryCard key={cat.type} category={cat} statType={statType} onSelect={onSelect} />
       ))}
     </div>
   )
@@ -205,10 +201,12 @@ function SeasonCategoryGrid({ categories }: { categories: KnbsbCategory[] }) {
 
 type Col<T> = { label: string; value: (r: T) => string | number }
 
-function LeaderTable<T extends Row>({ title, rows, columns }: {
+function LeaderTable<T extends Row>({ title, rows, columns, statType, onSelect }: {
   title: string
   rows: T[]
   columns: Col<T>[]
+  statType: 'batting' | 'pitching'
+  onSelect: OnSelect
 }) {
   const gridCols = `1.25rem 1fr ${columns.map(() => '3.5rem').join(' ')}`
 
@@ -236,9 +234,10 @@ function LeaderTable<T extends Row>({ title, rows, columns }: {
         {rows.slice(0, 10).map((row, i) => {
           const isLeader = i === 0
           return (
-            <div
+            <button
               key={i}
-              className={`grid items-center px-5 py-2.5 gap-3 transition-colors ${isLeader ? 'bg-[var(--accent)]' : 'hover:bg-[var(--card-hover)]'}`}
+              onClick={() => onSelect(String(row.full_name ?? ''), String(row.team_id ?? ''), statType)}
+              className={`w-full grid items-center px-5 py-2.5 gap-3 transition-colors text-left ${isLeader ? 'bg-[var(--accent)]' : 'hover:bg-[var(--card-hover)]'}`}
               style={{ gridTemplateColumns: gridCols }}
             >
               <span className={`font-display font-800 text-lg ${isLeader ? 'text-white' : 'text-[var(--muted)]'}`}>
@@ -263,7 +262,7 @@ function LeaderTable<T extends Row>({ title, rows, columns }: {
                   </p>
                 )
               })}
-            </div>
+            </button>
           )
         })}
       </div>
@@ -275,52 +274,52 @@ const fmt     = (v: unknown) => v != null ? String(v) : '-'
 const fmtRate = (v: unknown) => v != null ? Number(v).toFixed(3).replace('0.', '.') : '-'
 const fmtIp   = (v: unknown) => v != null ? String(v) : '-'
 
-function WeekHittingTables({ batters }: { batters: Row[] }) {
+function WeekHittingTables({ batters, onSelect }: { batters: Row[]; onSelect: OnSelect }) {
   const byHR  = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
   const byRBI = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
   const bySB  = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LeaderTable title="Batting Avg" rows={batters} columns={[
+      <LeaderTable title="Batting Avg" rows={batters} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'H',   value: r => fmt(r.hits) },
         { label: 'AVG', value: r => fmtRate(r.avg) },
       ]} />
-      <LeaderTable title="Home Runs" rows={byHR} columns={[
+      <LeaderTable title="Home Runs" rows={byHR} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB', value: r => fmt(r.at_bats) },
         { label: 'HR', value: r => fmt(r.home_runs) },
       ]} />
-      <LeaderTable title="RBI" rows={byRBI} columns={[
+      <LeaderTable title="RBI" rows={byRBI} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'RBI', value: r => fmt(r.rbi) },
       ]} />
-      <LeaderTable title="Stolen Bases" rows={bySB} columns={[
+      <LeaderTable title="Stolen Bases" rows={bySB} statType="batting" onSelect={onSelect} columns={[
         { label: 'SB', value: r => fmt(r.stolen_bases) },
       ]} />
     </div>
   )
 }
 
-function WeekPitchingTables({ pitchers }: { pitchers: Row[] }) {
+function WeekPitchingTables({ pitchers, onSelect }: { pitchers: Row[]; onSelect: OnSelect }) {
   const byK  = [...pitchers].sort((a, b) => (b.strikeouts as number) - (a.strikeouts as number))
   const byW  = [...pitchers].sort((a, b) => (b.wins as number) - (a.wins as number))
   const bySV = [...pitchers].sort((a, b) => (b.saves as number) - (a.saves as number))
   const byIP = [...pitchers].sort((a, b) => (b.innings_pitched as number) - (a.innings_pitched as number))
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LeaderTable title="Strikeouts" rows={byK} columns={[
+      <LeaderTable title="Strikeouts" rows={byK} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'K',  value: r => fmt(r.strikeouts) },
       ]} />
-      <LeaderTable title="Wins" rows={byW} columns={[
+      <LeaderTable title="Wins" rows={byW} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'W',  value: r => fmt(r.wins) },
       ]} />
-      <LeaderTable title="Saves" rows={bySV} columns={[
+      <LeaderTable title="Saves" rows={bySV} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'SV', value: r => fmt(r.saves) },
       ]} />
-      <LeaderTable title="Innings Pitched" rows={byIP} columns={[
+      <LeaderTable title="Innings Pitched" rows={byIP} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'K',  value: r => fmt(r.strikeouts) },
       ]} />
@@ -362,32 +361,49 @@ export default function LeadersTabs({
 }) {
   const [period, setPeriod] = useState<Period>('season')
   const [category, setCategory] = useState<Category>('hitting')
+  const [selectedPlayer, setSelectedPlayer] = useState<{
+    name: string; teamId: string; statType: 'batting' | 'pitching'
+  } | null>(null)
+
+  const onSelect: OnSelect = (name, teamId, statType) => {
+    setSelectedPlayer({ name, teamId, statType })
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex gap-2">
-          <TabButton active={period === 'week'} disabled={!week} onClick={() => setPeriod('week')}>
-            {seriesLabel ?? 'This Week'}
-          </TabButton>
-          <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
-            Seizoen 2026
-          </TabButton>
+    <>
+      {selectedPlayer && (
+        <PlayerStatsModal
+          playerName={selectedPlayer.name}
+          teamId={selectedPlayer.teamId}
+          statType={selectedPlayer.statType}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex gap-2">
+            <TabButton active={period === 'week'} disabled={!week} onClick={() => setPeriod('week')}>
+              {seriesLabel ?? 'This Week'}
+            </TabButton>
+            <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
+              Seizoen 2026
+            </TabButton>
+          </div>
+          <div className="flex gap-2">
+            <TabButton active={category === 'hitting'} onClick={() => setCategory('hitting')}>
+              Hitting
+            </TabButton>
+            <TabButton active={category === 'pitching'} onClick={() => setCategory('pitching')}>
+              Pitching
+            </TabButton>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <TabButton active={category === 'hitting'} onClick={() => setCategory('hitting')}>
-            Hitting
-          </TabButton>
-          <TabButton active={category === 'pitching'} onClick={() => setCategory('pitching')}>
-            Pitching
-          </TabButton>
-        </div>
-      </div>
 
-      {period === 'season' && category === 'hitting'  && <SeasonCategoryGrid categories={season.batting} />}
-      {period === 'season' && category === 'pitching' && <SeasonCategoryGrid categories={season.pitching} />}
-      {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables batters={week.batters} />}
-      {period === 'week'   && week && category === 'pitching' && <WeekPitchingTables pitchers={week.pitchers} />}
-    </div>
+        {period === 'season' && category === 'hitting'  && <SeasonCategoryGrid categories={season.batting}  statType="batting"  onSelect={onSelect} />}
+        {period === 'season' && category === 'pitching' && <SeasonCategoryGrid categories={season.pitching} statType="pitching" onSelect={onSelect} />}
+        {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables  batters={week.batters}   onSelect={onSelect} />}
+        {period === 'week'   && week && category === 'pitching' && <WeekPitchingTables pitchers={week.pitchers} onSelect={onSelect} />}
+      </div>
+    </>
   )
 }

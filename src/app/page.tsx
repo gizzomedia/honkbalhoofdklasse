@@ -245,15 +245,15 @@ export default async function HomePage() {
           {/* STAND — left, 3 cols */}
           <div className="lg:col-span-3">
             <div className="flex items-end justify-between mb-6">
-              <SectionLabel>Hoofdklasse Stand</SectionLabel>
+              <SectionLabel>Standings</SectionLabel>
               <Link href="/stand" className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-[0.2em] hover:underline hidden sm:block">
                 Volledig →
               </Link>
             </div>
 
             {/* Header row */}
-            <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 px-4 pb-3 border-b border-[#0f1e2e]">
-              {['#', 'Team', 'W', 'L', 'PCT'].map(h => (
+            <div className="grid grid-cols-[1.5rem_1fr_4rem_3.5rem] md:grid-cols-[2rem_1fr_4rem_3.5rem_2.5rem] gap-2 px-4 pb-3 border-b border-[#0f1e2e]">
+              {['#', 'Team', 'W-L', 'PCT'].map(h => (
                 <span key={h} className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center first:text-left">{h}</span>
               ))}
               <span className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest text-center hidden md:block">G</span>
@@ -265,7 +265,7 @@ export default async function HomePage() {
                 const isFirst = i === 0
                 return (
                   <div key={s.team_id}
-                    className={`grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_2.5rem_2.5rem_2.5rem_3.5rem] gap-2 items-center px-4 py-3.5 transition-colors ${
+                    className={`grid grid-cols-[1.5rem_1fr_4rem_3.5rem] md:grid-cols-[2rem_1fr_4rem_3.5rem_2.5rem] gap-2 items-center px-4 py-3.5 transition-colors ${
                       isFirst ? 'bg-[var(--accent)]/10 border-l-[3px] border-[var(--accent)]' : 'hover:bg-[#0a1620]'
                     }`}>
                     <span className={`font-display font-800 text-sm ${isFirst ? 'text-[var(--accent)]' : 'text-[#4a6a8a]'}`}>{i + 1}</span>
@@ -280,8 +280,7 @@ export default async function HomePage() {
                         )}
                       </div>
                     </div>
-                    <span className="font-display font-800 text-sm text-white text-center">{s.wins}</span>
-                    <span className="font-display font-600 text-sm text-[#4a6a8a] text-center">{s.losses}</span>
+                    <span className="font-display font-800 text-sm text-white text-center">{s.wins}-{s.losses}</span>
                     <span className={`font-display font-800 text-sm text-center ${isFirst ? 'text-[var(--accent)]' : 'text-white'}`}>{pct}</span>
                     <span className="font-display font-700 text-sm text-white text-center hidden md:block">{s.games_played}</span>
                   </div>
@@ -293,14 +292,21 @@ export default async function HomePage() {
           {/* NEXT MATCH — 2 cols */}
           <div className="lg:col-span-2 flex flex-col gap-3">
             <SectionLabel>Upcoming</SectionLabel>
-            {upcoming.map((g, i) => (
+            {upcoming.map((g) => (
               <div key={g.id}
-                className={`relative overflow-hidden border ${i === 0 ? 'border-[var(--accent)]/40 bg-[#0f1e2e]' : 'border-[#0f1e2e] bg-[#080f18]'}`}>
-                {i === 0 && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)]" />}
+                className="relative overflow-hidden border border-[var(--accent)]/40 bg-[#0f1e2e]">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)]" />
                 <div className="p-4">
-                  <p className="font-display font-700 text-xs text-[#4a6a8a] uppercase tracking-widest mb-3">
-                    {formatDate(g.game_date)}{g.game_time ? ` · ${g.game_time.slice(0, 5)}` : ''}
-                  </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-display font-700 text-xs text-[#4a6a8a] uppercase tracking-widest">
+                      {formatDate(g.game_date)}{g.game_time ? ` · ${g.game_time.slice(0, 5)}` : ''}
+                    </p>
+                    {g.venue && (
+                      <p className="font-display font-700 text-[10px] text-[#4a6a8a] uppercase tracking-widest truncate max-w-[45%] text-right">
+                        {g.venue}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-center gap-1 flex-1">
                       <TeamLogo teamId={g.away_team_id} size={36} />

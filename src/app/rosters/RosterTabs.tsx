@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import type { StaticRosters } from '@/lib/rosters-data'
-import { slugify } from '@/lib/rosters-data'
+import PlayerStatsModal from '@/components/PlayerStatsModal'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -35,9 +34,12 @@ const SECTIONS: Section[] = [
   { label: 'Utility',         short: 'UTL', filter: pos => pos === 'UTL' || pos === 'DH' },
 ]
 
+type SelectedPlayer = { name: string; teamId: string; statType: 'batting' | 'pitching' }
+
 export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
   const availableTeams = TEAM_ORDER.filter(t => rosters[t])
   const [activeTeam, setActiveTeam] = useState(availableTeams[0] ?? '')
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null)
 
   const team = rosters[activeTeam]
   const players = team?.players ?? []
@@ -45,6 +47,15 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
   const color = TEAM_COLORS[activeTeam] ?? '#1e335a'
 
   return (
+    <>
+    {selectedPlayer && (
+      <PlayerStatsModal
+        playerName={selectedPlayer.name}
+        teamId={selectedPlayer.teamId}
+        statType={selectedPlayer.statType}
+        onClose={() => setSelectedPlayer(null)}
+      />
+    )}
     <div className="space-y-6">
       {/* Team tabs */}
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
@@ -123,18 +134,14 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
                     {sectionPlayers.map((player, i) => (
                       <tr
                         key={i}
+                        onClick={() => setSelectedPlayer({ name: player.name, teamId: activeTeam, statType: player.pos === 'P' ? 'pitching' : 'batting' })}
                         className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors group cursor-pointer"
                       >
                         <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10 text-white">
                           {player.uniform || '–'}
                         </td>
-                        <td className="font-display font-800 text-base text-white px-3 py-2.5">
-                          <Link
-                            href={`/rosters/${activeTeam}/${slugify(player.name)}`}
-                            className="hover:text-[var(--accent)] transition-colors group-hover:text-[var(--accent)]"
-                          >
-                            {player.name}
-                          </Link>
+                        <td className="font-display font-800 text-base text-white px-3 py-2.5 group-hover:text-[var(--accent)] transition-colors">
+                          {player.name}
                         </td>
                         <td className="text-center px-3 py-2.5 w-14">
                           <span
@@ -212,5 +219,6 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
         )}
       </div>
     </div>
+    </>
   )
 }
