@@ -141,7 +141,7 @@ export default function AdminPhotosPage() {
             value={pw}
             onChange={e => setPw(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()}
-            className="w-full bg-[var(--bg)] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-3 text-white outline-none font-display font-700 text-sm"
+            className="w-full bg-[#0d1b2e] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-3 text-white placeholder:text-white/40 outline-none font-display font-700 text-sm [color-scheme:dark]"
           />
           <button
             onClick={login}
