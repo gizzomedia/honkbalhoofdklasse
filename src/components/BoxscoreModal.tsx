@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import WinProbChart from './WinProbChart'
+import type { WinProbPoint } from '@/app/api/win-probability/[gameId]/route'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
@@ -68,12 +70,17 @@ export default function BoxscoreModal({
 }) {
   const [data, setData] = useState<BoxscoreData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [winProb, setWinProb] = useState<WinProbPoint[]>([])
 
   useEffect(() => {
-    fetch(`/api/boxscore/${gameId}`)
-      .then(r => r.json())
-      .then(setData)
-      .finally(() => setLoading(false))
+    setLoading(true)
+    Promise.all([
+      fetch(`/api/boxscore/${gameId}`).then(r => r.json()),
+      fetch(`/api/win-probability/${gameId}`).then(r => r.json()).catch(() => ({ points: [] })),
+    ]).then(([boxscore, wp]) => {
+      setData(boxscore)
+      setWinProb(wp.points ?? [])
+    }).finally(() => setLoading(false))
   }, [gameId])
 
   // Close on Escape
@@ -237,6 +244,17 @@ export default function BoxscoreModal({
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Win probability chart */}
+            {winProb.length >= 2 && (
+              <WinProbChart
+                points={winProb}
+                homeId={data.homeId ?? homeId}
+                awayId={data.awayId ?? awayId}
+                homeColor={TEAM_COLORS[data.homeId ?? homeId] ?? '#fe3d00'}
+                awayColor={TEAM_COLORS[data.awayId ?? awayId] ?? '#8BA0B8'}
+              />
             )}
           </>
         )}
