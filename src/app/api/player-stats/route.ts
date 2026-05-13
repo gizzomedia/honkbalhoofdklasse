@@ -59,5 +59,11 @@ export async function GET(req: NextRequest) {
     .neq('series_week', 'season')
     .order('series_week', { ascending: true })
 
-  return NextResponse.json({ seasonStats, seriesLog: seriesLog ?? [] })
+  const { data: photos } = await supabase
+    .from('player_photos')
+    .select('banner_url, headshot_url')
+    .ilike('player_name', name.trim())
+    .maybeSingle()
+
+  return NextResponse.json({ seasonStats, seriesLog: seriesLog ?? [], photos: photos ?? null })
 }
