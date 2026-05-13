@@ -17,7 +17,11 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = file.name.split('.').pop() ?? 'jpg'
-  const slug = playerName.toLowerCase().replace(/\s+/g, '-')
+  const slug = playerName
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // strip accents: á→a, é→e
+    .replace(/[^a-z0-9\s-]/g, '')                     // remove remaining special chars
+    .trim().replace(/\s+/g, '-')
   const path = `${slug}/${photoType}.${ext}`
 
   const bytes = await file.arrayBuffer()
