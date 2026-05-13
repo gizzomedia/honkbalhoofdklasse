@@ -25,6 +25,7 @@ const TEAM_NAMES: Record<string, string> = {
 type PlayerData = {
   seasonStats: Record<string, unknown> | null
   seriesLog: Record<string, unknown>[]
+  photos: { banner_url: string | null; headshot_url: string | null } | null
 }
 
 function fmtIp(v: unknown): string {
@@ -88,6 +89,8 @@ export default function PlayerStatsModal({
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
   const st = data?.seasonStats
+  const bannerUrl = data?.photos?.banner_url
+  const headshotUrl = data?.photos?.headshot_url
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -97,30 +100,65 @@ export default function PlayerStatsModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]"
-          style={{ background: `linear-gradient(135deg, ${teamColor}30, transparent)` }}>
-          <div className="flex items-center gap-3">
-            {teamLogo && (
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1.5 shrink-0"
-                style={{ backgroundColor: teamColor }}>
-                <Image src={teamLogo} alt={teamId} width={28} height={28} className="object-contain w-full h-full" />
-              </div>
-            )}
-            <div>
-              <p className="font-display font-800 italic text-xl uppercase text-white leading-none">
-                <strong>{playerName}</strong>
-              </p>
-              <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5"
-                style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
-                {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
-              </p>
+        {bannerUrl ? (
+          /* MLB-style header with banner photo */
+          <div className="relative shrink-0">
+            {/* Banner */}
+            <div className="relative h-32 w-full overflow-hidden">
+              <Image src={bannerUrl} alt={playerName} fill className="object-cover object-top" priority />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0a1220]" />
             </div>
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors text-xl leading-none"
+            >×</button>
+            {/* Headshot + info row */}
+            <div className="flex items-end gap-3 px-4 pb-3 -mt-8">
+              {headshotUrl && (
+                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#0a1220] shrink-0 shadow-lg">
+                  <Image src={headshotUrl} alt={playerName} fill className="object-cover" />
+                </div>
+              )}
+              <div className="pb-0.5 min-w-0">
+                <p className="font-display font-800 italic text-xl uppercase text-white leading-none truncate">
+                  <strong>{playerName}</strong>
+                </p>
+                <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5"
+                  style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
+                  {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
+                </p>
+              </div>
+            </div>
+            <div className="border-b border-[var(--border)]" />
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-full bg-[var(--card-hover)] flex items-center justify-center text-[var(--muted)] hover:text-white transition-colors text-xl leading-none shrink-0"
-          >×</button>
-        </div>
+        ) : (
+          /* Fallback header */
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0"
+            style={{ background: `linear-gradient(135deg, ${teamColor}30, transparent)` }}>
+            <div className="flex items-center gap-3">
+              {teamLogo && (
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center p-1.5 shrink-0"
+                  style={{ backgroundColor: teamColor }}>
+                  <Image src={teamLogo} alt={teamId} width={28} height={28} className="object-contain w-full h-full" />
+                </div>
+              )}
+              <div>
+                <p className="font-display font-800 italic text-xl uppercase text-white leading-none">
+                  <strong>{playerName}</strong>
+                </p>
+                <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5"
+                  style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
+                  {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full bg-[var(--card-hover)] flex items-center justify-center text-[var(--muted)] hover:text-white transition-colors text-xl leading-none shrink-0"
+            >×</button>
+          </div>
+        )}
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-4">
