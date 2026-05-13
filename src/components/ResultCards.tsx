@@ -31,7 +31,7 @@ type Game = {
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function TeamBlock({ teamId, score, won, isFinal }: {
