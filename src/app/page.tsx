@@ -45,7 +45,7 @@ const BROWSER_HEADERS = {
 async function getNews(): Promise<NewsItem[]> {
   try {
     const res = await fetch(
-      'https://honkbalsoftbal.nl/wp-json/wp/v2/posts?categories=544&per_page=15&_fields=title,link',
+      'https://honkbalsoftbal.nl/wp-json/wp/v2/posts?categories=544&per_page=3&_fields=title,link',
       { next: { revalidate: 1800 } }
     )
     const data = await res.json()
@@ -133,6 +133,7 @@ export default async function HomePage() {
   const { standings, results, upcoming, media, news, leaders } = await getData()
   const nextGame = upcoming[0]
   const leader = standings[0]
+  const standingsMap = Object.fromEntries(standings.map(s => [s.team_id, s]))
 
   return (
     <div>
@@ -144,7 +145,9 @@ export default async function HomePage() {
       {news.length > 0 && (
         <div className="bg-[var(--accent)] flex items-stretch overflow-hidden">
           <div className="shrink-0 bg-black/20 px-4 flex items-center">
-            <span className="font-display font-800 text-xs text-white uppercase tracking-widest whitespace-nowrap">Nieuws</span>
+            <Link href="/nieuws" className="font-display font-800 text-xs text-white uppercase tracking-widest whitespace-nowrap hover:text-white/70 transition-colors">
+              Nieuws →
+            </Link>
           </div>
           <div className="overflow-hidden flex-1">
             <div className="flex animate-marquee items-center h-10" style={{ width: 'max-content' }}>
@@ -189,9 +192,16 @@ export default async function HomePage() {
                       {/* Away */}
                       <div className={`flex items-center gap-2 mb-1.5 ${awayWon ? '' : 'opacity-35'}`}>
                         <TeamLogo teamId={g.away_team_id} size={32} />
-                        <span className="font-display font-800 text-[0.72rem] uppercase text-white flex-1 truncate leading-tight">
-                          {TEAM_NAMES[g.away_team_id] ?? g.away_team_id}
-                        </span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-display font-800 text-[0.72rem] uppercase text-white truncate leading-tight">
+                            {TEAM_NAMES[g.away_team_id] ?? g.away_team_id}
+                          </span>
+                          {standingsMap[g.away_team_id] && (
+                            <span className="font-display font-600 text-[0.6rem] text-[#4a6a8a] leading-none mt-0.5">
+                              {standingsMap[g.away_team_id].wins}-{standingsMap[g.away_team_id].losses}
+                            </span>
+                          )}
+                        </div>
                         <span className={`font-display font-800 text-2xl tabular-nums ${awayWon ? 'text-white' : 'text-white/30'}`}>
                           {g.away_score ?? '–'}
                         </span>
@@ -200,9 +210,16 @@ export default async function HomePage() {
                       {/* Home */}
                       <div className={`flex items-center gap-2 ${homeWon ? '' : 'opacity-35'}`}>
                         <TeamLogo teamId={g.home_team_id} size={32} />
-                        <span className="font-display font-800 text-[0.72rem] uppercase text-white flex-1 truncate leading-tight">
-                          {TEAM_NAMES[g.home_team_id] ?? g.home_team_id}
-                        </span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-display font-800 text-[0.72rem] uppercase text-white truncate leading-tight">
+                            {TEAM_NAMES[g.home_team_id] ?? g.home_team_id}
+                          </span>
+                          {standingsMap[g.home_team_id] && (
+                            <span className="font-display font-600 text-[0.6rem] text-[#4a6a8a] leading-none mt-0.5">
+                              {standingsMap[g.home_team_id].wins}-{standingsMap[g.home_team_id].losses}
+                            </span>
+                          )}
+                        </div>
                         <span className={`font-display font-800 text-2xl tabular-nums ${homeWon ? 'text-white' : 'text-white/30'}`}>
                           {g.home_score ?? '–'}
                         </span>
@@ -285,16 +302,26 @@ export default async function HomePage() {
                     {formatDate(g.game_date)}{g.game_time ? ` · ${g.game_time.slice(0, 5)}` : ''}
                   </p>
                   <div className="flex items-center gap-2">
-                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <div className="flex flex-col items-center gap-1 flex-1">
                       <TeamLogo teamId={g.away_team_id} size={36} />
                       <span className="font-display font-800 text-[11px] uppercase text-white text-center">{TEAM_SHORT[g.away_team_id]}</span>
+                      {standingsMap[g.away_team_id] && (
+                        <span className="font-display font-600 text-[10px] text-[#4a6a8a] text-center">
+                          {standingsMap[g.away_team_id].wins}-{standingsMap[g.away_team_id].losses}
+                        </span>
+                      )}
                     </div>
                     <div className="text-center px-1">
                       <p className="font-display font-800 italic text-lg text-[#4a6a8a]">VS</p>
                     </div>
-                    <div className="flex flex-col items-center gap-1.5 flex-1">
+                    <div className="flex flex-col items-center gap-1 flex-1">
                       <TeamLogo teamId={g.home_team_id} size={36} />
                       <span className="font-display font-800 text-[11px] uppercase text-white text-center">{TEAM_SHORT[g.home_team_id]}</span>
+                      {standingsMap[g.home_team_id] && (
+                        <span className="font-display font-600 text-[10px] text-[#4a6a8a] text-center">
+                          {standingsMap[g.home_team_id].wins}-{standingsMap[g.home_team_id].losses}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -8,7 +8,7 @@ const translations = {
   en: {
     home: 'Home', standings: 'Standings', live: 'Live', schedule: 'Schedule',
     results: 'Results', leaders: 'Leaders', livestream: 'Livestream',
-    news: 'News', rosters: 'Rosters', social: 'Social',
+    news: 'News', rosters: 'Rosters', social: 'Social', awards: 'Awards',
     recentResults: 'Recent Results', standingsTitle: 'Standings', upcoming: 'Upcoming',
     allResults: 'All results →', fullStandings: 'Full →', predict: 'Predict the result →',
     noGames: 'No games scheduled',
@@ -16,7 +16,7 @@ const translations = {
   nl: {
     home: 'Home', standings: 'Stand', live: 'Live', schedule: 'Schema',
     results: 'Uitslagen', leaders: 'Leaders', livestream: 'Livestream',
-    news: 'Nieuws', rosters: 'Rosters', social: 'Social',
+    news: 'Nieuws', rosters: 'Rosters', social: 'Social', awards: 'Awards',
     recentResults: 'Recente Uitslagen', standingsTitle: 'Hoofdklasse Stand', upcoming: 'Aankomend',
     allResults: 'Alle uitslagen →', fullStandings: 'Volledig →', predict: 'Voorspel de uitslag →',
     noGames: 'Geen wedstrijden gepland',

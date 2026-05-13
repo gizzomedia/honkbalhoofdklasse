@@ -1,7 +1,15 @@
-export type Player = { uniform: string; name: string; pos: string; bt: string; yob: number }
+export type Player = { uniform: string; name: string; pos: string; bt: string; yob: number; instagram?: string }
 export type Coach  = { uniform: string; name: string; role: string }
 export type TeamRoster = { players: Player[]; coaches: Coach[] }
 export type StaticRosters = Record<string, TeamRoster>
+
+export function slugify(name: string): string {
+  return name.toLowerCase()
+    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i').replace(/[òóôõöø]/g, 'o')
+    .replace(/[ùúûü]/g, 'u').replace(/[ç]/g, 'c').replace(/[ñ]/g, 'n')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 export const ROSTERS: StaticRosters = {
   pirates: {

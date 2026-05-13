@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { StaticRosters } from '@/lib/rosters-data'
+import { slugify } from '@/lib/rosters-data'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#ffc425', kinheim: '#c0232e',
@@ -121,13 +123,18 @@ export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
                     {sectionPlayers.map((player, i) => (
                       <tr
                         key={i}
-                        className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors"
+                        className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--card-hover)] transition-colors group cursor-pointer"
                       >
                         <td className="font-display font-800 text-sm text-center px-3 py-2.5 w-10 text-white">
                           {player.uniform || '–'}
                         </td>
                         <td className="font-display font-800 text-base text-white px-3 py-2.5">
-                          {player.name}
+                          <Link
+                            href={`/rosters/${activeTeam}/${slugify(player.name)}`}
+                            className="hover:text-[var(--accent)] transition-colors group-hover:text-[var(--accent)]"
+                          >
+                            {player.name}
+                          </Link>
                         </td>
                         <td className="text-center px-3 py-2.5 w-14">
                           <span
