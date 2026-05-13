@@ -102,35 +102,36 @@ export default function PlayerStatsModal({
         {/* Header */}
         {bannerUrl ? (
           /* MLB-style header with banner photo */
-          <div className="relative shrink-0">
-            {/* Banner */}
-            <div className="relative h-32 w-full overflow-hidden">
+          <div className="relative shrink-0 border-b border-[var(--border)]">
+            {/* Banner with gradient + overlaid content */}
+            <div className="relative h-36 w-full overflow-hidden">
               <Image src={bannerUrl} alt={playerName} fill className="object-cover object-top" priority />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0a1220]" />
-            </div>
-            {/* Close button */}
-            <button
-              onClick={onClose}
-              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors text-xl leading-none"
-            >×</button>
-            {/* Headshot + info row */}
-            <div className="flex items-end gap-3 px-4 pb-3 -mt-8">
-              {headshotUrl && (
-                <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#0a1220] shrink-0 shadow-lg">
-                  <Image src={headshotUrl} alt={playerName} fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/70" />
+
+              {/* Close button */}
+              <button
+                onClick={onClose}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors text-xl leading-none"
+              >×</button>
+
+              {/* Headshot + name overlaid at bottom of banner */}
+              <div className="absolute bottom-3 left-4 flex items-end gap-3">
+                {headshotUrl && (
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white/20 shrink-0 shadow-lg">
+                    <Image src={headshotUrl} alt={playerName} fill className="object-cover" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-display font-800 italic text-xl uppercase text-white leading-none drop-shadow-lg">
+                    <strong>{playerName}</strong>
+                  </p>
+                  <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5 drop-shadow"
+                    style={{ color: teamColor === '#121b31' ? '#f59e0b' : teamColor }}>
+                    {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
+                  </p>
                 </div>
-              )}
-              <div className="pb-0.5 min-w-0">
-                <p className="font-display font-800 italic text-xl uppercase text-white leading-none truncate">
-                  <strong>{playerName}</strong>
-                </p>
-                <p className="font-display font-700 text-[10px] uppercase tracking-widest mt-0.5"
-                  style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
-                  {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
-                </p>
               </div>
             </div>
-            <div className="border-b border-[var(--border)]" />
           </div>
         ) : (
           /* Fallback header */
