@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+
+export const metadata: Metadata = {
+  title: 'Livestream',
+  description: 'Bekijk live honkbalwedstrijden van de Honkbal Hoofdklasse via de officiële livestream.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/livestream' },
+}
 
 export const revalidate = 60
 

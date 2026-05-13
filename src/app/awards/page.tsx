@@ -1,7 +1,14 @@
+import type { Metadata } from 'next'
 import { AWARD_CATEGORIES, AWARDS } from '@/lib/awards-data'
 import { slugify } from '@/lib/rosters-data'
 import Image from 'next/image'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Awards 2026',
+  description: 'De awards van de Honkbal Hoofdklasse 2026. Hottest Player, Pitcher en Hitter of the Month.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/awards' },
+}
 
 export const revalidate = false
 

@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import LeadersTabs, { type TabData, type SeasonLeaders } from './LeadersTabs'
+
+export const metadata: Metadata = {
+  title: 'League Leaders 2026',
+  description: 'Statistieken leaders van de Honkbal Hoofdklasse 2026. Top batters en pitchers per categorie.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/leaders' },
+}
 
 export const revalidate = 300
 

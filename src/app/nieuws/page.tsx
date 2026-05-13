@@ -1,6 +1,13 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Nieuws',
+  description: 'Het laatste honkbalnieuws uit de KNBSB Hoofdklasse.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/nieuws' },
+}
 
 export const revalidate = 300
 

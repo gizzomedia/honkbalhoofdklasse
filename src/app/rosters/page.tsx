@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import RosterTabs from './RosterTabs'
 import { ROSTERS } from '@/lib/rosters-data'
+
+export const metadata: Metadata = {
+  title: 'Rosters 2026',
+  description: 'Alle rosters van de Honkbal Hoofdklasse 2026. Spelers, posities en coaching staff per team.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/rosters' },
+}
 
 export const revalidate = false // static data — no revalidation needed
 

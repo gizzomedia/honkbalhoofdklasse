@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+
+export const metadata: Metadata = {
+  title: 'Standings 2026',
+  description: 'De actuele stand van de KNBSB Honkbal Hoofdklasse 2026. Bekijk wins, losses en winning percentage per team.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/stand' },
+}
 
 export const revalidate = 300
 

@@ -1,6 +1,13 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import PredictionWidget from '@/components/PredictionWidget'
+
+export const metadata: Metadata = {
+  title: 'Speelschema 2026',
+  description: 'Het volledige speelschema van de Honkbal Hoofdklasse 2026. Alle wedstrijden, datums en locaties.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/schema' },
+}
 
 export const revalidate = 120
 

@@ -17,13 +17,41 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Honkbal Hoofdklasse',
-  description: 'News, standings and statistics of the KNBSB Hoofdklasse',
+  metadataBase: new URL('https://honkbalhoofdklasse.com'),
+  title: {
+    default: 'Honkbal Hoofdklasse | Standen, Scores & Stats',
+    template: '%s | Honkbal Hoofdklasse',
+  },
+  description: 'Alles over de KNBSB Honkbal Hoofdklasse: live scores, standen, statistieken, rosters en nieuws van Neptunus, Pirates, Kinheim, HCAW, Twins, Pioniers en UVV.',
+  keywords: ['honkbal hoofdklasse', 'KNBSB hoofdklasse', 'honkbal nederland', 'hoofdklasse standen', 'hoofdklasse scores', 'neptunus honkbal', 'amsterdam pirates', 'kinheim', 'HCAW', 'oosterhout twins', 'hoofddorp pioniers', 'UVV honkbal'],
+  authors: [{ name: 'Honkbal Hoofdklasse' }],
+  creator: 'Honkbal Hoofdklasse',
+  publisher: 'Honkbal Hoofdklasse',
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
+  icons: {
+    icon: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'nl_NL',
+    url: 'https://honkbalhoofdklasse.com',
+    siteName: 'Honkbal Hoofdklasse',
+    title: 'Honkbal Hoofdklasse | Standen, Scores & Stats',
+    description: 'Alles over de KNBSB Honkbal Hoofdklasse: live scores, standen, statistieken en nieuws.',
+    images: [{ url: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png', width: 1200, height: 630, alt: 'Honkbal Hoofdklasse' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Honkbal Hoofdklasse | Standen, Scores & Stats',
+    description: 'Live scores, standen en statistieken van de KNBSB Honkbal Hoofdklasse.',
+    images: ['https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png'],
+  },
+  alternates: { canonical: 'https://honkbalhoofdklasse.com' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
+    <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <body>
         <LanguageProvider>
         <NavBar />
@@ -63,6 +91,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         </LanguageProvider>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SportsOrganization",
+            "name": "Honkbal Hoofdklasse",
+            "url": "https://honkbalhoofdklasse.com",
+            "sport": "Baseball",
+            "description": "De hoogste honkbalcompetitie in Nederland, georganiseerd door KNBSB.",
+            "logo": "https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png",
+            "sameAs": [
+              "https://www.instagram.com/honkbalhoofdklasse/",
+              "https://www.tiktok.com/@honkbalhoofdklasse",
+              "https://www.youtube.com/@Honkbalhoofdklasse",
+              "https://www.facebook.com/profile.php?id=61579476197609"
+            ]
+          }) }}
+        />
         <footer className="border-t border-[var(--border)] bg-[var(--card)]">
           <div className="max-w-5xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
