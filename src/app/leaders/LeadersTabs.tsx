@@ -112,6 +112,15 @@ function formatDutchLastname(raw: string): string {
   }).join(' ')
 }
 
+function formatFullName(full: string): string {
+  const words = full.trim().split(/\s+/)
+  if (words.length === 0) return full
+  const first = words[0].toLowerCase()
+  const firstCapitalized = first.charAt(0).toUpperCase() + first.slice(1)
+  if (words.length === 1) return firstCapitalized
+  return `${firstCapitalized} ${formatDutchLastname(words.slice(1).join(' '))}`
+}
+
 function parseKnbsbName(player: Row): string {
   const nameHtml = String(player.name ?? '')
   if (nameHtml) {
@@ -175,8 +184,8 @@ function CategoryCard({ category, statType, onSelect }: {
                     <strong>{TEAM_SHORT[teamKey] ?? String(player.team ?? '').slice(0, 3)}</strong>
                   </span>
                   <p className="font-display font-800 text-[1.2rem] uppercase leading-none truncate text-white">
-                    <span className="hidden sm:inline"><strong>{name.split(' ').slice(0, -1).join(' ')} </strong></span>
-                    <strong>{name.split(' ').at(-1)}</strong>
+                    <span className="hidden sm:inline"><strong>{name.split(' ')[0]} </strong></span>
+                    <strong>{name.split(' ').slice(1).join(' ')}</strong>
                   </p>
                 </div>
                 <p className={`font-display font-800 text-lg text-center ${isFirst ? 'text-white' : 'text-[var(--accent)]'}`}>
@@ -261,9 +270,12 @@ function LeaderTable<T extends Row>({ title, rows, columns, statType, onSelect }
                 >
                   <strong>{TEAM_SHORT[row.team_id as string] ?? String(row.team_id ?? '').slice(0, 3).toUpperCase()}</strong>
                 </span>
-                <p className="font-display font-800 text-[1.2rem] uppercase leading-none truncate text-white">
-                  <strong>{row.full_name as string}</strong>
-                </p>
+                {(() => { const fn = formatFullName(String(row.full_name ?? '')); return (
+                  <p className="font-display font-800 text-[1.2rem] uppercase leading-none truncate text-white">
+                    <span className="hidden sm:inline"><strong>{fn.split(' ')[0]} </strong></span>
+                    <strong>{fn.split(' ').slice(1).join(' ')}</strong>
+                  </p>
+                )})()}
               </div>
               {columns.map((col, ci) => {
                 const isLast = ci === columns.length - 1
