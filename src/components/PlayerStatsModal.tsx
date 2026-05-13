@@ -47,6 +47,38 @@ function fmtAvg(v: unknown): string {
   return String(v)
 }
 
+function n(v: unknown): number { return isNaN(Number(v)) ? 0 : Number(v) }
+
+function calcAvg(st: Record<string, unknown>): string {
+  if (st.avg !== null && st.avg !== undefined && st.avg !== '') return fmtAvg(st.avg)
+  const ab = n(st.ab)
+  if (ab === 0) return '-'
+  return fmtAvg(n(st.h) / ab)
+}
+
+function calcObp(st: Record<string, unknown>): string {
+  if (st.obp !== null && st.obp !== undefined && st.obp !== '') return fmtAvg(st.obp)
+  const ab = n(st.ab), h = n(st.h), bb = n(st.bb), hbp = n(st.hbp), sf = n(st.sf)
+  const denom = ab + bb + hbp + sf
+  if (denom === 0) return '-'
+  return fmtAvg((h + bb + hbp) / denom)
+}
+
+function calcSlg(st: Record<string, unknown>): string {
+  if (st.slg !== null && st.slg !== undefined && st.slg !== '') return fmtAvg(st.slg)
+  const ab = n(st.ab)
+  if (ab === 0) return '-'
+  const tb = n(st.h) + n(st.double) + 2 * n(st.triple) + 3 * n(st.hr)
+  return fmtAvg(tb / ab)
+}
+
+function calcEra(st: Record<string, unknown>): string {
+  if (st.era !== null && st.era !== undefined && st.era !== '') return s(st.era)
+  const ip = n(st.pitch_ip), er = n(st.pitch_er)
+  if (ip === 0) return '-'
+  return (er / ip * 27).toFixed(2)
+}
+
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[#0f1e2e] rounded-lg p-3 text-center border border-[var(--border)]">
@@ -180,7 +212,7 @@ export default function PlayerStatsModal({
                 </div>
               ) : statType === 'batting' ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  <StatBox label="AVG" value={s(st.avg)} />
+                  <StatBox label="AVG" value={calcAvg(st)} />
                   <StatBox label="AB"  value={s(st.ab)} />
                   <StatBox label="H"   value={s(st.h)} />
                   <StatBox label="HR"  value={s(st.hr)} />
@@ -191,13 +223,13 @@ export default function PlayerStatsModal({
                   <StatBox label="SB"  value={s(st.sb)} />
                   <StatBox label="2B"  value={s(st.double)} />
                   <StatBox label="3B"  value={s(st.triple)} />
-                  <StatBox label="OBP" value={s(st.obp)} />
-                  <StatBox label="SLG" value={s(st.slg)} />
+                  <StatBox label="OBP" value={calcObp(st)} />
+                  <StatBox label="SLG" value={calcSlg(st)} />
                   <StatBox label="PA"  value={s(st.pa)} />
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  <StatBox label="ERA" value={s(st.era)} />
+                  <StatBox label="ERA" value={calcEra(st)} />
                   <StatBox label="IP"  value={fmtIp(st.pitch_ip)} />
                   <StatBox label="W"   value={s(st.pitch_win)} />
                   <StatBox label="L"   value={s(st.pitch_loss)} />
