@@ -7,7 +7,7 @@ export const revalidate = 120
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3261ed', uvv: '#db002f',
+  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
 }
 const TEAM_LOGOS: Record<string, string> = {
   neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',

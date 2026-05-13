@@ -9,7 +9,7 @@ const TEAM_COLORS: Record<string, string> = {
   kinheim:  '#c0232e',
   hcaw:     '#f5b51a',
   twins:    '#ee7e1a',
-  pioniers: '#3261ed',
+  pioniers: '#3d68e9',
   uvv:      '#db002f',
 }
 
