@@ -82,7 +82,7 @@ export default function PredictionWidget({
   if (error) return (
     <div className="border-t border-[var(--border)] pt-3 mt-1">
       <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
-        Stemmen tijdelijk niet beschikbaar
+        Voting temporarily unavailable
       </p>
     </div>
   )

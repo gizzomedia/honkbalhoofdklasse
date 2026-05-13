@@ -44,7 +44,7 @@ export default async function MediaPage() {
 
       {items.length === 0 && (
         <div className="text-center py-20 text-[var(--muted)]">
-          <p className="font-display font-700 text-xl uppercase">Nog geen media beschikbaar</p>
+          <p className="font-display font-700 text-xl uppercase">No media available yet</p>
           <p className="text-sm mt-2">Posters en clips verschijnen hier zodra ze gepubliceerd worden.</p>
         </div>
       )}

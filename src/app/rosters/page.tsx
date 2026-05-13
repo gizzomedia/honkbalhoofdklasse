@@ -7,7 +7,7 @@ export default function RostersPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
       <div>
-        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Seizoen 2026</p>
+        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Season 2026</p>
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
           <strong>Rosters</strong>
         </h1>

@@ -18,12 +18,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'Honkbal Hoofdklasse',
-  description: 'Nieuws, standen en statistieken van de KNBSB Hoofdklasse',
+  description: 'News, standings and statistics of the KNBSB Hoofdklasse',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
+    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <body>
         <LanguageProvider>
         <NavBar />
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Sponsor balk */}
         <div className="border-t border-[var(--border)] bg-[var(--card)] py-5 overflow-hidden">
-          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest text-center mb-4">Mede mogelijk gemaakt door</p>
+          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest text-center mb-4">Made possible by</p>
           <div className="overflow-hidden">
             <div className="flex animate-marquee gap-16 items-center" style={{ width: 'max-content' }}>
               {[
@@ -72,18 +72,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               {/* Navigatie */}
               <div>
-                <p className="font-display font-800 text-xs text-[var(--muted)] uppercase tracking-widest mb-3">Navigatie</p>
+                <p className="font-display font-800 text-xs text-[var(--muted)] uppercase tracking-widest mb-3">Navigation</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                   {[
                     ['/', 'Home'],
-                    ['/stand', 'Stand'],
+                    ['/stand', 'Standings'],
                     ['/livescores', 'Live Scores'],
-                    ['/schema', 'Schema'],
-                    ['/uitslagen', 'Uitslagen'],
+                    ['/schema', 'Schedule'],
+                    ['/uitslagen', 'Results'],
                     ['/leaders', 'Leaders'],
                     ['/awards', 'Awards'],
                     ['/livestream', 'Livestream'],
-                    ['/nieuws', 'Nieuws'],
+                    ['/nieuws', 'News'],
                     ['/rosters', 'Rosters'],
                   ].map(([href, label]) => (
                     <a key={href} href={href} className="font-display font-700 text-sm text-[var(--muted)] hover:text-white transition-colors uppercase tracking-wide">
@@ -95,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
               {/* Socials */}
               <div>
-                <p className="font-display font-800 text-xs text-[var(--muted)] uppercase tracking-widest mb-3">Volg ons</p>
+                <p className="font-display font-800 text-xs text-[var(--muted)] uppercase tracking-widest mb-3">Follow us</p>
                 <div className="space-y-2">
                   {/* Instagram */}
                   <a href="https://www.instagram.com/honkbalhoofdklasse/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 group">
