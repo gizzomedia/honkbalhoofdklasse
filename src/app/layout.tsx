@@ -44,14 +44,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-[168px]', h: 'h-[54px]' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',                    w: 'w-[129px]', h: 'h-[41px]' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png', w: 'w-28',      h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp', w: 'w-28',   h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
                 { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-[168px]', h: 'h-[54px]' },
               ].map(({ src, w, h }, i) => (
                 <div key={i} className={`${w} ${h} flex items-center justify-center shrink-0`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
