@@ -18,7 +18,7 @@ const translations = {
     battingAvg: 'Batting AVG',
   },
   nl: {
-    home: 'Home', standings: 'Stand', live: 'Live', schedule: 'Schema',
+    home: 'Home', standings: 'Standings', live: 'Live', schedule: 'Schema',
     results: 'Uitslagen', leaders: 'Leaders', livestream: 'Livestream',
     news: 'Nieuws', rosters: 'Rosters', social: 'Social', awards: 'Awards',
     recentResults: 'Recente Uitslagen', standingsTitle: 'Stand', upcoming: 'Aankomend',
