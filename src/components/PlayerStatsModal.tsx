@@ -227,16 +227,7 @@ export default function PlayerStatsModal({
             </div>
           ) : (
             <>
-              {!st ? (
-                <div className="text-center py-8">
-                  <p className="font-display font-700 text-[var(--muted)] text-sm uppercase">
-                    No season stats found
-                  </p>
-                  <p className="font-display font-700 text-[var(--muted)] text-xs mt-1">
-                    Season 2026
-                  </p>
-                </div>
-              ) : statType === 'batting' ? (
+              {!st ? null : statType === 'batting' ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   <StatBox label="AVG" value={calcAvg(st)} />
                   <StatBox label="AB"  value={s(st.ab)} />

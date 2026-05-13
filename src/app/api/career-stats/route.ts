@@ -10,7 +10,10 @@ const HEADERS = {
 type StatRow = Record<string, string>
 
 function extractTable(html: string, tableId: string): StatRow[] {
-  const tableMatch = html.match(new RegExp(`<table[^>]+id="${tableId}"[^>]*>([\\s\\S]*?)</table>`))
+  // Baseball-reference wraps some tables in HTML comments — strip them first
+  const clean = html.replace(/<!--([\s\S]*?)-->/g, '$1')
+
+  const tableMatch = clean.match(new RegExp(`<table[^>]+id="${tableId}"[^>]*>([\\s\\S]*?)</table>`))
   if (!tableMatch) return []
 
   const rows: StatRow[] = []
@@ -18,7 +21,6 @@ function extractTable(html: string, tableId: string): StatRow[] {
 
   for (const row of rowMatches) {
     const rowHtml = row[1]
-    // Skip header rows and spacer rows
     if (!rowHtml.includes('data-stat')) continue
 
     const cells: StatRow = {}
@@ -27,7 +29,6 @@ function extractTable(html: string, tableId: string): StatRow[] {
       cells[stat] = raw.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&nbsp;/g, '').trim()
     }
 
-    // Only keep rows with a real year or "Career" total
     if (cells['year_ID'] && (cells['year_ID'].match(/^\d{4}$/) || cells['year_ID'] === 'Career')) {
       rows.push(cells)
     }

@@ -8,54 +8,87 @@ const BROWSER_HEADERS = {
   'Origin': 'https://stats.knbsbstats.nl',
 }
 
+const EVENT = '2026-lucky-day-hoofdklasse'
+
+// Fetch all players from a KNBSB stats section (batting or pitching)
+async function fetchAllKnbsbStats(section: 'batting' | 'pitching'): Promise<Record<string, unknown>[]> {
+  const urls = [
+    // All-player stats endpoint
+    `https://stats.knbsbstats.nl/api/v1/stats/events/${EVENT}/index?section=${section}&round=&team=&split=&language=en`,
+    // Leaders fallback (has top players per category)
+    `https://stats.knbsbstats.nl/api/v1/stats/events/${EVENT}/index?section=leaders&stats-section=${section}&round=&team=&split=&language=en`,
+  ]
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        headers: { ...BROWSER_HEADERS, Referer: `https://stats.knbsbstats.nl/events/${EVENT}/stats/${section}` },
+        next: { revalidate: 300 },
+      })
+      if (!res.ok) continue
+      const json = await res.json()
+
+      // All-players endpoint returns data array directly
+      if (Array.isArray(json.data) && json.data.length > 0 && !json.data[0]?.type) {
+        return json.data as Record<string, unknown>[]
+      }
+      // Leaders endpoint returns categories with nested data
+      if (Array.isArray(json.data) && json.data[0]?.type) {
+        const all: Record<string, unknown>[] = []
+        for (const cat of json.data as { data: Record<string, unknown>[] }[]) {
+          for (const p of cat.data ?? []) {
+            const key = `${p.firstname}_${p.lastname}`
+            if (!all.find(x => `${x.firstname}_${x.lastname}` === key)) {
+              all.push(p)
+            }
+          }
+        }
+        return all
+      }
+    } catch { /* try next */ }
+  }
+  return []
+}
+
+function matchPlayer(players: Record<string, unknown>[], name: string): Record<string, unknown> | null {
+  const parts = name.trim().split(/\s+/)
+  const firstName = parts[0].toLowerCase()
+  const lastName  = parts.slice(1).join(' ').toLowerCase()
+
+  // Exact last name match first
+  let found = players.find(p => String(p.lastname ?? '').toLowerCase() === lastName)
+  if (found) return found
+
+  // Last word match (for compound surnames)
+  const lastWord = parts.at(-1)!.toLowerCase()
+  found = players.find(p => String(p.lastname ?? '').toLowerCase() === lastWord)
+  if (found) return found
+
+  // First + last combined
+  found = players.find(p =>
+    String(p.firstname ?? '').toLowerCase().startsWith(firstName.slice(0, 3)) &&
+    String(p.lastname ?? '').toLowerCase() === lastWord
+  )
+  return found ?? null
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const name = searchParams.get('name') ?? ''
   const type = searchParams.get('type') === 'pitching' ? 'pitching' : 'batting'
 
-  const nameParts = name.trim().split(/\s+/)
-  const lastWord = nameParts.at(-1)?.toUpperCase() ?? ''
-  const fullLastPart = nameParts.slice(1).join(' ').toUpperCase() // "VAN DER MEER" for "Stijn van der Meer"
-  if (!lastWord) return NextResponse.json({ seasonStats: null, seriesLog: [] })
+  if (!name.trim()) return NextResponse.json({ seasonStats: null, seriesLog: [], photos: null })
 
-  let seasonStats: Record<string, unknown> | null = null
-  try {
-    const section = type === 'pitching' ? 'pitching' : 'batting'
-    const res = await fetch(
-      `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=${section}&round=&team=&split=&language=en`,
-      {
-        headers: {
-          ...BROWSER_HEADERS,
-          Referer: `https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/${section}`,
-        },
-        next: { revalidate: 300 },
-      }
-    )
-    const data = await res.json()
-    const categories: Array<{ type: string; data: Record<string, unknown>[] }> = data.data ?? []
-    // Merge data from ALL categories where the player appears so no stat is missing
-    const merged: Record<string, unknown> = {}
-    for (const cat of categories) {
-      const found = cat.data.find((p: Record<string, unknown>) => {
-        const knbsbLast = String(p.lastname ?? '').toUpperCase()
-        return (
-          knbsbLast === lastWord ||
-          knbsbLast === fullLastPart ||
-          knbsbLast.endsWith(' ' + lastWord)
-        )
-      })
-      if (found) {
-        for (const [k, v] of Object.entries(found)) {
-          if (merged[k] === null || merged[k] === undefined || merged[k] === '') {
-            merged[k] = v
-          }
-        }
-      }
-    }
-    if (Object.keys(merged).length > 0) seasonStats = merged
-  } catch { /* ignore */ }
+  // Fetch all players from KNBSB
+  const allPlayers = await fetchAllKnbsbStats(type)
+  const matched = matchPlayer(allPlayers, name)
 
-  const table = type === 'pitching' ? 'pitching_stats' : 'batting_stats'
+  // Merge stats across all categories if using leaders endpoint
+  let seasonStats: Record<string, unknown> | null = matched ?? null
+
+  // Series log from Supabase
+  const lastWord = name.trim().split(/\s+/).at(-1) ?? ''
+  const table  = type === 'pitching' ? 'pitching_stats' : 'batting_stats'
   const select = type === 'pitching'
     ? 'series_week, innings_pitched, earned_runs, strikeouts, walks, wins, losses, saves, hits_allowed'
     : 'series_week, at_bats, hits, home_runs, rbi, stolen_bases, avg, obp, slg, ops'
