@@ -39,12 +39,12 @@ const POS_LABELS: Record<string, string> = {
   'C/IF': 'Catcher / Infielder', UTL: 'Utility', DH: 'Designated Hitter',
 }
 
-export default function PlayerProfilePage({
+export default async function PlayerProfilePage({
   params,
 }: {
-  params: { teamId: string; playerSlug: string }
+  params: Promise<{ teamId: string; playerSlug: string }>
 }) {
-  const { teamId, playerSlug } = params
+  const { teamId, playerSlug } = await params
   const roster = ROSTERS[teamId]
   if (!roster) notFound()
 
