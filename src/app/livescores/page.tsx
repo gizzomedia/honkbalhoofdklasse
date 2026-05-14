@@ -32,11 +32,12 @@ type Game = {
   homeScore: number | null
   awayScore: number | null
   // live situation
-  inning?:  number
-  outs?:    number
-  runner1?: boolean
-  runner2?: boolean
-  runner3?: boolean
+  inning?:   number
+  isBottom?: boolean
+  outs?:     number
+  runner1?:  boolean
+  runner2?:  boolean
+  runner3?:  boolean
 }
 
 type StandingsEntry = { wins: number; losses: number }
@@ -175,7 +176,7 @@ function ScoreRow({
         {isLive && game.inning != null && (
           <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--border)]/50">
             <span className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-widest">
-              Inning {game.inning}
+              {game.isBottom ? 'Bot' : 'Top'} {game.inning}
             </span>
             <div className="flex items-center gap-1">
               {[0, 1, 2].map(i => (

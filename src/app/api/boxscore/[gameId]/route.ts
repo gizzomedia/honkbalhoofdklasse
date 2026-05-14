@@ -162,45 +162,53 @@ export async function GET(
     const awayPlayers  = getTeamPlayers(boxScore, awayTeamId as string)
     const homePlayers  = getTeamPlayers(boxScore, homeTeamId as string)
 
-    // Live game situation
-    const gamestatus   = Number(gd.gamestatus ?? 0)
-    const isLive       = gamestatus === 1
-    const completedInnings = Number(gd.innings ?? 0)
+    // Live game situation — parse "B4"/"T5" from gamestatustext
+    const gamestatus = Number(gd.gamestatus ?? 0)
+    const isLive     = gamestatus === 1
+    const statusText = String(gd.gamestatustext ?? '')
+    const stMatch    = statusText.match(/^([TB])(\d+)$/)
+    const currentInning = stMatch ? parseInt(stMatch[2]) : 0
+    const isBottom      = stMatch ? stMatch[1] === 'B' : false
 
-    // For live games: hide innings not yet played
-    // Away bats first: innings 1..completedInnings+1 might have data
-    // Home: innings 1..completedInnings might have data
-    const liveAway = isLive ? completedInnings + 1 : 99
-    const liveHome = isLive ? completedInnings      : 99
+    // For live games: only show innings that have been played
+    // Away (bats top): 1..currentInning (top done for current inning if bottom, or in progress)
+    // Home (bats bottom): 1..(currentInning-1) if top, 1..currentInning if bottom
+    const showAwayUpTo = isLive && currentInning > 0 ? currentInning      : 99
+    const showHomeUpTo = isLive && currentInning > 0 ? (isBottom ? currentInning : currentInning - 1) : 99
 
     const awayInnings = displayInnings.map(i => {
-      if (i > liveAway) return null
+      if (i > showAwayUpTo) return null
       const v = gd[`runsaway${i}`]
       return v !== null && v !== undefined ? Number(v) : null
     })
     const homeInnings = displayInnings.map(i => {
-      if (i > liveHome) return null
-      if (homeWon && i > homeBattedInnings && i <= 9) return 'X'
+      if (i > showHomeUpTo) return null
+      if (!isLive && homeWon && i > homeBattedInnings && i <= 9) return 'X'
       const v = gd[`runshome${i}`]
       return v !== null && v !== undefined ? Number(v) : null
     })
 
-    // Batter/pitcher on display from gamestatustext fields
-    const rawBatter  = String(gd.gamestatusbatter  ?? '').trim()
-    const rawPitcher = String(gd.gamestatuspitcher ?? '').trim()
-    const currentBatter  = rawBatter  || null
-    const currentPitcher = rawPitcher || null
+    // Format batter/pitcher name: "VICARIO Jayvon" → "Jayvon Vicario"
+    function fmtPerson(raw: string): string | null {
+      if (!raw) return null
+      const parts = raw.trim().split(/\s+/)
+      if (parts.length < 2) return raw
+      const last  = parts[0].charAt(0) + parts[0].slice(1).toLowerCase()
+      const first = parts.slice(1).join(' ')
+      return `${first} ${last}`
+    }
 
     const situation = isLive ? {
-      inning:  completedInnings + 1,
-      outs:    Number(gd.outs    ?? 0),
-      balls:   Number(gd.balls   ?? 0),
-      strikes: Number(gd.strikes ?? 0),
-      runner1: Number(gd.runner1 ?? 0) > 0,
-      runner2: Number(gd.runner2 ?? 0) > 0,
-      runner3: Number(gd.runner3 ?? 0) > 0,
-      currentBatter,
-      currentPitcher,
+      inning:   currentInning,
+      isBottom,
+      outs:     Number(gd.outs    ?? 0),
+      balls:    Number(gd.balls   ?? 0),
+      strikes:  Number(gd.strikes ?? 0),
+      runner1:  Number(gd.runner1 ?? 0) > 0,
+      runner2:  Number(gd.runner2 ?? 0) > 0,
+      runner3:  Number(gd.runner3 ?? 0) > 0,
+      currentBatter:  fmtPerson(String(gd.gamestatusbatter  ?? '')),
+      currentPitcher: fmtPerson(String(gd.gamestatuspitcher ?? '')),
     } : null
 
     return NextResponse.json({

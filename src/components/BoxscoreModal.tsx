@@ -24,6 +24,7 @@ const TEAM_NAMES: Record<string, string> = {
 
 type Situation = {
   inning: number
+  isBottom: boolean
   outs: number
   balls: number
   strikes: number
@@ -89,7 +90,8 @@ function SituationBar({ sit }: { sit: Situation }) {
     <div className="flex items-center gap-4 px-4 py-3 bg-[#060e1b] border-t border-[var(--border)]">
       {/* Inning */}
       <div className="text-center shrink-0">
-        <p className="font-display font-800 text-base text-white tabular-nums">{sit.inning}</p>
+        <p className="font-display font-800 text-[10px] text-[var(--muted)] uppercase">{sit.isBottom ? 'Bot' : 'Top'}</p>
+        <p className="font-display font-800 text-base text-white tabular-nums leading-none">{sit.inning}</p>
         <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest">Inning</p>
       </div>
 

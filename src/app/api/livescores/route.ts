@@ -81,8 +81,11 @@ export async function GET() {
         homeScore = calcScore(boxScore, String(gd.homeid))
         awayScore = calcScore(boxScore, String(gd.awayid))
       }
-      // Current game situation from schedule data
-      const inning  = Number(g.innings ?? 0) + 1
+      // "B4" = Bottom 4th, "T5" = Top 5th
+      const statusText = String(g.gamestatustext ?? '')
+      const stMatch    = statusText.match(/^([TB])(\d+)$/)
+      const inning  = stMatch ? parseInt(stMatch[2]) : 1
+      const isBottom = stMatch ? stMatch[1] === 'B' : false
       const outs    = Number(g.outs    ?? 0)
       const runner1 = Number(g.runner1 ?? 0) > 0
       const runner2 = Number(g.runner2 ?? 0) > 0
@@ -92,7 +95,7 @@ export async function GET() {
         gameTime: g.start ? (String(g.start).split(' ')[1] ?? null) : null,
         homeId: getTeamId(g, 'home'), awayId: getTeamId(g, 'away'),
         status: 'live', homeScore, awayScore,
-        inning, outs, runner1, runner2, runner3,
+        inning, isBottom, outs, runner1, runner2, runner3,
       }
     })
 
