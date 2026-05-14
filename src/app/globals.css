@@ -65,3 +65,13 @@ html, body {
     animation-duration: 50s;
   }
 }
+
+@keyframes cellFlip {
+  0%   { transform: scaleY(1); }
+  40%  { transform: scaleY(0); }
+  60%  { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+.cell-flip {
+  animation: cellFlip 0.45s ease forwards;
+}
