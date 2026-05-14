@@ -174,6 +174,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
 
+            {/* iOS Widget download */}
+            <div className="border-t border-[var(--border)] pt-6 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="font-display font-800 text-sm text-white uppercase tracking-wide mb-0.5">iOS Scriptable Widget</p>
+                <p className="font-display font-700 text-xs text-[var(--muted)]">
+                  Live stand &amp; scores op je iPhone homescreen · Small, Medium &amp; Large
+                </p>
+              </div>
+              <a
+                href="/HonkbalWidget.js"
+                download="HonkbalWidget.js"
+                className="inline-flex items-center gap-2 bg-[var(--accent)] px-5 py-2.5 font-display font-800 text-sm text-white uppercase tracking-widest hover:bg-[var(--accent)]/80 transition-colors shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download Widget
+              </a>
+            </div>
+
             <div className="border-t border-[var(--border)] pt-6">
               <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
                 © {new Date().getFullYear()} Honkbal Hoofdklasse · KNBSB
