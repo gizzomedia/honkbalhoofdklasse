@@ -204,20 +204,12 @@ export default function NavBar() {
             Honkbalsoftbal.tv
           </a>
 
-          <div className="flex items-center gap-1">
-            <Link
-              href="/admin/photos"
-              className="font-display font-800 text-xs uppercase tracking-wider px-3 py-1.5 rounded-l-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/80 transition-colors"
-            >
-              Foto&apos;s
-            </Link>
-            <Link
-              href="/admin/streams"
-              className="font-display font-800 text-xs uppercase tracking-wider px-3 py-1.5 rounded-r-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/80 transition-colors"
-            >
-              Streams
-            </Link>
-          </div>
+          <Link
+            href="/admin"
+            className="font-display font-800 text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/80 transition-colors"
+          >
+            Admin
+          </Link>
         </div>
 
         {/* Hamburger */}
