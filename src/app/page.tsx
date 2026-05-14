@@ -3,7 +3,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import HeroSlideshow from '@/components/HeroSlideshow'
 import HomeRecentResults from '@/components/HomeRecentResults'
-import HomeHighlights from '@/components/HomeHighlights'
 
 export const revalidate = 120
 
@@ -169,9 +168,6 @@ export default async function HomePage() {
           </div>
         </div>
       )}
-
-      {/* ── HIGHLIGHTS ── */}
-      <HomeHighlights />
 
       {/* ── RECENTE UITSLAGEN ── */}
       {results.length > 0 && (
