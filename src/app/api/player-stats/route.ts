@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { supabase } from '@/lib/supabase'
 
 const COMPETITION = 'hb2026'
@@ -177,165 +178,132 @@ interface AggregatedStats {
   gamesFound: number
 }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const name = searchParams.get('name') ?? ''
-  const type = searchParams.get('type') === 'pitching' ? 'pitching' : 'batting'
+// ── Cached aggregation — per player name, 30 min ──────────────────────────
+const computeSeasonStats = unstable_cache(
+  async (name: string): Promise<Record<string, unknown> | null> => {
+    const gameIds   = await fetchFinishedGameIds()
+    const boxScores = await Promise.all(gameIds.map(id => fetchBoxScore(id)))
 
-  if (!name.trim()) {
-    return NextResponse.json({ seasonStats: null, seriesLog: [], photos: null })
-  }
-
-  // Fetch schedule and all finished game boxscores in parallel
-  const gameIds = await fetchFinishedGameIds()
-
-  const boxScores = await Promise.all(gameIds.map(id => fetchBoxScore(id)))
-
-  // Aggregate stats for the requested player
-  const agg: AggregatedStats = {
-    ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0,
-    double: 0, triple: 0, sb: 0, sf: 0, sh: 0, hbp: 0,
-    pitch_outs: 0, pitch_gs: 0, pitch_er: 0, pitch_so: 0,
-    pitch_bb: 0, pitch_h: 0, pitch_r: 0,
-    pitch_win: 0, pitch_loss: 0, pitch_save: 0,
-    pitch_appear: 0, pitch_cg: 0,
-    avg: null, era: null, pitch_ip: '0.0',
-    gamesFound: 0,
-  }
-
-  // pitch_ip in stenwessel is displayed innings: 7.0 = 7 inn, 2.1 = 2 inn + 1 out
-  function ipToOuts(ip: number): number {
-    const inn = Math.floor(ip)
-    const frac = Math.round((ip - inn) * 10) // .1→1, .2→2
-    return inn * 3 + frac
-  }
-
-  let foundPlayer = false
-
-  for (const data of boxScores) {
-    if (!data) continue
-    const allPlayers = extractPlayersFromBoxScore(data)
-
-    // Deduplicate within this game: for pitchers prefer the record with most IP,
-    // for position players prefer the record with most AB.
-    const seen = new Map<string, BoxScorePlayer>()
-    for (const p of allPlayers) {
-      const key = `${p.firstname}_${p.lastname}`.toLowerCase()
-      const existing = seen.get(key)
-      if (!existing) { seen.set(key, p); continue }
-      const newIp  = n(p.pitch_ip)
-      const exIp   = n(existing.pitch_ip)
-      const isPitcher = newIp > 0 || exIp > 0
-      if (isPitcher ? newIp > exIp : n(p.ab) > n(existing.ab)) {
-        seen.set(key, p)
-      }
+    const agg: AggregatedStats = {
+      ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0,
+      double: 0, triple: 0, sb: 0, sf: 0, sh: 0, hbp: 0,
+      pitch_outs: 0, pitch_gs: 0, pitch_er: 0, pitch_so: 0,
+      pitch_bb: 0, pitch_h: 0, pitch_r: 0,
+      pitch_win: 0, pitch_loss: 0, pitch_save: 0,
+      pitch_appear: 0, pitch_cg: 0,
+      avg: null, era: null, pitch_ip: '0.0',
+      gamesFound: 0,
     }
 
-    const matched = [...seen.values()].find(p => matchesName(p, name))
-    if (!matched) continue
+    function ipToOuts(ip: number): number {
+      const inn  = Math.floor(ip)
+      const frac = Math.round((ip - inn) * 10)
+      return inn * 3 + frac
+    }
 
-    foundPlayer = true
-    agg.gamesFound++
+    let foundPlayer = false
 
-    agg.ab      += n(matched.ab)
-    agg.h       += n(matched.h)
-    agg.hr      += n(matched.hr)
-    agg.rbi     += n(matched.rbi)
-    agg.r       += n(matched.r)
-    agg.bb      += n(matched.bb)
-    agg.so      += n(matched.so)
-    agg.double  += n(matched.double)
-    agg.triple  += n(matched.triple)
-    agg.sb      += n(matched.sb)
-    agg.sf      += n(matched.sf)
-    agg.sh      += n(matched.sh)
-    agg.hbp     += n(matched.hbp)
+    for (const data of boxScores) {
+      if (!data) continue
+      const allPlayers = extractPlayersFromBoxScore(data)
 
-    // pitch_ip is innings display format — convert to outs before summing
-    agg.pitch_outs   += ipToOuts(n(matched.pitch_ip))
-    agg.pitch_gs     += n(matched.pitch_gs)
-    agg.pitch_er     += n(matched.pitch_er)
-    agg.pitch_so     += n(matched.pitch_so)
-    agg.pitch_bb     += n(matched.pitch_bb)
-    agg.pitch_h      += n(matched.pitch_h)
-    agg.pitch_r      += n(matched.pitch_r)
-    agg.pitch_win    += n(matched.pitch_win)
-    agg.pitch_loss   += n(matched.pitch_loss)
-    agg.pitch_save   += n(matched.pitch_save)
-    agg.pitch_appear += n(matched.pitch_appear)
-    agg.pitch_cg     += n(matched.pitch_cg)
-  }
+      const seen = new Map<string, BoxScorePlayer>()
+      for (const p of allPlayers) {
+        const key      = `${p.firstname}_${p.lastname}`.toLowerCase()
+        const existing = seen.get(key)
+        if (!existing) { seen.set(key, p); continue }
+        const newIp    = n(p.pitch_ip)
+        const exIp     = n(existing.pitch_ip)
+        const isPitcher = newIp > 0 || exIp > 0
+        if (isPitcher ? newIp > exIp : n(p.ab) > n(existing.ab)) seen.set(key, p)
+      }
 
-  let seasonStats: Record<string, unknown> | null = null
+      const matched = [...seen.values()].find(p => matchesName(p, name))
+      if (!matched) continue
 
-  if (foundPlayer) {
-    // Derived batting
-    const avg = agg.ab > 0 ? agg.h / agg.ab : null
-    const pa = agg.ab + agg.bb + agg.hbp + agg.sf + agg.sh
-    const obp = pa > 0 ? (agg.h + agg.bb + agg.hbp) / pa : null
+      foundPlayer = true
+      agg.gamesFound++
+      agg.ab      += n(matched.ab);    agg.h    += n(matched.h)
+      agg.hr      += n(matched.hr);    agg.rbi  += n(matched.rbi)
+      agg.r       += n(matched.r);     agg.bb   += n(matched.bb)
+      agg.so      += n(matched.so);    agg.double += n(matched.double)
+      agg.triple  += n(matched.triple);agg.sb   += n(matched.sb)
+      agg.sf      += n(matched.sf);    agg.sh   += n(matched.sh)
+      agg.hbp     += n(matched.hbp)
+      agg.pitch_outs   += ipToOuts(n(matched.pitch_ip))
+      agg.pitch_gs     += n(matched.pitch_gs)
+      agg.pitch_er     += n(matched.pitch_er)
+      agg.pitch_so     += n(matched.pitch_so)
+      agg.pitch_bb     += n(matched.pitch_bb)
+      agg.pitch_h      += n(matched.pitch_h)
+      agg.pitch_r      += n(matched.pitch_r)
+      agg.pitch_win    += n(matched.pitch_win)
+      agg.pitch_loss   += n(matched.pitch_loss)
+      agg.pitch_save   += n(matched.pitch_save)
+      agg.pitch_appear += n(matched.pitch_appear)
+      agg.pitch_cg     += n(matched.pitch_cg)
+    }
+
+    if (!foundPlayer) return null
+
+    const avg  = agg.ab > 0 ? agg.h / agg.ab : null
+    const pa   = agg.ab + agg.bb + agg.hbp + agg.sf + agg.sh
+    const obp  = pa > 0 ? (agg.h + agg.bb + agg.hbp) / pa : null
     const singles = agg.h - agg.hr - agg.double - agg.triple
-    const tb = singles + agg.double * 2 + agg.triple * 3 + agg.hr * 4
-    const slg = agg.ab > 0 ? tb / agg.ab : null
-    const ops = obp !== null && slg !== null ? obp + slg : null
-
-    // Derived pitching — convert outs to display IP (e.g. 10 outs = 3.1 IP)
-    const fullInnings = Math.floor(agg.pitch_outs / 3)
+    const tb   = singles + agg.double * 2 + agg.triple * 3 + agg.hr * 4
+    const slg  = agg.ab > 0 ? tb / agg.ab : null
+    const ops  = obp !== null && slg !== null ? obp + slg : null
+    const fullInnings   = Math.floor(agg.pitch_outs / 3)
     const remainingOuts = agg.pitch_outs % 3
-    const pitch_ip = `${fullInnings}.${remainingOuts}`
-    const ipDecimal = fullInnings + remainingOuts / 3
-    const era = ipDecimal > 0 ? (agg.pitch_er / ipDecimal) * 9 : null
+    const pitch_ip      = `${fullInnings}.${remainingOuts}`
+    const ipDecimal     = fullInnings + remainingOuts / 3
+    const era           = ipDecimal > 0 ? (agg.pitch_er / ipDecimal) * 9 : null
 
-    seasonStats = {
-      // Identity
+    return {
       firstname: name.trim().split(/\s+/)[0],
-      lastname: name.trim().split(/\s+/).slice(1).join(' '),
-      // Batting
-      ab: agg.ab,
-      h: agg.h,
-      hr: agg.hr,
-      rbi: agg.rbi,
-      r: agg.r,
-      bb: agg.bb,
-      so: agg.so,
-      double: agg.double,
-      triple: agg.triple,
-      sb: agg.sb,
-      sf: agg.sf,
-      sh: agg.sh,
-      hbp: agg.hbp,
+      lastname:  name.trim().split(/\s+/).slice(1).join(' '),
+      ab: agg.ab, h: agg.h, hr: agg.hr, rbi: agg.rbi, r: agg.r,
+      bb: agg.bb, so: agg.so, double: agg.double, triple: agg.triple,
+      sb: agg.sb, sf: agg.sf, sh: agg.sh, hbp: agg.hbp,
       avg: avg !== null ? Number(avg.toFixed(3)) : null,
       obp: obp !== null ? Number(obp.toFixed(3)) : null,
       slg: slg !== null ? Number(slg.toFixed(3)) : null,
       ops: ops !== null ? Number(ops.toFixed(3)) : null,
-      // Pitching
-      pitch_ip,
-      pitch_gs: agg.pitch_gs,
-      pitch_er: agg.pitch_er,
-      pitch_so: agg.pitch_so,
-      pitch_bb: agg.pitch_bb,
-      pitch_h: agg.pitch_h,
-      pitch_r: agg.pitch_r,
-      pitch_win: agg.pitch_win,
-      pitch_loss: agg.pitch_loss,
-      pitch_save: agg.pitch_save,
-      pitch_appear: agg.pitch_appear,
+      pitch_ip, pitch_gs: agg.pitch_gs, pitch_er: agg.pitch_er,
+      pitch_so: agg.pitch_so, pitch_bb: agg.pitch_bb, pitch_h: agg.pitch_h,
+      pitch_r: agg.pitch_r, pitch_win: agg.pitch_win, pitch_loss: agg.pitch_loss,
+      pitch_save: agg.pitch_save, pitch_appear: agg.pitch_appear,
       pitch_cg: agg.pitch_cg,
       era: era !== null ? Number(era.toFixed(2)) : null,
-      // Meta
       games: agg.gamesFound,
     }
+  },
+  ['player-season-stats'],
+  { revalidate: 1800 }  // cache 30 min per player name
+)
+
+// ── Route handler ──────────────────────────────────────────────────────────
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const name = (searchParams.get('name') ?? '').trim()
+
+  if (!name) {
+    return NextResponse.json({ seasonStats: null, seriesLog: [], photos: null })
   }
 
-  // Photos from Supabase
-  const { data: photos } = await supabase
-    .from('player_photos')
-    .select('banner_url, headshot_url')
-    .ilike('player_name', name.trim())
-    .maybeSingle()
+  // Cached stats + fast photo lookup in parallel
+  const [seasonStats, photosRes] = await Promise.all([
+    computeSeasonStats(name),
+    supabase
+      .from('player_photos')
+      .select('banner_url, headshot_url')
+      .ilike('player_name', name)
+      .maybeSingle(),
+  ])
 
   return NextResponse.json({
     seasonStats,
     seriesLog: [],
-    photos: photos ?? null,
+    photos: photosRes.data ?? null,
   })
 }
