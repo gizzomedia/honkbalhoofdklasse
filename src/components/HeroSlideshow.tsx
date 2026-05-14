@@ -22,6 +22,7 @@ export default function HeroSlideshow() {
 
       {/* Text */}
       <div className="relative z-10 px-6 md:px-12 pb-20 max-w-6xl">
+        <p className="font-display font-700 text-white/60 uppercase tracking-[0.3em] text-sm mb-2">Lucky Day</p>
         <h1
           className="font-display font-800 italic uppercase tracking-tight leading-none"
           style={{ fontSize: 'clamp(4rem, 14vw, 13rem)', lineHeight: 0.85 }}
