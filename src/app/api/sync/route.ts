@@ -139,12 +139,42 @@ export async function GET(req: Request) {
       if (!error) standingsUpdated++
     }
 
+    // ── 6. Auto-toggle streams based on linked game status ──────────────────
+    // Re-fetch current game statuses (after updates were applied)
+    const { data: currentGames } = await supabaseAdmin
+      .from('games')
+      .select('id, status')
+      .eq('season', 2026)
+
+    const gameStatusMap = new Map((currentGames ?? []).map(g => [g.id as number, g.status as string]))
+
+    const { data: linkedStreams } = await supabaseAdmin
+      .from('streams')
+      .select('id, game_id, is_live')
+      .not('game_id', 'is', null)
+
+    let streamsToggled = 0
+    for (const s of (linkedStreams ?? [])) {
+      const status = gameStatusMap.get(s.game_id as number)
+      const shouldLive = status === 'live'
+      const shouldOff  = status === 'final'
+
+      if (shouldLive && !s.is_live) {
+        await supabaseAdmin.from('streams').update({ is_live: true }).eq('id', s.id)
+        streamsToggled++
+      } else if (shouldOff && s.is_live) {
+        await supabaseAdmin.from('streams').update({ is_live: false }).eq('id', s.id)
+        streamsToggled++
+      }
+    }
+
     return NextResponse.json({
       ok:               true,
       gamesChecked:     steGames.length,
       gamesUpdated:     gameUpdates.length,
       newFinals,
       standingsUpdated,
+      streamsToggled,
       timestamp:        new Date().toISOString(),
     })
   } catch (err) {

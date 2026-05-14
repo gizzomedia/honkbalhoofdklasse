@@ -7,14 +7,28 @@ function auth(req: NextRequest) {
   return req.headers.get('x-admin-password') === ADMIN_PASSWORD
 }
 
+// Returns { streams, games } — games = upcoming + today so admin can link streams
 export async function GET(req: NextRequest) {
   if (!auth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { data, error } = await supabaseAdmin
-    .from('streams')
-    .select('*')
-    .order('scheduled_at', { ascending: true })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const [streamsRes, gamesRes] = await Promise.all([
+    supabaseAdmin.from('streams').select('*').order('scheduled_at', { ascending: true }),
+    supabaseAdmin
+      .from('games')
+      .select('id, game_date, game_time, home_team_id, away_team_id, status')
+      .gte('game_date', today)
+      .in('status', ['scheduled', 'live'])
+      .order('game_date', { ascending: true })
+      .order('game_time', { ascending: true })
+      .limit(30),
+  ])
+
+  return NextResponse.json({
+    streams: streamsRes.data ?? [],
+    games:   gamesRes.data  ?? [],
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -26,7 +40,7 @@ export async function POST(req: NextRequest) {
       title:        body.title,
       stream_url:   body.stream_url,
       platform:     body.platform ?? 'youtube',
-      is_live:      body.is_live ?? false,
+      is_live:      false,
       scheduled_at: body.scheduled_at ?? null,
       game_id:      body.game_id ?? null,
     })
