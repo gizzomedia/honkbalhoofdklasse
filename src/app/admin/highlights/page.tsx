@@ -18,6 +18,7 @@ type Preview = {
   author: string
   caption: string
   thumbnail_url: string | null
+  video_url: string | null
 }
 
 function timeLeft(expiresAt: string): string {
@@ -42,6 +43,7 @@ export default function AdminHighlightsPage() {
   const [savedPw, setSavedPw]     = useState('')
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [url, setUrl]             = useState('')
+  const [videoOverride, setVideoOverride] = useState('')
   const [preview, setPreview]     = useState<Preview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [saving, setSaving]       = useState(false)
@@ -71,20 +73,14 @@ export default function AdminHighlightsPage() {
   }
 
   async function fetchPreview() {
-    setError(null)
-    setPreview(null)
-    setPreviewLoading(true)
+    setError(null); setPreview(null); setPreviewLoading(true)
     const res = await fetch('/api/admin/highlights', {
       method: 'POST',
       headers: { 'x-admin-password': savedPw, 'content-type': 'application/json' },
       body: JSON.stringify({ instagram_url: url, preview: true }),
     })
-    if (res.ok) {
-      setPreview(await res.json())
-    } else {
-      const e = await res.json()
-      setError(e.error ?? 'Ophalen mislukt')
-    }
+    if (res.ok) setPreview(await res.json())
+    else { const e = await res.json(); setError(e.error ?? 'Ophalen mislukt') }
     setPreviewLoading(false)
   }
 
@@ -93,14 +89,13 @@ export default function AdminHighlightsPage() {
     const res = await fetch('/api/admin/highlights', {
       method: 'POST',
       headers: { 'x-admin-password': savedPw, 'content-type': 'application/json' },
-      body: JSON.stringify({ instagram_url: url }),
+      body: JSON.stringify({ instagram_url: url, video_url_override: videoOverride || undefined }),
     })
     if (res.ok) {
-      setUrl(''); setPreview(null)
+      setUrl(''); setVideoOverride(''); setPreview(null)
       await load(savedPw)
     } else {
-      const e = await res.json()
-      setError(e.error ?? 'Opslaan mislukt')
+      const e = await res.json(); setError(e.error ?? 'Opslaan mislukt')
     }
     setSaving(false)
   }
@@ -175,26 +170,45 @@ export default function AdminHighlightsPage() {
         )}
 
         {preview && (
-          <div className="flex gap-4 bg-[#0a1220] rounded-xl p-4 border border-[var(--border)]">
-            {preview.thumbnail_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview.thumbnail_url} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-widest mb-1">{preview.author}</p>
-              <p className="font-display font-700 text-sm text-white/80 leading-snug line-clamp-3">{preview.caption}</p>
+          <>
+            <div className="flex gap-4 bg-[#0a1220] rounded-xl p-4 border border-[var(--border)]">
+              {preview.thumbnail_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview.thumbnail_url} alt="" className="w-20 h-20 object-cover rounded-lg shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-widest mb-1">{preview.author}</p>
+                <p className="font-display font-700 text-sm text-white/80 leading-snug line-clamp-3">{preview.caption}</p>
+                <p className={`font-display font-700 text-[10px] uppercase tracking-widest mt-2 ${preview.video_url ? 'text-green-400' : 'text-yellow-500'}`}>
+                  {preview.video_url ? '✓ Video URL gevonden — autoplay' : '⚠ Geen video URL gevonden — voeg hieronder een directe URL toe'}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {preview && (
-          <button
-            onClick={save}
-            disabled={saving}
-            className="w-full bg-[var(--accent)] py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {saving ? 'Opslaan…' : 'Toevoegen — 24 uur zichtbaar'}
-          </button>
+            {/* Manual video URL override */}
+            {!preview.video_url && (
+              <div className="space-y-1">
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                  Directe video URL (optioneel) — bijv. Cloudinary of CDN MP4
+                </p>
+                <input
+                  type="url"
+                  placeholder="https://... .mp4"
+                  value={videoOverride}
+                  onChange={e => setVideoOverride(e.target.value)}
+                  className="w-full bg-[#0d1b2e] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-2.5 text-white placeholder:text-white/40 outline-none font-display font-700 text-sm [color-scheme:dark]"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={save}
+              disabled={saving}
+              className="w-full bg-[var(--accent)] py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {saving ? 'Opslaan…' : 'Toevoegen — 24 uur zichtbaar'}
+            </button>
+          </>
         )}
       </div>
 

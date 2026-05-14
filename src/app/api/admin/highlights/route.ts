@@ -20,21 +20,33 @@ async function scrapeInstagram(url: string) {
 
   const html = await res.text()
 
-  const ogDesc  = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1] ?? ''
-  const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] ?? ''
-  const ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ?? ''
+  function decodeEntities(s: string) {
+    return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c)))
+  }
 
-  // og:description format: "X likes, Y comments - Name on Instagram: "Caption text""
+  const ogDesc      = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1] ?? ''
+  const ogImage     = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] ?? ''
+  const ogTitle     = html.match(/<meta property="og:title" content="([^"]+)"/)?.[1] ?? ''
+  const ogVideoType = html.match(/<meta property="og:video:type" content="([^"]+)"/)?.[1] ?? ''
+  const ogVideoRaw  = html.match(/<meta property="og:video:secure_url" content="([^"]+)"/)?.[1]
+                   ?? html.match(/<meta property="og:video" content="([^"]+)"/)?.[1]
+                   ?? ''
+
+  // Only use as video URL if it's a real mp4, not an embed page URL
+  const video_url = (ogVideoType === 'video/mp4' && ogVideoRaw)
+    ? decodeEntities(ogVideoRaw)
+    : null
+
+  // og:description: "X likes, Y comments - Name on Instagram: "Caption""
   let caption = ogDesc
   const capMatch = ogDesc.match(/on Instagram: "([\s\S]+)"$/)
   if (capMatch) caption = capMatch[1]
-  caption = caption.replace(/&#(\d+);/g, (_, c) => String.fromCharCode(Number(c))).trim()
+  caption = decodeEntities(caption).trim()
 
-  // og:title format: "Name • Instagram" or "Name (@handle) • Instagram"
   let author = ogTitle.replace(/\s*[•·]\s*Instagram.*/, '').replace(/\s*\(@[^)]+\)/, '').trim()
   if (!author) author = 'Instagram'
 
-  return { shortcode, caption: caption.slice(0, 600), thumbnail_url: ogImage || null, author }
+  return { shortcode, caption: caption.slice(0, 600), thumbnail_url: ogImage || null, author, video_url }
 }
 
 export async function GET(req: NextRequest) {
@@ -48,10 +60,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { instagram_url, preview } = await req.json()
+  const { instagram_url, video_url_override, preview } = await req.json()
   if (!instagram_url) return NextResponse.json({ error: 'URL verplicht' }, { status: 400 })
 
-  // If preview=true: just return scraped data, don't save
   if (preview) {
     try {
       const scraped = await scrapeInstagram(instagram_url)
@@ -61,9 +72,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Otherwise save
   try {
     const scraped = await scrapeInstagram(instagram_url)
+    // Manual override wins over auto-extracted URL
+    if (video_url_override) scraped.video_url = video_url_override
     const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     const { data, error } = await supabaseAdmin.from('highlights').insert({
       instagram_url,
