@@ -216,12 +216,19 @@ export async function GET(req: NextRequest) {
     if (!data) continue
     const allPlayers = extractPlayersFromBoxScore(data)
 
-    // Deduplicate within this game: keep one record per player (highest ab wins)
+    // Deduplicate within this game: for pitchers prefer the record with most IP,
+    // for position players prefer the record with most AB.
     const seen = new Map<string, BoxScorePlayer>()
     for (const p of allPlayers) {
       const key = `${p.firstname}_${p.lastname}`.toLowerCase()
       const existing = seen.get(key)
-      if (!existing || n(p.ab) > n(existing.ab)) seen.set(key, p)
+      if (!existing) { seen.set(key, p); continue }
+      const newIp  = n(p.pitch_ip)
+      const exIp   = n(existing.pitch_ip)
+      const isPitcher = newIp > 0 || exIp > 0
+      if (isPitcher ? newIp > exIp : n(p.ab) > n(existing.ab)) {
+        seen.set(key, p)
+      }
     }
 
     const matched = [...seen.values()].find(p => matchesName(p, name))
