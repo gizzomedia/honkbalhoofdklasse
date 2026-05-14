@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ROSTERS } from '@/lib/rosters-data'
 
 const ALL_PLAYERS = Object.entries(ROSTERS)
@@ -14,18 +14,150 @@ const TEAM_NAMES: Record<string, string> = {
   hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
 }
 
-type PlayerPhoto = { player_name: string; banner_url: string | null; headshot_url: string | null }
+type PlayerPhoto = {
+  player_name: string
+  banner_url: string | null
+  headshot_url: string | null
+  banner_focal_x: number | null
+  banner_focal_y: number | null
+}
 
-function PhotoThumb({ url, shape }: { url: string | null; shape: 'banner' | 'round' }) {
-  if (!url) return (
-    <div className={`bg-[#0f1e2e] border border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted)] uppercase ${shape === 'banner' ? 'w-24 h-12 rounded' : 'w-10 h-10 rounded-full'}`}>
-      —
+// ── Focal point editor ─────────────────────────────────────────────────────
+
+function FocalPointEditor({
+  playerName, url, initialX, initialY, savedPw,
+  onSaved, onClose,
+}: {
+  playerName: string
+  url: string
+  initialX: number
+  initialY: number
+  savedPw: string
+  onSaved: (x: number, y: number) => void
+  onClose: () => void
+}) {
+  const [focal, setFocal] = useState({ x: initialX, y: initialY })
+  const [saving, setSaving] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+
+  const updateFromPointer = useCallback((e: React.PointerEvent) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100))
+    const y = Math.max(0, Math.min(100, (e.clientY - rect.top) / rect.height * 100))
+    setFocal({ x, y })
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    await fetch('/api/admin/photos', {
+      method: 'PATCH',
+      headers: { 'x-admin-password': savedPw, 'content-type': 'application/json' },
+      body: JSON.stringify({ playerName, focalX: focal.x, focalY: focal.y }),
+    })
+    onSaved(focal.x, focal.y)
+    setSaving(false)
+  }
+
+  // Close on Escape
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', fn)
+    return () => window.removeEventListener('keydown', fn)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-[#060e1b] border border-[var(--border)] rounded-2xl w-full max-w-2xl flex flex-col gap-5 p-6 shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div>
+          <p className="font-display font-700 text-[var(--accent)] text-[10px] uppercase tracking-widest mb-0.5">Bannerpositionering</p>
+          <h2 className="font-display font-800 text-xl uppercase text-white leading-none">{playerName}</h2>
+          <p className="font-display font-700 text-[11px] text-[var(--muted)] mt-1">Klik of sleep op de foto om het focuspunt in te stellen. De preview toont wat er getoond wordt.</p>
+        </div>
+
+        {/* Draggable full image */}
+        <div
+          ref={containerRef}
+          className="relative overflow-hidden rounded-xl cursor-crosshair select-none"
+          style={{ maxHeight: 320 }}
+          onPointerDown={e => {
+            dragging.current = true
+            e.currentTarget.setPointerCapture(e.pointerId)
+            updateFromPointer(e)
+          }}
+          onPointerMove={e => { if (dragging.current) updateFromPointer(e) }}
+          onPointerUp={() => { dragging.current = false }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt=""
+            draggable={false}
+            className="w-full h-auto block pointer-events-none"
+          />
+          {/* Focal point crosshair */}
+          <div
+            className="absolute pointer-events-none"
+            style={{ left: `${focal.x}%`, top: `${focal.y}%`, transform: 'translate(-50%, -50%)' }}
+          >
+            {/* Outer ring */}
+            <div className="w-9 h-9 rounded-full border-2 border-white shadow-lg" style={{ background: 'rgba(255,255,255,0.15)' }} />
+            {/* Center dot */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-white shadow" />
+            </div>
+            {/* Cross lines */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute w-px h-5 bg-white/80" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+              <div className="absolute h-px w-5 bg-white/80" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* 3:1 crop preview */}
+        <div>
+          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Preview (bannerformaat)</p>
+          <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: '3/1' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{ objectPosition: `${focal.x}% ${focal.y}%` }}
+            />
+            {/* Dim overlay with label */}
+            <div className="absolute inset-0 flex items-end justify-end p-2 pointer-events-none">
+              <span className="font-display font-700 text-[9px] text-white/50 uppercase tracking-widest bg-black/40 px-2 py-1 rounded">Preview</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 bg-[var(--accent)] py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {saving ? 'Opslaan…' : 'Opslaan'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-[var(--muted)] border border-[var(--border)] hover:text-white transition-colors"
+          >
+            Annuleren
+          </button>
+        </div>
+      </div>
     </div>
   )
-  return shape === 'banner'
-    ? <img src={url} alt="" className="w-24 h-12 object-cover rounded border border-[var(--border)]" />
-    : <img src={url} alt="" className="w-10 h-10 object-cover rounded-full border border-[var(--border)]" />
 }
+
+// ── Upload button ──────────────────────────────────────────────────────────
 
 function UploadButton({
   label, uploading, onFile,
@@ -46,6 +178,134 @@ function UploadButton({
     </label>
   )
 }
+
+// ── Player row ─────────────────────────────────────────────────────────────
+
+function PlayerRow({
+  name, teamId, photo, uploading, success, savedPw, onUpload, onRemove, onPhotoUpdate,
+}: {
+  name: string
+  teamId: string
+  photo: PlayerPhoto | null
+  uploading: string | null
+  success: string | null
+  savedPw: string
+  onUpload: (type: 'banner' | 'headshot', file: File) => void
+  onRemove: (type: 'banner' | 'headshot') => void
+  onPhotoUpdate: (focalX: number, focalY: number) => void
+}) {
+  const [editingFocal, setEditingFocal] = useState(false)
+  const isSuccess = success === name
+
+  const focalX = photo?.banner_focal_x ?? 50
+  const focalY = photo?.banner_focal_y ?? 50
+
+  return (
+    <>
+      <div className={`bg-[var(--card)] border rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap transition-colors ${isSuccess ? 'border-green-500/50' : 'border-[var(--border)]'}`}>
+        {/* Name */}
+        <div className="flex-1 min-w-[160px]">
+          <p className="font-display font-800 text-sm uppercase text-white leading-none">{name}</p>
+          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-0.5">{TEAM_NAMES[teamId] ?? teamId}</p>
+        </div>
+
+        {/* Banner */}
+        <div className="flex items-center gap-2">
+          {/* Thumbnail — clickable to edit focal if banner exists */}
+          {photo?.banner_url ? (
+            <button
+              onClick={() => setEditingFocal(true)}
+              className="relative group overflow-hidden rounded border border-[var(--border)] hover:border-[var(--accent)]/60 transition-colors shrink-0"
+              style={{ width: 96, height: 32 }}
+              title="Klik om positie aan te passen"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.banner_url}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                style={{ objectPosition: `${focalX}% ${focalY}%` }}
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                <span className="font-display font-700 text-[9px] text-white uppercase opacity-0 group-hover:opacity-100 transition-opacity tracking-widest">Positie</span>
+              </div>
+            </button>
+          ) : (
+            <div className="bg-[#0f1e2e] border border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted)] uppercase rounded shrink-0" style={{ width: 96, height: 32 }}>
+              —
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <UploadButton
+              label="Banner"
+              uploading={uploading === `${name}-banner`}
+              onFile={f => onUpload('banner', f)}
+            />
+            {photo?.banner_url && (
+              <div className="flex gap-2">
+                <button onClick={() => setEditingFocal(true)}
+                  className="text-[10px] font-display font-700 text-[var(--accent)] hover:text-white uppercase tracking-widest transition-colors">
+                  Positie
+                </button>
+                <span className="text-[var(--border)]">·</span>
+                <button onClick={() => onRemove('banner')}
+                  className="text-[10px] font-display font-700 text-[var(--muted)] hover:text-red-400 uppercase tracking-widest transition-colors">
+                  Verwijder
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Headshot */}
+        <div className="flex items-center gap-2">
+          {photo?.headshot_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo.headshot_url} alt="" className="w-10 h-10 object-cover rounded-full border border-[var(--border)] shrink-0" />
+          ) : (
+            <div className="bg-[#0f1e2e] border border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted)] uppercase w-10 h-10 rounded-full shrink-0">—</div>
+          )}
+          <div className="flex flex-col gap-1">
+            <UploadButton
+              label="Headshot"
+              uploading={uploading === `${name}-headshot`}
+              onFile={f => onUpload('headshot', f)}
+            />
+            {photo?.headshot_url && (
+              <button onClick={() => onRemove('headshot')}
+                className="text-[10px] font-display font-700 text-[var(--muted)] hover:text-red-400 uppercase tracking-widest text-left transition-colors">
+                Verwijder
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isSuccess && (
+          <span className="font-display font-700 text-xs text-green-400 uppercase tracking-widest shrink-0">Opgeslagen</span>
+        )}
+      </div>
+
+      {/* Focal point editor modal */}
+      {editingFocal && photo?.banner_url && (
+        <FocalPointEditor
+          playerName={name}
+          url={photo.banner_url}
+          initialX={focalX}
+          initialY={focalY}
+          savedPw={savedPw}
+          onSaved={(x, y) => {
+            onPhotoUpdate(x, y)
+            setEditingFocal(false)
+          }}
+          onClose={() => setEditingFocal(false)}
+        />
+      )}
+    </>
+  )
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function AdminPhotosPage() {
   const [authed, setAuthed] = useState(false)
@@ -114,8 +374,19 @@ export default function AdminPhotosPage() {
     await loadPhotos(savedPw)
   }
 
+  function updateFocal(playerName: string, focalX: number, focalY: number) {
+    setPhotos(prev => prev.map(p =>
+      p.player_name.toLowerCase() === playerName.toLowerCase()
+        ? { ...p, banner_focal_x: focalX, banner_focal_y: focalY }
+        : p
+    ))
+  }
+
   const filtered = filter
-    ? ALL_PLAYERS.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || TEAM_NAMES[p.teamId]?.toLowerCase().includes(filter.toLowerCase()))
+    ? ALL_PLAYERS.filter(p =>
+        p.name.toLowerCase().includes(filter.toLowerCase()) ||
+        TEAM_NAMES[p.teamId]?.toLowerCase().includes(filter.toLowerCase())
+      )
     : ALL_PLAYERS
 
   const withPhotos = filtered.filter(p => {
@@ -173,7 +444,6 @@ export default function AdminPhotosPage() {
         />
       </div>
 
-      {/* Players with photos */}
       {withPhotos.length > 0 && (
         <section>
           <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--accent)] mb-3">Met foto&apos;s</p>
@@ -183,9 +453,10 @@ export default function AdminPhotosPage() {
               return (
                 <PlayerRow
                   key={name} name={name} teamId={teamId} photo={photo ?? null}
-                  uploading={uploading} success={success}
+                  uploading={uploading} success={success} savedPw={savedPw}
                   onUpload={(type, file) => upload(name, teamId, type, file)}
                   onRemove={(type) => remove(name, type)}
+                  onPhotoUpdate={(x, y) => updateFocal(name, x, y)}
                 />
               )
             })}
@@ -193,7 +464,6 @@ export default function AdminPhotosPage() {
         </section>
       )}
 
-      {/* Players without photos */}
       {without.length > 0 && (
         <section>
           <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Zonder foto&apos;s</p>
@@ -201,76 +471,14 @@ export default function AdminPhotosPage() {
             {without.map(({ name, teamId }) => (
               <PlayerRow
                 key={name} name={name} teamId={teamId} photo={null}
-                uploading={uploading} success={success}
+                uploading={uploading} success={success} savedPw={savedPw}
                 onUpload={(type, file) => upload(name, teamId, type, file)}
                 onRemove={(type) => remove(name, type)}
+                onPhotoUpdate={(x, y) => updateFocal(name, x, y)}
               />
             ))}
           </div>
         </section>
-      )}
-    </div>
-  )
-}
-
-function PlayerRow({
-  name, teamId, photo, uploading, success, onUpload, onRemove,
-}: {
-  name: string
-  teamId: string
-  photo: PlayerPhoto | null
-  uploading: string | null
-  success: string | null
-  onUpload: (type: 'banner' | 'headshot', file: File) => void
-  onRemove: (type: 'banner' | 'headshot') => void
-}) {
-  const isSuccess = success === name
-  return (
-    <div className={`bg-[var(--card)] border rounded-xl px-4 py-3 flex items-center gap-4 flex-wrap transition-colors ${isSuccess ? 'border-green-500/50' : 'border-[var(--border)]'}`}>
-      {/* Name */}
-      <div className="flex-1 min-w-[160px]">
-        <p className="font-display font-800 text-sm uppercase text-white leading-none">{name}</p>
-        <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-0.5">{TEAM_NAMES[teamId] ?? teamId}</p>
-      </div>
-
-      {/* Banner */}
-      <div className="flex items-center gap-2">
-        <PhotoThumb url={photo?.banner_url ?? null} shape="banner" />
-        <div className="flex flex-col gap-1">
-          <UploadButton
-            label="Banner"
-            uploading={uploading === `${name}-banner`}
-            onFile={f => onUpload('banner', f)}
-          />
-          {photo?.banner_url && (
-            <button onClick={() => onRemove('banner')}
-              className="text-[10px] font-display font-700 text-[var(--muted)] hover:text-red-400 uppercase tracking-widest text-left transition-colors">
-              Verwijder
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Headshot */}
-      <div className="flex items-center gap-2">
-        <PhotoThumb url={photo?.headshot_url ?? null} shape="round" />
-        <div className="flex flex-col gap-1">
-          <UploadButton
-            label="Headshot"
-            uploading={uploading === `${name}-headshot`}
-            onFile={f => onUpload('headshot', f)}
-          />
-          {photo?.headshot_url && (
-            <button onClick={() => onRemove('headshot')}
-              className="text-[10px] font-display font-700 text-[var(--muted)] hover:text-red-400 uppercase tracking-widest text-left transition-colors">
-              Verwijder
-            </button>
-          )}
-        </div>
-      </div>
-
-      {isSuccess && (
-        <span className="font-display font-700 text-xs text-green-400 uppercase tracking-widest shrink-0">Opgeslagen</span>
       )}
     </div>
   )

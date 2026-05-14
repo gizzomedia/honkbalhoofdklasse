@@ -95,6 +95,8 @@ export type SeasonStats = {
 export type PlayerPhotos = {
   banner_url: string | null
   headshot_url: string | null
+  banner_focal_x: number | null
+  banner_focal_y: number | null
 } | null
 
 // ── computeSeasonStats — fetches from the same KNBSB API as the leaders page ─
@@ -150,7 +152,7 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
 export async function fetchPlayerPhotos(playerName: string): Promise<PlayerPhotos> {
   const { data } = await supabase
     .from('player_photos')
-    .select('banner_url, headshot_url')
+    .select('banner_url, headshot_url, banner_focal_x, banner_focal_y')
     .ilike('player_name', playerName)
     .maybeSingle()
   return data ?? null

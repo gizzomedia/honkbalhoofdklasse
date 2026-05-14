@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
 import { ROSTERS } from '@/lib/rosters-data'
-import { bannerFaceUrl, headshotFaceUrl } from '@/lib/cloudinary'
+import { headshotFaceUrl } from '@/lib/cloudinary'
 
 // ── Team data ──────────────────────────────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
@@ -27,7 +27,7 @@ const TEAM_NAMES: Record<string, string> = {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type SeasonStats = Record<string, unknown>
-type Photos      = { banner_url: string | null; headshot_url: string | null } | null
+type Photos      = { banner_url: string | null; headshot_url: string | null; banner_focal_x?: number | null; banner_focal_y?: number | null } | null
 type CareerBat   = { year:string; lg:string; team:string; g:string; ab:string; h:string; hr:string; rbi:string; avg:string; obp:string; slg:string }
 type CareerPit   = { year:string; lg:string; team:string; w:string; l:string; era:string; ip:string; so:string; whip:string }
 type Career      = { batting: CareerBat[]; pitching: CareerPit[] }
@@ -133,8 +133,9 @@ export default function PlayerStatsModal({
   const hasPitching = num(st?.pitch_appear) > 0
   const hasBatting  = num(st?.ab) > 0
 
-  const bannerUrl   = bannerFaceUrl(photos?.banner_url   ?? null)
-  const headshotUrl = headshotFaceUrl(photos?.headshot_url ?? null)
+  const bannerUrl      = photos?.banner_url ?? null
+  const headshotUrl    = headshotFaceUrl(photos?.headshot_url ?? null)
+  const bannerPosition = `${photos?.banner_focal_x ?? 50}% ${photos?.banner_focal_y ?? 50}%`
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
@@ -156,7 +157,7 @@ export default function PlayerStatsModal({
           {bannerUrl && (
             <div className="absolute inset-0">
               <Image src={bannerUrl} alt={playerName} fill
-                className="object-cover object-center" style={{ opacity: 0.2 }} priority />
+                className="object-cover" style={{ opacity: 0.2, objectPosition: bannerPosition }} priority />
             </div>
           )}
 
