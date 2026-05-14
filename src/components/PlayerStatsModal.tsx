@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
-import { ROSTERS } from '@/lib/rosters-data'
+import { ROSTERS, slugify } from '@/lib/rosters-data'
 
 type CareerBatRow  = { year:string; lg:string; team:string; g:string; ab:string; h:string; hr:string; rbi:string; avg:string; obp:string; slg:string }
 type CareerPitRow  = { year:string; lg:string; team:string; w:string; l:string; era:string; ip:string; so:string; whip:string }
@@ -191,6 +192,13 @@ export default function PlayerStatsModal({
                     style={{ color: teamColor === '#121b31' ? '#f59e0b' : teamColor }}>
                     {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
                   </p>
+                  <Link
+                    href={`/players/${slugify(playerName)}`}
+                    className="font-display font-700 text-[10px] uppercase tracking-widest mt-1 inline-block text-white/60 hover:text-white transition-colors drop-shadow"
+                    onClick={onClose}
+                  >
+                    View full profile →
+                  </Link>
                 </div>
               </div>
             </div>
@@ -214,6 +222,13 @@ export default function PlayerStatsModal({
                   style={{ color: teamColor === '#121b31' ? 'var(--accent)' : teamColor }}>
                   {TEAM_NAMES[teamId] ?? teamId} · {statType === 'pitching' ? 'Pitcher' : 'Batter'}
                 </p>
+                <Link
+                  href={`/players/${slugify(playerName)}`}
+                  className="font-display font-700 text-[10px] uppercase tracking-widest mt-1 inline-block text-[var(--muted)] hover:text-white transition-colors"
+                  onClick={onClose}
+                >
+                  View full profile →
+                </Link>
               </div>
             </div>
             <button
