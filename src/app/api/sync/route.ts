@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendLiveNotification } from '@/lib/email'
 
 const BASE_URL   = 'https://boxscore.stenwessel.nl/api'
 const COMPETITION = 'hb2026'
@@ -53,7 +54,7 @@ export async function GET(req: Request) {
     // ── 2. Load current Supabase games ───────────────────────────────────────
     const { data: sbGames, error: sbErr } = await supabaseAdmin
       .from('games')
-      .select('id, external_id, status, home_score, away_score')
+      .select('id, external_id, status, home_score, away_score, live_notified, home_team_id, away_team_id')
       .eq('season', 2026)
 
     if (sbErr) throw sbErr
@@ -62,6 +63,7 @@ export async function GET(req: Request) {
 
     // ── 3. Diff & build updates ──────────────────────────────────────────────
     const gameUpdates: { id: number; patch: Record<string, unknown> }[] = []
+    const newlyLive: { homeTeamId: string; awayTeamId: string; dbId: number }[] = []
     let newFinals = 0
 
     for (const sg of steGames) {
@@ -81,6 +83,11 @@ export async function GET(req: Request) {
         patch.updated_at = new Date().toISOString()
         gameUpdates.push({ id: sb.id, patch })
         if (newStatus === 'final' && sb.status !== 'final') newFinals++
+      }
+
+      // Track games that just went live and haven't been notified yet
+      if (newStatus === 'live' && sb.status !== 'live' && !sb.live_notified) {
+        newlyLive.push({ homeTeamId: sb.home_team_id, awayTeamId: sb.away_team_id, dbId: sb.id })
       }
     }
 
@@ -168,6 +175,27 @@ export async function GET(req: Request) {
       }
     }
 
+    // ── 7. Send live notifications ───────────────────────────────────────────
+    let notificationsSent = 0
+    if (newlyLive.length > 0) {
+      const { data: subscribers } = await supabaseAdmin
+        .from('subscribers')
+        .select('email, token')
+
+      if (subscribers && subscribers.length > 0) {
+        await sendLiveNotification(
+          subscribers as { email: string; token: string }[],
+          newlyLive.map(g => ({ homeTeamId: g.homeTeamId, awayTeamId: g.awayTeamId }))
+        )
+        notificationsSent = subscribers.length
+      }
+
+      // Mark games as notified
+      for (const g of newlyLive) {
+        await supabaseAdmin.from('games').update({ live_notified: true }).eq('id', g.dbId)
+      }
+    }
+
     return NextResponse.json({
       ok:               true,
       gamesChecked:     steGames.length,
@@ -175,6 +203,7 @@ export async function GET(req: Request) {
       newFinals,
       standingsUpdated,
       streamsToggled,
+      notificationsSent,
       timestamp:        new Date().toISOString(),
     })
   } catch (err) {
