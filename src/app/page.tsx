@@ -175,7 +175,7 @@ export default async function HomePage() {
             <div className="flex items-end justify-between mb-8">
               <SectionLabel>Recent Results</SectionLabel>
               <Link href="/uitslagen" className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-[0.2em] hover:underline hidden sm:block">
-                Alle uitslagen →
+                All results →
               </Link>
             </div>
 
