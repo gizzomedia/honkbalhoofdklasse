@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache'
 import { supabase } from '@/lib/supabase'
 
 const COMPETITION = 'hb2026'
@@ -218,9 +217,7 @@ export type PlayerPhotos = {
   headshot_url: string | null
 } | null
 
-// ── Cached aggregation — per player name, 30 min ──────────────────────────
-export const computeSeasonStats = unstable_cache(
-  async (name: string): Promise<SeasonStats | null> => {
+export async function computeSeasonStats(name: string): Promise<SeasonStats | null> {
     const gameIds   = await fetchFinishedGameIds()
     const boxScores = await Promise.all(gameIds.map(id => fetchBoxScore(id)))
 
@@ -317,10 +314,7 @@ export const computeSeasonStats = unstable_cache(
       era: era !== null ? Number(era.toFixed(2)) : null,
       games: agg.gamesFound,
     }
-  },
-  ['player-season-stats'],
-  { revalidate: 1800 }
-)
+}
 
 export async function fetchPlayerPhotos(playerName: string): Promise<PlayerPhotos> {
   const { data } = await supabase
