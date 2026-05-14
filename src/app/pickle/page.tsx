@@ -408,12 +408,16 @@ export default function PicklePage() {
       </div>
 
       {/* Guess grid */}
+      <div className="overflow-x-auto -mx-4 px-4">
+      <div style={{ minWidth: 520 }}>
       <ColumnHeaders />
       <div className="space-y-1.5">
         {guesses.map((fb, i) => <GuessRow key={i} fb={fb} target={target} />)}
         {Array.from({ length: Math.max(0, MAX_GUESSES - guesses.length) }, (_, i) => (
           <EmptyRow key={i} dim={i > 0} />
         ))}
+      </div>
+      </div>
       </div>
     </div>
   )
