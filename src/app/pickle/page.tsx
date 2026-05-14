@@ -87,8 +87,8 @@ function FlipCell({ hit, delay, children, arrow }: {
   const [showColor, setShowColor] = useState(false)
 
   useEffect(() => {
-    const t1 = setTimeout(() => setFlipped(true),  delay * 100)
-    const t2 = setTimeout(() => { setShowColor(true); setFlipped(false) }, delay * 100 + 225)
+    const t1 = setTimeout(() => setFlipped(true),  delay * 250)
+    const t2 = setTimeout(() => { setShowColor(true); setFlipped(false) }, delay * 250 + 300)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [delay])
 
