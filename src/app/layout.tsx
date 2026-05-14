@@ -28,15 +28,6 @@ export const metadata: Metadata = {
   creator: 'Honkbal Hoofdklasse',
   publisher: 'Honkbal Hoofdklasse',
   robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
-  icons: {
-    icon: [
-      { url: '/icon.png', sizes: '32x32',  type: 'image/png' },
-      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: { url: '/icon.png', sizes: '180x180', type: 'image/png' },
-    shortcut: '/icon.png',
-  },
   openGraph: {
     type: 'website',
     locale: 'nl_NL',
