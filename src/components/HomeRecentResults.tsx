@@ -28,6 +28,7 @@ const TEAM_SHORT: Record<string, string> = {
 
 type Game = {
   id: number | string
+  external_id: string | null
   game_date: string
   home_team_id: string
   away_team_id: string
@@ -131,7 +132,7 @@ export default function HomeRecentResults({
 
       {selected && (
         <BoxscoreModal
-          gameId={String(selected.id)}
+          gameId={selected.external_id ?? String(selected.id)}
           awayId={selected.away_team_id}
           homeId={selected.home_team_id}
           awayScore={selected.away_score}
