@@ -181,9 +181,16 @@ export default function PlayerStatsModal({
                 <Image src={headshotUrl} alt={playerName} fill className="object-cover object-top" priority />
               </div>
             ) : (
-              <div className="w-24 h-24 shrink-0 rounded-xl border-2 border-white/20 flex items-center justify-center"
-                style={{ background: `${teamColor}50` }}>
-                <span className="font-display font-800 text-3xl text-white/30">{rosterPlayer?.uniform ?? '#'}</span>
+              <div className="w-24 h-24 shrink-0 rounded-xl border-2 border-white/30 flex flex-col items-center justify-center gap-1"
+                style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <span className="font-display font-800 text-4xl text-white leading-none">
+                  {rosterPlayer?.uniform ?? '?'}
+                </span>
+                {rosterPlayer?.pos && (
+                  <span className="font-display font-700 text-[10px] text-white/50 uppercase tracking-widest">
+                    {rosterPlayer.pos}
+                  </span>
+                )}
               </div>
             )}
 
