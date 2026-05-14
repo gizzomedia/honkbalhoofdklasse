@@ -81,11 +81,18 @@ export async function GET() {
         homeScore = calcScore(boxScore, String(gd.homeid))
         awayScore = calcScore(boxScore, String(gd.awayid))
       }
+      // Current game situation from schedule data
+      const inning  = Number(g.innings ?? 0) + 1
+      const outs    = Number(g.outs    ?? 0)
+      const runner1 = Number(g.runner1 ?? 0) > 0
+      const runner2 = Number(g.runner2 ?? 0) > 0
+      const runner3 = Number(g.runner3 ?? 0) > 0
       return {
         id, gameDate: g.start ? String(g.start).split(' ')[0] : '',
         gameTime: g.start ? (String(g.start).split(' ')[1] ?? null) : null,
         homeId: getTeamId(g, 'home'), awayId: getTeamId(g, 'away'),
         status: 'live', homeScore, awayScore,
+        inning, outs, runner1, runner2, runner3,
       }
     })
 

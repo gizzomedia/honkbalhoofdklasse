@@ -154,16 +154,6 @@ export async function GET(
     const awayId = mapTeamFromIoc(String(gd.awayioc ?? '')) ?? mapTeamFromLabel(String(gd.awaylabel ?? ''))
     const homeId = mapTeamFromIoc(String(gd.homeioc ?? '')) ?? mapTeamFromLabel(String(gd.homelabel ?? ''))
 
-    const awayInnings = displayInnings.map(i => {
-      const v = gd[`runsaway${i}`]
-      return v !== null && v !== undefined ? Number(v) : null
-    })
-    const homeInnings = displayInnings.map(i => {
-      if (homeWon && i > homeBattedInnings && i <= 9) return 'X'
-      const v = gd[`runshome${i}`]
-      return v !== null && v !== undefined ? Number(v) : null
-    })
-
     const fmtEra = (era: number) => (era / 100).toFixed(2)
 
     // Player stats
@@ -172,7 +162,49 @@ export async function GET(
     const awayPlayers  = getTeamPlayers(boxScore, awayTeamId as string)
     const homePlayers  = getTeamPlayers(boxScore, homeTeamId as string)
 
+    // Live game situation
+    const gamestatus   = Number(gd.gamestatus ?? 0)
+    const isLive       = gamestatus === 1
+    const completedInnings = Number(gd.innings ?? 0)
+
+    // For live games: hide innings not yet played
+    // Away bats first: innings 1..completedInnings+1 might have data
+    // Home: innings 1..completedInnings might have data
+    const liveAway = isLive ? completedInnings + 1 : 99
+    const liveHome = isLive ? completedInnings      : 99
+
+    const awayInnings = displayInnings.map(i => {
+      if (i > liveAway) return null
+      const v = gd[`runsaway${i}`]
+      return v !== null && v !== undefined ? Number(v) : null
+    })
+    const homeInnings = displayInnings.map(i => {
+      if (i > liveHome) return null
+      if (homeWon && i > homeBattedInnings && i <= 9) return 'X'
+      const v = gd[`runshome${i}`]
+      return v !== null && v !== undefined ? Number(v) : null
+    })
+
+    // Batter/pitcher on display from gamestatustext fields
+    const rawBatter  = String(gd.gamestatusbatter  ?? '').trim()
+    const rawPitcher = String(gd.gamestatuspitcher ?? '').trim()
+    const currentBatter  = rawBatter  || null
+    const currentPitcher = rawPitcher || null
+
+    const situation = isLive ? {
+      inning:  completedInnings + 1,
+      outs:    Number(gd.outs    ?? 0),
+      balls:   Number(gd.balls   ?? 0),
+      strikes: Number(gd.strikes ?? 0),
+      runner1: Number(gd.runner1 ?? 0) > 0,
+      runner2: Number(gd.runner2 ?? 0) > 0,
+      runner3: Number(gd.runner3 ?? 0) > 0,
+      currentBatter,
+      currentPitcher,
+    } : null
+
     return NextResponse.json({
+      isLive,
       displayInnings,
       startInning,
       awayId,
@@ -188,6 +220,7 @@ export async function GET(
       homeBatters:  extractBatters(homePlayers),
       awayPitchers: extractPitchers(awayPlayers),
       homePitchers: extractPitchers(homePlayers),
+      situation,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to fetch boxscore' }, { status: 500 })

@@ -22,7 +22,20 @@ const TEAM_NAMES: Record<string, string> = {
   hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
 }
 
+type Situation = {
+  inning: number
+  outs: number
+  balls: number
+  strikes: number
+  runner1: boolean
+  runner2: boolean
+  runner3: boolean
+  currentBatter:  string | null
+  currentPitcher: string | null
+}
+
 type BoxscoreData = {
+  isLive: boolean
   displayInnings: number[]
   startInning: number
   awayId: string
@@ -38,6 +51,7 @@ type BoxscoreData = {
   homeBatters:  BatterStat[]
   awayPitchers: PitcherStat[]
   homePitchers: PitcherStat[]
+  situation: Situation | null
 }
 
 function TeamLogo({ teamId, size = 44 }: { teamId: string; size?: number }) {
@@ -50,6 +64,81 @@ function TeamLogo({ teamId, size = 44 }: { teamId: string; size?: number }) {
         ? <Image src={logo} alt={teamId} width={size - 10} height={size - 10} className="object-contain w-full h-full" />
         : <span className="font-display font-800 text-white text-xs">{teamId.slice(0, 3).toUpperCase()}</span>
       }
+    </div>
+  )
+}
+
+function BaseDiamond({ r1, r2, r3, size = 10 }: { r1: boolean; r2: boolean; r3: boolean; size?: number }) {
+  const s = size
+  const filled = '#fe3d00'
+  const empty  = '#1a2a3a'
+  return (
+    <svg width={s * 3} height={s * 2.4} viewBox="0 0 30 24">
+      {/* 2B top-center */}
+      <rect x="11" y="0" width="8" height="8" transform="rotate(45 15 4)" fill={r2 ? filled : empty} />
+      {/* 1B right */}
+      <rect x="20" y="8" width="8" height="8" transform="rotate(45 24 12)" fill={r1 ? filled : empty} />
+      {/* 3B left */}
+      <rect x="2"  y="8" width="8" height="8" transform="rotate(45 6 12)"  fill={r3 ? filled : empty} />
+    </svg>
+  )
+}
+
+function SituationBar({ sit }: { sit: Situation }) {
+  return (
+    <div className="flex items-center gap-4 px-4 py-3 bg-[#060e1b] border-t border-[var(--border)]">
+      {/* Inning */}
+      <div className="text-center shrink-0">
+        <p className="font-display font-800 text-base text-white tabular-nums">{sit.inning}</p>
+        <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest">Inning</p>
+      </div>
+
+      <div className="w-px h-8 bg-[var(--border)]" />
+
+      {/* Outs */}
+      <div className="text-center shrink-0">
+        <div className="flex gap-1 justify-center mb-0.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className={`w-2.5 h-2.5 rounded-full ${i < sit.outs ? 'bg-[var(--accent)]' : 'bg-[#1a2a3a]'}`} />
+          ))}
+        </div>
+        <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest">Outs</p>
+      </div>
+
+      <div className="w-px h-8 bg-[var(--border)]" />
+
+      {/* Bases */}
+      <div className="flex flex-col items-center shrink-0">
+        <BaseDiamond r1={sit.runner1} r2={sit.runner2} r3={sit.runner3} size={10} />
+        <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest mt-0.5">Bases</p>
+      </div>
+
+      <div className="w-px h-8 bg-[var(--border)]" />
+
+      {/* Count */}
+      <div className="text-center shrink-0">
+        <p className="font-display font-800 text-base text-white tabular-nums">{sit.balls}-{sit.strikes}</p>
+        <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-widest">Count</p>
+      </div>
+
+      {/* Batter / Pitcher */}
+      {(sit.currentBatter || sit.currentPitcher) && (
+        <>
+          <div className="w-px h-8 bg-[var(--border)]" />
+          <div className="flex-1 min-w-0 space-y-0.5">
+            {sit.currentBatter && (
+              <p className="font-display font-700 text-xs text-white uppercase truncate">
+                <span className="text-[var(--muted)] mr-1.5">AB</span>{sit.currentBatter}
+              </p>
+            )}
+            {sit.currentPitcher && (
+              <p className="font-display font-700 text-xs text-white uppercase truncate">
+                <span className="text-[var(--muted)] mr-1.5">P</span>{sit.currentPitcher}
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -69,31 +158,24 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border)]">
-          {batters.map((b, i) => {
-            const avg = b.ab > 0 ? (b.h / b.ab).toFixed(3).replace('0.', '.') : '—'
-            const hasHit = b.h > 0
-            return (
-              <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                <td className="py-2 pr-3">
-                  <div className="flex items-center gap-2">
-                    {b.pos && (
-                      <span className="font-display font-700 text-[10px] uppercase text-center min-w-[20px]"
-                        style={{ color: teamColor }}>{b.pos}</span>
-                    )}
-                    <span className={`font-display font-700 text-xs uppercase ${hasHit ? 'text-white' : 'text-[var(--muted)]'}`}>
-                      {b.name}
-                    </span>
-                    <span className="font-display font-700 text-[10px] text-[var(--muted)]">{avg}</span>
-                  </div>
+          {batters.map((b, i) => (
+            <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+              <td className="py-2 pr-3">
+                <div className="flex items-center gap-2">
+                  {b.pos && (
+                    <span className="font-display font-700 text-[10px] uppercase text-center min-w-[20px]"
+                      style={{ color: teamColor }}>{b.pos}</span>
+                  )}
+                  <span className="font-display font-700 text-xs uppercase text-white">{b.name}</span>
+                </div>
+              </td>
+              {[b.ab, b.h, b.r, b.rbi, b.bb, b.so, b.hr].map((v, j) => (
+                <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 ${v > 0 ? 'text-white' : 'text-[var(--muted)]'}`}>
+                  {v}
                 </td>
-                {[b.ab, b.h, b.r, b.rbi, b.bb, b.so, b.hr].map((v, j) => (
-                  <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 ${v > 0 ? 'text-white' : 'text-[var(--muted)]'}`}>
-                    {v}
-                  </td>
-                ))}
-              </tr>
-            )
-          })}
+              ))}
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -215,7 +297,9 @@ export default function BoxscoreModal({
               <span className="text-[var(--muted)] mx-2">–</span>
               <span className={homeWon ? 'text-white' : 'text-[var(--muted)]'}>{homeScore ?? '–'}</span>
             </p>
-            <p className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest mt-1">Final</p>
+            <p className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest mt-1">
+              {data?.isLive ? 'Live' : 'Final'}
+            </p>
           </div>
           <div className={`flex items-center gap-3 flex-1 min-w-0 ${!homeWon ? 'opacity-50' : ''}`}>
             <TeamLogo teamId={data?.homeId ?? homeId} size={44} />
@@ -283,6 +367,9 @@ export default function BoxscoreModal({
                 </tbody>
               </table>
             </div>
+
+            {/* Live situation */}
+            {data.situation && <SituationBar sit={data.situation} />}
 
             {/* Pitching decision line */}
             {(data.winPitcher || data.lossPitcher) && (

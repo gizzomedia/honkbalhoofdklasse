@@ -31,6 +31,12 @@ type Game = {
   status: 'live' | 'final' | 'scheduled'
   homeScore: number | null
   awayScore: number | null
+  // live situation
+  inning?:  number
+  outs?:    number
+  runner1?: boolean
+  runner2?: boolean
+  runner3?: boolean
 }
 
 type StandingsEntry = { wins: number; losses: number }
@@ -65,6 +71,17 @@ function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
+function BaseDiamond({ r1, r2, r3 }: { r1: boolean; r2: boolean; r3: boolean }) {
+  const on = '#fe3d00', off = '#1a2a3a'
+  return (
+    <svg width="28" height="22" viewBox="0 0 28 22">
+      <rect x="10" y="0"  width="8" height="8" transform="rotate(45 14 4)"  fill={r2 ? on : off} />
+      <rect x="18" y="7"  width="8" height="8" transform="rotate(45 22 11)" fill={r1 ? on : off} />
+      <rect x="2"  y="7"  width="8" height="8" transform="rotate(45 6 11)"  fill={r3 ? on : off} />
+    </svg>
+  )
+}
+
 function ScoreRow({
   game, isLive = false, standings = {}, onClick,
 }: {
@@ -87,7 +104,6 @@ function ScoreRow({
           : 'border-[var(--border)] bg-[var(--card)]'
       } ${clickable ? 'cursor-pointer hover:border-[var(--accent)]/60 hover:bg-[#0d1a2a]' : ''}`}
     >
-      {/* Live pulse bar */}
       {isLive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)] animate-pulse" />}
 
       <div className="px-4 py-3">
@@ -103,26 +119,18 @@ function ScoreRow({
                 <span className="font-display font-800 text-[10px] text-white uppercase tracking-widest">Live</span>
               </span>
             )}
-            {isFinal && (
-              <span className="font-display font-800 text-[10px] text-[var(--accent)] uppercase tracking-widest">Final</span>
-            )}
-            {game.status === 'scheduled' && (
-              <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Upcoming</span>
-            )}
-            {clickable && (
-              <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
-                Boxscore →
-              </span>
-            )}
+            {isFinal && <span className="font-display font-800 text-[10px] text-[var(--accent)] uppercase tracking-widest">Final</span>}
+            {game.status === 'scheduled' && <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Upcoming</span>}
+            {clickable && <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Boxscore →</span>}
           </div>
         </div>
 
-        {/* Teams + score */}
+        {/* Teams + score — vertically centered */}
         <div className="flex items-center gap-3">
           {/* Away */}
           <div className={`flex items-center gap-2 flex-1 min-w-0 justify-end ${isFinal && !awayWon ? 'opacity-40' : ''}`}>
             <div className="text-right min-w-0">
-              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-none truncate">
+              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-tight truncate">
                 <strong>{TEAM_NAMES[game.awayId ?? ''] ?? game.awayId ?? '–'}</strong>
               </p>
               {game.awayId && standings[game.awayId] && (
@@ -151,7 +159,7 @@ function ScoreRow({
           <div className={`flex items-center gap-2 flex-1 min-w-0 ${isFinal && !homeWon ? 'opacity-40' : ''}`}>
             <TeamLogo teamId={game.homeId} size={40} />
             <div className="min-w-0">
-              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-none truncate">
+              <p className="font-display font-800 text-base md:text-lg uppercase text-white leading-tight truncate">
                 <strong>{TEAM_NAMES[game.homeId ?? ''] ?? game.homeId ?? '–'}</strong>
               </p>
               {game.homeId && standings[game.homeId] && (
@@ -162,6 +170,22 @@ function ScoreRow({
             </div>
           </div>
         </div>
+
+        {/* Live situation: inning · outs · runners */}
+        {isLive && game.inning != null && (
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--border)]/50">
+            <span className="font-display font-800 text-xs text-[var(--accent)] uppercase tracking-widest">
+              Inning {game.inning}
+            </span>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-2 h-2 rounded-full ${i < (game.outs ?? 0) ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'}`} />
+              ))}
+              <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase ml-1">out</span>
+            </div>
+            <BaseDiamond r1={game.runner1 ?? false} r2={game.runner2 ?? false} r3={game.runner3 ?? false} />
+          </div>
+        )}
       </div>
     </div>
   )
