@@ -38,17 +38,19 @@ export async function GET(
     const data = await res.json()
     const gd = data.gameData as Record<string, unknown>
 
-    // Find last played inning
-    let lastInning = 0
-    for (let i = 1; i <= 20; i++) {
-      const away = gd[`runsaway${i}`]
-      const home = gd[`runshome${i}`]
-      if (away !== null && away !== undefined && away !== '') lastInning = i
-      else if (home !== null && home !== undefined && home !== '') lastInning = i
+    // Determine game length (same logic as boxscore API):
+    // default 9 innings, extend only if there are actual runs in extra innings
+    let lastInning = 9
+    for (let i = 20; i > 9; i--) {
+      if (Number(gd[`runsaway${i}`]) > 0 || Number(gd[`runshome${i}`]) > 0) {
+        lastInning = i
+        break
+      }
     }
-    if (lastInning === 0) return NextResponse.json({ points: [] })
+    // Verify at least inning 1 has data (game was actually played)
+    if (gd['runsaway1'] === null || gd['runsaway1'] === undefined || gd['runsaway1'] === '') return NextResponse.json({ points: [] })
 
-    const totalInnings = Math.max(9, lastInning)
+    const totalInnings = lastInning
     const homeWon = Number(gd.homeruns ?? 0) > Number(gd.awayruns ?? 0)
 
     const points: WinProbPoint[] = [{ label: 'Start', homeProb: 0.5 }]
