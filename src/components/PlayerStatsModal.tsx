@@ -42,10 +42,14 @@ type PlayerData = {
 }
 
 function fmtIp(v: unknown): string {
-  const n = Number(v)
-  if (isNaN(n)) return '-'
-  if (Number.isInteger(n)) return `${Math.floor(n / 3)}.${n % 3}`
-  return n.toFixed(1)
+  if (v === null || v === undefined || v === '') return '-'
+  const str = String(v)
+  // Already formatted as "innings.outs" string from our API (e.g. "27.0", "9.1")
+  if (str.includes('.')) return str
+  // Fallback: raw outs integer
+  const num = Number(str)
+  if (isNaN(num) || num === 0) return '-'
+  return `${Math.floor(num / 3)}.${num % 3}`
 }
 
 function s(v: unknown): string {
