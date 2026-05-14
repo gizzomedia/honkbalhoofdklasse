@@ -120,15 +120,22 @@ function Cell({ hit, children, arrow }: { hit: Hit; children: React.ReactNode; a
 // ── Guess row ─────────────────────────────────────────────────────────────────
 
 function GuessRow({ fb, target }: { fb: GuessFeedback; target: PoolPlayer }) {
+  const isCorrect = fb.player.name.toLowerCase() === target.name.toLowerCase()
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 1fr' }}>
-      {/* Player name */}
-      <div className="flex items-center gap-2 bg-[#0d1b2e] border border-[var(--border)] rounded-xl px-3 py-2.5">
+    <div className={`grid gap-1.5 ${isCorrect ? 'ring-2 ring-green-500/50 rounded-xl' : ''}`}
+      style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 1fr' }}>
+      {/* Player name — green when correct */}
+      <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 border ${
+        isCorrect
+          ? 'bg-green-700/80 border-green-600'
+          : 'bg-[#0d1b2e] border-[var(--border)]'
+      }`}>
         <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 p-0.5"
           style={{ backgroundColor: TEAM_COLORS[fb.player.teamId] }}>
           <Image src={TEAM_LOGOS[fb.player.teamId]} alt="" width={18} height={18} className="object-contain w-full h-full" />
         </div>
         <span className="font-display font-800 text-xs uppercase text-white truncate leading-tight">{fb.player.name}</span>
+        {isCorrect && <span className="ml-auto text-green-300 text-sm shrink-0">✓</span>}
       </div>
 
       {/* Team */}
@@ -307,29 +314,36 @@ export default function PicklePage() {
 
       {/* Win / Lose banner */}
       {(won || lost) && (
-        <div className={`mb-6 rounded-xl border px-5 py-4 flex items-center justify-between gap-4 flex-wrap ${
-          won ? 'bg-green-900/30 border-green-700/50' : 'bg-red-900/20 border-red-800/40'
+        <div className={`mb-6 rounded-2xl border overflow-hidden ${
+          won ? 'border-green-600/60' : 'border-red-800/40'
         }`}>
-          <div>
-            <p className="font-display font-800 text-xl uppercase text-white">
-              {won ? `Nice one! ${guesses.length}/${MAX_GUESSES}` : `The answer was ${target.name}`}
-            </p>
-            {won && (
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-5 h-5 rounded flex items-center justify-center p-0.5"
+          {/* Top accent bar */}
+          <div className={`h-1.5 ${won ? 'bg-green-500' : 'bg-red-600'}`} />
+          <div className={`px-6 py-5 flex items-center justify-between gap-4 flex-wrap ${
+            won ? 'bg-green-900/25' : 'bg-red-900/15'
+          }`}>
+            <div>
+              <p className={`font-display font-800 text-3xl uppercase ${won ? 'text-green-400' : 'text-red-400'}`}>
+                {won ? `You got it!` : 'Game Over'}
+              </p>
+              <p className="font-display font-800 text-lg uppercase text-white mt-0.5">
+                {won ? `${guesses.length} out of ${MAX_GUESSES} guesses` : `The answer was ${target.name}`}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-6 h-6 rounded flex items-center justify-center p-0.5"
                   style={{ backgroundColor: TEAM_COLORS[target.teamId] }}>
-                  <Image src={TEAM_LOGOS[target.teamId]} alt="" width={14} height={14} className="object-contain w-full h-full" />
+                  <Image src={TEAM_LOGOS[target.teamId]} alt="" width={18} height={18} className="object-contain w-full h-full" />
                 </div>
                 <p className="font-display font-700 text-sm text-white/70 uppercase">
                   {TEAM_NAMES[target.teamId]} · {POS_LABEL[target.pos] ?? target.pos} · Born {target.yob}
                 </p>
               </div>
-            )}
+            </div>
+            <button onClick={share}
+              className="shrink-0 bg-[var(--accent)] px-6 py-3 rounded-xl font-display font-800 text-sm uppercase tracking-wider text-white hover:bg-[var(--accent)]/80 transition-colors">
+              {shared ? '✓ Copied!' : 'Share result'}
+            </button>
           </div>
-          <button onClick={share}
-            className="shrink-0 bg-[var(--accent)] px-5 py-2.5 rounded-lg font-display font-800 text-sm uppercase tracking-wider text-white hover:bg-[var(--accent)]/80 transition-colors">
-            {shared ? 'Copied!' : 'Share result'}
-          </button>
         </div>
       )}
 
