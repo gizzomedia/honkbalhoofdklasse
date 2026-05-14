@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
 import { ROSTERS } from '@/lib/rosters-data'
+import { bannerFaceUrl, headshotFaceUrl } from '@/lib/cloudinary'
 
 // ── Team data ──────────────────────────────────────────────────────────────
 const TEAM_COLORS: Record<string, string> = {
@@ -132,8 +133,8 @@ export default function PlayerStatsModal({
   const hasPitching = num(st?.pitch_appear) > 0
   const hasBatting  = num(st?.ab) > 0
 
-  const bannerUrl   = photos?.banner_url   ?? null
-  const headshotUrl = photos?.headshot_url ?? null
+  const bannerUrl   = bannerFaceUrl(photos?.banner_url   ?? null)
+  const headshotUrl = headshotFaceUrl(photos?.headshot_url ?? null)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
@@ -178,7 +179,7 @@ export default function PlayerStatsModal({
             {/* Headshot */}
             {headshotUrl ? (
               <div className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden border-2 border-white/20 shadow-xl">
-                <Image src={headshotUrl} alt={playerName} fill className="object-cover object-top" priority />
+                <Image src={headshotUrl} alt={playerName} fill className="object-cover object-center" priority />
               </div>
             ) : (
               <div className="w-24 h-24 shrink-0 rounded-xl border-2 border-white/30 flex flex-col items-center justify-center gap-1"

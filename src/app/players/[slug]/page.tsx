@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { computeSeasonStats, fetchPlayerPhotos } from '@/lib/player-stats-lib'
+import { bannerFaceUrl, headshotFaceUrl } from '@/lib/cloudinary'
 import StatsTabs from './StatsTabs'
 
 export const revalidate = 1800
@@ -69,8 +70,8 @@ export default async function PlayerPage({
     fetchPlayerPhotos(player.name),
   ])
 
-  const bannerUrl   = photos?.banner_url   ?? null
-  const headshotUrl = photos?.headshot_url ?? null
+  const bannerUrl   = bannerFaceUrl(photos?.banner_url   ?? null)
+  const headshotUrl = headshotFaceUrl(photos?.headshot_url ?? null)
   const age         = calcAge(player.yob)
 
   // For Neptunus the team color is very dark; use amber as accent on it
@@ -127,7 +128,7 @@ export default async function PlayerPage({
                     src={headshotUrl}
                     alt={player.name}
                     fill
-                    className="object-cover object-top"
+                    className="object-cover object-center"
                     priority
                   />
                 </div>
