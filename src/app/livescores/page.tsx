@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
+import BoxscoreModal from '@/components/BoxscoreModal'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
@@ -60,20 +61,32 @@ function TeamLogo({ teamId, size = 44 }: { teamId: string | null; size?: number 
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })
 }
-
 function formatTime(ts: string) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
-function ScoreRow({ game, isLive = false, standings = {} }: { game: Game; isLive?: boolean; standings?: Record<string, StandingsEntry> }) {
-  const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0)
-  const awayWon = (game.awayScore ?? 0) > (game.homeScore ?? 0)
-  const isFinal = game.status === 'final'
+function ScoreRow({
+  game, isLive = false, standings = {}, onClick,
+}: {
+  game: Game
+  isLive?: boolean
+  standings?: Record<string, StandingsEntry>
+  onClick?: () => void
+}) {
+  const homeWon   = (game.homeScore ?? 0) > (game.awayScore ?? 0)
+  const awayWon   = (game.awayScore ?? 0) > (game.homeScore ?? 0)
+  const isFinal   = game.status === 'final'
+  const clickable = game.status !== 'scheduled'
 
   return (
-    <div className={`relative rounded-xl overflow-hidden border transition-colors ${
-      isLive ? 'border-[var(--accent)]/60 bg-[#0f1e2e]' : 'border-[var(--border)] bg-[var(--card)]'
-    }`}>
+    <div
+      onClick={clickable ? onClick : undefined}
+      className={`relative rounded-xl overflow-hidden border transition-all ${
+        isLive
+          ? 'border-[var(--accent)]/60 bg-[#0f1e2e]'
+          : 'border-[var(--border)] bg-[var(--card)]'
+      } ${clickable ? 'cursor-pointer hover:border-[var(--accent)]/60 hover:bg-[#0d1a2a]' : ''}`}
+    >
       {/* Live pulse bar */}
       {isLive && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--accent)] animate-pulse" />}
 
@@ -83,18 +96,25 @@ function ScoreRow({ game, isLive = false, standings = {} }: { game: Game; isLive
           <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
             {formatDate(game.gameDate)}{game.gameTime && ` · ${game.gameTime.slice(0, 5)}`}
           </p>
-          {isLive && (
-            <span className="flex items-center gap-1.5 bg-[var(--accent)] px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              <span className="font-display font-800 text-[10px] text-white uppercase tracking-widest">Live</span>
-            </span>
-          )}
-          {isFinal && (
-            <span className="font-display font-800 text-[10px] text-[var(--accent)] uppercase tracking-widest">Final</span>
-          )}
-          {game.status === 'scheduled' && (
-            <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Aankomend</span>
-          )}
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <span className="flex items-center gap-1.5 bg-[var(--accent)] px-2 py-0.5 rounded">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="font-display font-800 text-[10px] text-white uppercase tracking-widest">Live</span>
+              </span>
+            )}
+            {isFinal && (
+              <span className="font-display font-800 text-[10px] text-[var(--accent)] uppercase tracking-widest">Final</span>
+            )}
+            {game.status === 'scheduled' && (
+              <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Upcoming</span>
+            )}
+            {clickable && (
+              <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                Boxscore →
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Teams + score */}
@@ -148,15 +168,15 @@ function ScoreRow({ game, isLive = false, standings = {} }: { game: Game; isLive
 }
 
 export default function LivescoresPage() {
-  const [data, setData]       = useState<Data | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData]           = useState<Data | null>(null)
+  const [loading, setLoading]     = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [selected, setSelected]   = useState<Game | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/livescores')
-      const json = await res.json()
-      setData(json)
+      setData(await res.json())
       setLastRefresh(new Date())
     } catch { /* ignore */ } finally {
       setLoading(false)
@@ -188,11 +208,11 @@ export default function LivescoresPage() {
         <div className="text-right hidden sm:block">
           {lastRefresh && (
             <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
-              Bijgewerkt om {formatTime(lastRefresh.toISOString())}
+              Updated at {formatTime(lastRefresh.toISOString())}
             </p>
           )}
           <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-0.5">
-            Ververst elke 60 sec
+            Refreshes every 60s
           </p>
         </div>
       </div>
@@ -200,61 +220,80 @@ export default function LivescoresPage() {
       {loading && (
         <div className="text-center py-20">
           <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Scores ophalen…</p>
+          <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Loading scores…</p>
         </div>
       )}
 
       {!loading && data && (
         <>
-          {/* Live wedstrijden */}
+          {/* Live games */}
           {data.live.length > 0 && (
             <section>
               <div className="flex items-center gap-3 mb-4">
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Live Nu</strong></h2>
+                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Live Now</strong></h2>
               </div>
               <div className="space-y-3">
-                {data.live.map(g => <ScoreRow key={g.id} game={g} isLive standings={data.standings ?? {}} />)}
+                {data.live.map(g => (
+                  <ScoreRow key={g.id} game={g} isLive standings={data.standings ?? {}} onClick={() => setSelected(g)} />
+                ))}
               </div>
             </section>
           )}
 
-          {/* Geen live */}
+          {/* No live games */}
           {!hasLive && (
             <div className="border border-[var(--border)] rounded-xl px-6 py-10 text-center">
               <p className="font-display font-800 text-xl uppercase text-[var(--muted)] italic mb-1">No live games</p>
               <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
-                Tijdens wedstrijddagen verschijnen scores hier automatisch
+                Scores appear here automatically on game days
               </p>
             </div>
           )}
 
-          {/* Afgerond */}
+          {/* Recent results */}
           {data.finished.length > 0 && (
             <section>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-1 h-6 bg-[var(--border)]" />
-                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Afgerond</strong></h2>
+                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Results</strong></h2>
               </div>
               <div className="space-y-2">
-                {data.finished.map(g => <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} />)}
+                {data.finished.map(g => (
+                  <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} onClick={() => setSelected(g)} />
+                ))}
               </div>
             </section>
           )}
 
-          {/* Aankomend */}
+          {/* Upcoming */}
           {data.upcoming.length > 0 && (
             <section>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-1 h-6 bg-[var(--border)]" />
-                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Aankomend</strong></h2>
+                <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>Upcoming</strong></h2>
               </div>
               <div className="space-y-2">
-                {data.upcoming.map(g => <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} />)}
+                {data.upcoming.map(g => (
+                  <ScoreRow key={g.id} game={g} standings={data.standings ?? {}} />
+                ))}
               </div>
             </section>
           )}
         </>
+      )}
+
+      {/* Boxscore modal */}
+      {selected && (
+        <BoxscoreModal
+          gameId={selected.id}
+          awayId={selected.awayId ?? ''}
+          homeId={selected.homeId ?? ''}
+          awayScore={selected.awayScore}
+          homeScore={selected.homeScore}
+          gameDate={selected.gameDate}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   )
