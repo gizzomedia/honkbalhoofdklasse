@@ -37,11 +37,22 @@ const ALL_PLAYERS: PoolPlayer[] = Object.entries(ROSTERS)
 
 // ── Daily player ──────────────────────────────────────────────────────────────
 
+// Game days: Thursday (4) and Saturday (6)
+// On other days, use the most recent game day's puzzle
+function getGameDayDate(): Date {
+  const now = new Date()
+  const dow = now.getDay() // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
+  const daysBack = [1, 2, 3, 4, 0, 1, 0][dow] // Sun→Sat Mon→Sat Tue→Sat Wed→Sat Thu→Thu Fri→Thu Sat→Sat
+  const d = new Date(now)
+  d.setDate(d.getDate() - daysBack)
+  return d
+}
+
 function getDailyPlayer(): PoolPlayer {
-  const now   = new Date()
-  const day   = Math.floor((now.getTime() - new Date('2026-01-01').getTime()) / 86400000)
-  let seed    = day * 1664525 + 1013904223
-  const arr   = [...ALL_PLAYERS]
+  const gameDay = getGameDayDate()
+  const day     = Math.floor(gameDay.getTime() / 86400000)
+  let seed      = day * 1664525 + 1013904223
+  const arr     = [...ALL_PLAYERS]
   for (let i = arr.length - 1; i > 0; i--) {
     seed = (seed * 1664525 + 1013904223) & 0xffffffff
     const j = Math.abs(seed) % (i + 1)
@@ -51,7 +62,7 @@ function getDailyPlayer(): PoolPlayer {
 }
 
 function todayKey() {
-  const d = new Date()
+  const d = getGameDayDate()
   return `pickle_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`
 }
 
@@ -273,7 +284,7 @@ export default function PicklePage() {
       {/* Header */}
       <div className="mb-5">
         <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">
-          Daily · {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          {getGameDayDate().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
         </p>
         <div className="flex items-end justify-between gap-4">
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">

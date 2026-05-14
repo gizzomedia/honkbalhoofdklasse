@@ -142,9 +142,24 @@ export const WEEKLY_GRIDS: GridConfig[] = [
   },
 ]
 
-export function getCurrentWeekGrid(): GridConfig {
-  const start = new Date('2026-04-01')
+// Grid changes every Friday — find the most recent Friday
+export function getMostRecentFriday(): Date {
   const now = new Date()
-  const weekNum = Math.floor((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000))
-  return WEEKLY_GRIDS[Math.max(0, weekNum) % WEEKLY_GRIDS.length]
+  const dow = now.getDay() // 0=Sun … 5=Fri … 6=Sat
+  const daysBack = (dow - 5 + 7) % 7 // Fri→0 Sat→1 Sun→2 Mon→3 Tue→4 Wed→5 Thu→6
+  const d = new Date(now)
+  d.setDate(d.getDate() - daysBack)
+  return d
+}
+
+export function getCurrentWeekGrid(): GridConfig {
+  const lastFriday  = getMostRecentFriday()
+  const startFriday = new Date('2026-04-03') // First Friday of 2026 season
+  const fridayNum   = Math.max(0, Math.floor((lastFriday.getTime() - startFriday.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+  return WEEKLY_GRIDS[fridayNum % WEEKLY_GRIDS.length]
+}
+
+export function fridayDateKey(): string {
+  const d = getMostRecentFriday()
+  return `${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`
 }

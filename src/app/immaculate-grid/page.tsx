@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import { getCurrentWeekGrid, isValidAnswer, type Criterion, type GridConfig } from '@/lib/grid-data'
+import { getCurrentWeekGrid, getMostRecentFriday, fridayDateKey, isValidAnswer, type Criterion, type GridConfig } from '@/lib/grid-data'
 import { ROSTERS } from '@/lib/rosters-data'
 
 const TEAM_COLORS: Record<string, string> = {
@@ -185,7 +185,7 @@ function GameCell({ cell, canClick, flash, onClick }: {
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
-const SAVE_KEY = (week: number) => `hk_grid_w${week}`
+const SAVE_KEY = () => `hk_grid_${fridayDateKey()}`
 
 export default function ImmaculateGridPage() {
   const grid: GridConfig = getCurrentWeekGrid()
@@ -197,13 +197,13 @@ export default function ImmaculateGridPage() {
   const [flashes, setFlashes] = useState<Record<number, { ok: boolean }>>({})
 
   useEffect(() => {
-    const saved = localStorage.getItem(SAVE_KEY(grid.week))
+    const saved = localStorage.getItem(SAVE_KEY())
     if (saved) { const p = JSON.parse(saved); setCells(p.cells); setGuessesLeft(p.guessesLeft) }
-  }, [grid.week])
+  }, [])
 
   useEffect(() => {
-    localStorage.setItem(SAVE_KEY(grid.week), JSON.stringify({ cells, guessesLeft }))
-  }, [cells, guessesLeft, grid.week])
+    localStorage.setItem(SAVE_KEY(), JSON.stringify({ cells, guessesLeft }))
+  }, [cells, guessesLeft])
 
   const handleGuess = useCallback((cellIdx: number, playerName: string) => {
     const row = Math.floor(cellIdx / 3)
@@ -240,7 +240,9 @@ export default function ImmaculateGridPage() {
       {/* Header */}
       <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
         <div>
-          <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">Week {grid.week} · Season 2026</p>
+          <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">
+            {getMostRecentFriday().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Season 2026
+          </p>
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
             <strong>Immaculate</strong><span className="text-[var(--accent)]"> Grid</span>
           </h1>
@@ -266,7 +268,7 @@ export default function ImmaculateGridPage() {
           <p className="font-display font-800 text-xl uppercase text-white">
             {score === 9 ? 'Perfect — Immaculate!' : score >= 6 ? `${score}/9 — Great game!` : score >= 3 ? `${score}/9 — Good effort!` : `${score}/9 — Better luck next week!`}
           </p>
-          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-1">New grid next week</p>
+          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-1">New grid every Friday</p>
         </div>
       )}
 
