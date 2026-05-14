@@ -8,17 +8,18 @@ function cloudinaryTransform(url: string | null, transform: string): string | nu
 }
 
 /**
- * Face-detected banner: wide crop (16:9) with the face automatically centred.
- * Use as a background/hero image overlay.
+ * Face-detected banner: wide crop (3:1) centred on the detected face.
+ * g_face is available on all Cloudinary plans; ar_3:1 matches the modal/hero ratio
+ * so object-cover won't crop the face a second time.
  */
 export function bannerFaceUrl(url: string | null): string | null {
-  return cloudinaryTransform(url, 'c_fill,g_auto:face,ar_16:9')
+  return cloudinaryTransform(url, 'c_fill,g_face,ar_3:1')
 }
 
 /**
- * Face-detected headshot: square crop (1:1) with the face automatically centred.
- * Use for avatar / player card thumbnails.
+ * Face-detected headshot: square crop (1:1) centred on the detected face.
+ * c_thumb with g_face zooms in tightly so the face fills the avatar.
  */
 export function headshotFaceUrl(url: string | null): string | null {
-  return cloudinaryTransform(url, 'c_fill,g_auto:face,ar_1:1')
+  return cloudinaryTransform(url, 'c_thumb,g_face,ar_1:1,z_0.75')
 }
