@@ -106,7 +106,7 @@ export default async function LivestreamPage() {
           <span className="text-[var(--accent)]"> Hub</span>
         </h1>
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
-          Alle streams van de KNBSB Hoofdklasse op één plek
+          All KNBSB Hoofdklasse streams in one place
         </p>
       </div>
 
@@ -115,7 +115,7 @@ export default async function LivestreamPage() {
         <section>
           <div className="flex items-center gap-3 mb-4">
             <span className="w-3 h-3 rounded-full bg-[var(--accent)] animate-pulse" />
-            <h2 className="font-display font-800 italic text-3xl uppercase text-white"><strong>Live Nu</strong></h2>
+            <h2 className="font-display font-800 italic text-3xl uppercase text-white"><strong>Live Now</strong></h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {liveNow.map(stream => (
@@ -133,7 +133,7 @@ export default async function LivestreamPage() {
                   <strong>{stream.title}</strong>
                 </p>
                 <p className="font-display font-700 text-white/70 text-sm mt-1 uppercase">
-                  {(stream.platform ?? 'Stream').toUpperCase()} · Klik om te kijken →
+                  {(stream.platform ?? 'Stream').toUpperCase()} · Click to watch →
                 </p>
               </a>
             ))}
@@ -145,7 +145,7 @@ export default async function LivestreamPage() {
       {scheduled.length > 0 && (
         <section>
           <h2 className="font-display font-800 italic text-2xl uppercase text-white mb-4">
-            <strong>Geplande Streams</strong>
+            <strong>Scheduled Streams</strong>
           </h2>
           <div className="space-y-3">
             {scheduled.map(stream => (
@@ -180,10 +180,10 @@ export default async function LivestreamPage() {
       {gamesWithoutStream.length > 0 && (
         <section>
           <h2 className="font-display font-800 italic text-2xl uppercase text-white mb-2">
-            <strong>Aankomende Wedstrijden</strong>
+            <strong>Upcoming Games</strong>
           </h2>
           <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-wider mb-4">
-            Nog geen stream bekend — volg ons voor updates
+            No stream announced yet — follow us for updates
           </p>
           <div className="space-y-2">
             {gamesWithoutStream.slice(0, 8).map(g => (
@@ -194,7 +194,7 @@ export default async function LivestreamPage() {
                       {formatDate(g.game_date)}
                       {g.game_time && <span className="text-[var(--muted)] ml-2">{g.game_time.slice(0, 5)}</span>}
                     </p>
-                    <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Binnenkort</p>
+                    <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Upcoming</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
@@ -224,7 +224,7 @@ export default async function LivestreamPage() {
         <div className="text-center py-20">
           <p className="font-display font-800 text-2xl uppercase text-[var(--muted)] italic">No streams available yet</p>
           <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest mt-2">
-            Streams worden hier toegevoegd zodra ze bekend zijn
+            Streams will be added here as soon as they are announced
           </p>
         </div>
       )}
