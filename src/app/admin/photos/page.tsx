@@ -315,6 +315,7 @@ export default function AdminPhotosPage() {
   const [uploading, setUploading] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
+  const [compressing, setCompressing] = useState<{ done: number; total: number } | null>(null)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('admin-pw')
@@ -371,6 +372,29 @@ export default function AdminPhotosPage() {
       headers: { 'x-admin-password': savedPw, 'content-type': 'application/json' },
       body: JSON.stringify({ playerName, photoType }),
     })
+    await loadPhotos(savedPw)
+  }
+
+  async function compressAll() {
+    const targets: { playerName: string; photoType: 'banner' | 'headshot' }[] = []
+    for (const p of photos) {
+      if (p.banner_url)   targets.push({ playerName: p.player_name, photoType: 'banner' })
+      if (p.headshot_url) targets.push({ playerName: p.player_name, photoType: 'headshot' })
+    }
+    if (targets.length === 0) return
+    setCompressing({ done: 0, total: targets.length })
+
+    for (let i = 0; i < targets.length; i++) {
+      const { playerName, photoType } = targets[i]
+      await fetch('/api/admin/compress-photo', {
+        method: 'POST',
+        headers: { 'x-admin-password': savedPw, 'content-type': 'application/json' },
+        body: JSON.stringify({ playerName, photoType }),
+      })
+      setCompressing({ done: i + 1, total: targets.length })
+    }
+
+    setCompressing(null)
     await loadPhotos(savedPw)
   }
 
@@ -435,13 +459,34 @@ export default function AdminPhotosPage() {
             {photos.filter(p => p.banner_url || p.headshot_url).length} van {ALL_PLAYERS.length} spelers hebben foto&apos;s
           </p>
         </div>
-        <input
-          type="search"
-          placeholder="Zoek speler of team..."
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          className="bg-[var(--card)] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-2.5 text-white outline-none font-display font-700 text-sm w-64"
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="search"
+            placeholder="Zoek speler of team..."
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className="bg-[var(--card)] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-2.5 text-white outline-none font-display font-700 text-sm w-64"
+          />
+          <button
+            onClick={compressAll}
+            disabled={!!compressing}
+            className="flex items-center gap-2 border border-[var(--border)] hover:border-[var(--accent)] text-[var(--muted)] hover:text-white transition-colors rounded-lg px-4 py-2.5 font-display font-800 text-xs uppercase tracking-widest disabled:opacity-50"
+          >
+            {compressing ? (
+              <>
+                <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                {compressing.done}/{compressing.total} compressed…
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Compress all photos
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {withPhotos.length > 0 && (
