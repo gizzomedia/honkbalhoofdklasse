@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 const FROM = process.env.FROM_EMAIL ?? 'Honkbal Hoofdklasse <noreply@honkbalhoofdklasse.com>'
 const SITE = 'https://honkbalhoofdklasse.com'
 
@@ -15,6 +13,7 @@ export async function sendLiveNotification(
   games: { homeTeamId: string; awayTeamId: string }[]
 ) {
   if (!process.env.RESEND_API_KEY || emails.length === 0 || games.length === 0) return
+  const resend = new Resend(process.env.RESEND_API_KEY)
 
   const gameList = games
     .map(g => `${TEAM_NAMES[g.awayTeamId] ?? g.awayTeamId} @ ${TEAM_NAMES[g.homeTeamId] ?? g.homeTeamId}`)
