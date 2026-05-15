@@ -3,9 +3,14 @@ import { supabase } from '@/lib/supabase'
 import LeadersTabs, { type TabData, type SeasonLeaders } from './LeadersTabs'
 
 export const metadata: Metadata = {
-  title: 'League Leaders 2026',
-  description: 'Statistieken leaders van de Honkbal Hoofdklasse 2026. Top batters en pitchers per categorie.',
+  title: 'Honkbal Hoofdklasse Statistieken 2026 | League Leaders',
+  description: 'Officiële statistieken van de KNBSB Honkbal Hoofdklasse 2026. Batting average, home runs, RBI, ERA en meer per speler. Top batters en pitchers van Nederland.',
   alternates: { canonical: 'https://honkbalhoofdklasse.com/leaders' },
+  openGraph: {
+    title: 'Honkbal Hoofdklasse Statistieken 2026',
+    description: 'Officiële statistieken — batting, pitching, league leaders.',
+    url: 'https://honkbalhoofdklasse.com/leaders',
+  },
 }
 
 export const revalidate = 300

@@ -4,9 +4,14 @@ import Image from 'next/image'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
 
 export const metadata: Metadata = {
-  title: 'Standings 2026',
-  description: 'De actuele stand van de KNBSB Honkbal Hoofdklasse 2026. Bekijk wins, losses en winning percentage per team.',
+  title: 'Stand Honkbal Hoofdklasse 2026 | Actuele Klassement',
+  description: 'De actuele stand van de KNBSB Honkbal Hoofdklasse 2026. Bekijk wins, losses en winning percentage van Neptunus, Pirates, Kinheim, HCAW, Twins, Pioniers en UVV.',
   alternates: { canonical: 'https://honkbalhoofdklasse.com/stand' },
+  openGraph: {
+    title: 'Stand Honkbal Hoofdklasse 2026',
+    description: 'Actuele klassement van de KNBSB Honkbal Hoofdklasse.',
+    url: 'https://honkbalhoofdklasse.com/stand',
+  },
 }
 
 export const revalidate = 300
@@ -38,8 +43,20 @@ export default async function StandPage() {
   const standings = await getStandings()
   const leader = standings[0]
 
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Table',
+    about: {
+      '@type': 'SportsOrganization',
+      name: 'KNBSB Honkbal Hoofdklasse',
+      sport: 'Baseball',
+    },
+    description: `Honkbal Hoofdklasse 2026 standings. Leader: ${TEAM_NAMES[leader?.team_id] ?? ''}. ${standings.length} teams.`,
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       {/* Header */}
       <div className="mb-8">
         <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">

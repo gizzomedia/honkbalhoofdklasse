@@ -46,9 +46,46 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://honkbalhoofdklasse.com' },
 }
 
+const schemaOrg = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SportsOrganization',
+      '@id': 'https://honkbalhoofdklasse.com/#league',
+      name: 'KNBSB Honkbal Hoofdklasse',
+      alternateName: 'Honkbal Hoofdklasse',
+      url: 'https://honkbalhoofdklasse.com',
+      logo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png',
+      sport: 'Baseball',
+      description: 'De hoogste honkbalcompetitie van Nederland, georganiseerd door de KNBSB.',
+      location: { '@type': 'Country', name: 'Netherlands' },
+      memberOf: { '@type': 'SportsOrganization', name: 'KNBSB', url: 'https://knbsb.nl' },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://honkbalhoofdklasse.com/#website',
+      url: 'https://honkbalhoofdklasse.com',
+      name: 'Honkbal Hoofdklasse',
+      description: 'Live scores, standen, statistieken en nieuws van de KNBSB Honkbal Hoofdklasse.',
+      inLanguage: 'nl-NL',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://honkbalhoofdklasse.com/leaders?q={search_term_string}' },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  ],
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
+        />
+      </head>
       <body>
         <LanguageProvider>
         <NavBar />
