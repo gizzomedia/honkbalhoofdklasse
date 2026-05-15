@@ -42,8 +42,13 @@ export async function POST(req: NextRequest) {
   const originalBuffer = Buffer.from(await fetchRes.arrayBuffer())
   const originalKb = Math.round(originalBuffer.length / 1024)
 
-  // Skip if already small enough
+  // Already small enough — just save the size and skip recompression
   if (originalBuffer.length <= TARGET_BYTES) {
+    const sizeCol = photoType === 'banner' ? 'banner_size_kb' : 'headshot_size_kb'
+    await supabaseAdmin
+      .from('player_photos')
+      .update({ [sizeCol]: originalKb })
+      .eq('id', record!.id)
     return NextResponse.json({ skipped: true, size_kb: originalKb, reason: 'already under 500 KB' })
   }
 

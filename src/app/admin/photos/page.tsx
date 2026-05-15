@@ -340,7 +340,42 @@ export default function AdminPhotosPage() {
 
   async function loadPhotos(password: string) {
     const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': password } })
-    if (res.ok) setPhotos(await res.json())
+    if (!res.ok) return
+    const list: PlayerPhoto[] = await res.json()
+    setPhotos(list)
+
+    // For photos without a stored size, fetch it via HEAD request (no recompression)
+    const needsSize = list.filter(p =>
+      (p.banner_url && p.banner_size_kb == null) ||
+      (p.headshot_url && p.headshot_size_kb == null)
+    )
+    if (needsSize.length === 0) return
+
+    const fetchSize = async (url: string): Promise<number | null> => {
+      try {
+        const r = await fetch(url, { method: 'HEAD' })
+        const cl = r.headers.get('content-length')
+        return cl ? Math.round(parseInt(cl) / 1024) : null
+      } catch { return null }
+    }
+
+    // Fetch in parallel, update state as results come in
+    await Promise.all(needsSize.map(async p => {
+      const bannerKb  = p.banner_url  && p.banner_size_kb  == null ? await fetchSize(p.banner_url)  : undefined
+      const headshotKb = p.headshot_url && p.headshot_size_kb == null ? await fetchSize(p.headshot_url) : undefined
+
+      if (bannerKb != null || headshotKb != null) {
+        setPhotos(prev => prev.map(x =>
+          x.player_name === p.player_name
+            ? {
+                ...x,
+                ...(bannerKb   != null ? { banner_size_kb:   bannerKb   } : {}),
+                ...(headshotKb != null ? { headshot_size_kb: headshotKb } : {}),
+              }
+            : x
+        ))
+      }
+    }))
   }
 
   async function login() {
