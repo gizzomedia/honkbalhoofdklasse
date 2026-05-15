@@ -21,6 +21,9 @@ export default function RostersPage() {
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
           All 7 teams · Players &amp; Coaching Staff
         </p>
+        <p className="text-[var(--muted)] text-sm mt-3 max-w-xl leading-relaxed">
+          Complete player rosters for all seven clubs competing in the KNBSB Honkbal Hoofdklasse 2026: Curaçao Neptunus, Amsterdam Pirates, Kinheim, HCAW, Oosterhout Twins, Hoofddorp Pioniers and UVV. Click a player to view their season statistics and profile.
+        </p>
       </div>
       <RosterTabs rosters={ROSTERS} />
     </div>

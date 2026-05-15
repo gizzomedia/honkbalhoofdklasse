@@ -48,6 +48,9 @@ export default async function StandPage() {
         <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
           <strong>Standings</strong>
         </h1>
+        <p className="text-[var(--muted)] text-sm mt-3 max-w-xl leading-relaxed">
+          Current standings for the KNBSB Honkbal Hoofdklasse 2026. Seven clubs compete in a round-robin format for the Dutch baseball championship. Updated after every game.
+        </p>
       </div>
 
       {/* Tabel */}

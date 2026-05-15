@@ -95,6 +95,9 @@ export default async function LeadersPage() {
           <strong>League</strong>
           <span className="text-[var(--accent)]"> Leaders</span>
         </h1>
+        <p className="text-[var(--muted)] text-sm mt-3 max-w-xl leading-relaxed">
+          Statistical leaders for the Honkbal Hoofdklasse 2026 season. Rankings cover batting average, home runs, RBI, stolen bases, ERA, strikeouts and more — sourced directly from the official KNBSB stats system.
+        </p>
       </div>
       <LeadersTabs week={week} season={season} seriesLabel={seriesLabel} />
     </div>

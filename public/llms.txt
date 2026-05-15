@@ -1,0 +1,34 @@
+# Honkbal Hoofdklasse
+
+> The official fan website for the KNBSB Honkbal Hoofdklasse — the top professional baseball league in the Netherlands.
+
+## What this site covers
+
+- Live scores, boxscores and standings for all Honkbal Hoofdklasse games
+- Season 2026 batting and pitching statistics for all players
+- League leaders per statistical category
+- Player profiles with career stats
+- Team rosters for all 7 clubs: Curaçao Neptunus, Amsterdam Pirates, Kinheim, HCAW, Oosterhout Twins, Hoofddorp Pioniers and UVV
+- Daily baseball trivia games: Pickle (Thu & Sat) and Immaculate Grid (Fri)
+- Game schedule and upcoming fixtures
+- Awards and honours per season
+
+## Teams
+
+- Curaçao Neptunus (Rotterdam)
+- Amsterdam Pirates
+- Kinheim (Haarlem)
+- HCAW (Bussum)
+- Oosterhout Twins
+- Hoofddorp Pioniers
+- UVV (Utrecht)
+
+## Data sources
+
+Statistics are sourced from the official KNBSB stats system (stats.knbsbstats.nl).
+Live scores are updated every 60 seconds during games.
+
+## Contact
+
+Instagram: @honkbalhoofdklasse
+Website: https://honkbalhoofdklasse.com

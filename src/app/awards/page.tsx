@@ -26,6 +26,9 @@ export default function AwardsPage() {
         <p className="font-display font-700 text-[var(--muted)] text-sm mt-2 uppercase tracking-wider">
           Season 2026 award winners
         </p>
+        <p className="text-[var(--muted)] text-sm mt-3 max-w-xl leading-relaxed">
+          The Honkbal Hoofdklasse recognises outstanding performances each season with awards for the best hitters, pitchers and players of the week. Winners are chosen from all seven clubs competing in the KNBSB Hoofdklasse.
+        </p>
       </div>
 
       <div className="space-y-8">
