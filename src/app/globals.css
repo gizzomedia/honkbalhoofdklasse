@@ -3,7 +3,6 @@
 :root {
   --accent:  #fe3d00;
   --navy:    #1e335a;
-  --gold:    #F5C200;
   --bg:      #ffffff;
   --card:    #111E2E;
   --card-hover: #162435;
@@ -15,7 +14,6 @@
 @theme {
   --color-accent:  #fe3d00;
   --color-navy:    #1e335a;
-  --color-gold:    #F5C200;
   --color-bg:      #ffffff;
   --color-card:    #111E2E;
   --color-border:  #1E2E42;

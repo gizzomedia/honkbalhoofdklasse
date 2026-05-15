@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
 import { ROSTERS } from '@/lib/rosters-data'
@@ -93,6 +93,8 @@ export default function PlayerStatsModal({
   const [career, setCareer]   = useState<Career | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab]         = useState<'batting' | 'pitching'>(statType)
+  const modalRef              = useRef<HTMLDivElement>(null)
+  const previousFocusRef      = useRef<Element | null>(null)
 
   const rosterPlayer = findRosterPlayer(playerName)
   const bbrefId      = rosterPlayer?.bbref_id
@@ -118,10 +120,36 @@ export default function PlayerStatsModal({
     Promise.all(jobs).finally(() => setLoading(false))
   }, [playerName, statType, bbrefId])
 
+  // Focus trap + Escape handler
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', fn)
-    return () => window.removeEventListener('keydown', fn)
+    previousFocusRef.current = document.activeElement
+
+    const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'
+    const modal = modalRef.current
+    if (modal) {
+      const first = modal.querySelectorAll<HTMLElement>(FOCUSABLE)[0]
+      first?.focus()
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return }
+      if (e.key !== 'Tab' || !modal) return
+      const focusable = Array.from(modal.querySelectorAll<HTMLElement>(FOCUSABLE))
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last  = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus()
+      }
+    }
+
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      ;(previousFocusRef.current as HTMLElement | null)?.focus()
+    }
   }, [onClose])
 
   const hasBatting  = n(st?.ab) > 0
@@ -150,6 +178,10 @@ export default function PlayerStatsModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={playerName}
         className="relative w-full max-w-3xl bg-[#060e1b] border border-[var(--border)] rounded-2xl overflow-hidden shadow-2xl flex flex-col"
         style={{ maxHeight: '92vh' }}
         onClick={e => e.stopPropagation()}
@@ -261,8 +293,25 @@ export default function PlayerStatsModal({
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${accentColor} transparent transparent transparent` }} />
+            <div className="px-5 pt-5 pb-4 animate-pulse">
+              {/* Skeleton: stat section label */}
+              <div className="h-2.5 w-24 bg-white/10 rounded mb-4" />
+              {/* Skeleton: table header */}
+              <div className="flex gap-2 pb-2 border-b border-[var(--border)] mb-1">
+                <div className="h-2 w-20 bg-white/10 rounded" />
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="h-2 w-8 bg-white/10 rounded ml-auto" />
+                ))}
+              </div>
+              {/* Skeleton: rows */}
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex gap-2 py-2.5 border-b border-[var(--border)]/40">
+                  <div className="h-2.5 w-20 bg-white/10 rounded" />
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <div key={j} className="h-2.5 w-8 bg-white/[0.06] rounded ml-auto" />
+                  ))}
+                </div>
+              ))}
             </div>
           ) : !st ? (
             <div className="text-center py-14">

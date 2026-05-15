@@ -104,6 +104,7 @@ function InputModal({
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKey}
             placeholder="Type player name…"
+            aria-label="Search for a player name"
             className="w-full bg-[#0d1b2e] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-3 text-white placeholder:text-white/30 outline-none font-display font-700 text-sm [color-scheme:dark]"
           />
 
@@ -185,8 +186,10 @@ export default function ImmaculateGridPage() {
   const [flashes, setFlashes] = useState<Record<number, { ok: boolean }>>({})
 
   useEffect(() => {
-    const saved = localStorage.getItem(SAVE_KEY())
-    if (saved) { const p = JSON.parse(saved); setCells(p.cells); setGuessesLeft(p.guessesLeft) }
+    try {
+      const saved = localStorage.getItem(SAVE_KEY())
+      if (saved) { const p = JSON.parse(saved); setCells(p.cells); setGuessesLeft(p.guessesLeft) }
+    } catch { /* corrupted save — start fresh */ }
   }, [])
 
   useEffect(() => {

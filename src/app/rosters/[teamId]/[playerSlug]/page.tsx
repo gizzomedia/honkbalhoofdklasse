@@ -4,9 +4,31 @@ import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
 
 export const revalidate = 86400
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ teamId: string; playerSlug: string }>
+}): Promise<Metadata> {
+  const { teamId, playerSlug } = await params
+  const roster = ROSTERS[teamId]
+  if (!roster) return {}
+  const player = roster.players.find(p => slugify(p.name) === playerSlug)
+  if (!player) return {}
+  const teamName = TEAM_NAMES[teamId] ?? teamId
+  const description = `${player.name} · ${player.pos} · ${teamName} · Honkbal Hoofdklasse 2026`
+  const canonical = `https://honkbalhoofdklasse.com/rosters/${teamId}/${playerSlug}`
+  return {
+    title: `${player.name} | ${teamName} Roster`,
+    description,
+    alternates: { canonical },
+    openGraph: { title: `${player.name} | Honkbal Hoofdklasse`, description, url: canonical },
+  }
+}
 
 export function generateStaticParams() {
   const params: { teamId: string; playerSlug: string }[] = []

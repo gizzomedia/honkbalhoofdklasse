@@ -7,6 +7,16 @@ import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT, KNBSB_TEAM_MAP } from 
 
 export const revalidate = 120
 
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&#8211;/g, '–').replace(/&#8212;/g, '—')
+    .replace(/&#8216;/g, '‘').replace(/&#8217;/g, '’')
+    .replace(/&#8220;/g, '“').replace(/&#8221;/g, '”')
+    .replace(/&#8230;/g, '…').replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&nbsp;/g, ' ')
+}
+
 type NewsItem = { title: string; link: string }
 type LeaderEntry = { name: string; team: string; value: string }
 type MiniLeaders = { batters: LeaderEntry[]; pitchers: LeaderEntry[] }
@@ -26,7 +36,7 @@ async function getNews(): Promise<NewsItem[]> {
     )
     const data = await res.json()
     return (data as { title: { rendered: string }; link: string }[]).map(p => ({
-      title: p.title.rendered.replace(/&#8211;/g, '–').replace(/&amp;/g, '&').replace(/&#8217;/g, "'"),
+      title: decodeHtmlEntities(p.title.rendered),
       link: p.link,
     }))
   } catch { return [] }
@@ -59,7 +69,7 @@ async function getMiniLeaders(): Promise<MiniLeaders> {
 async function getData() {
   const today = new Date().toISOString().split('T')[0]
   const [standRes, resultsRes, upcomingRes, mediaRes, news, leaders] = await Promise.all([
-    supabase.from('standings').select('*').eq('season', 2026).order('wins', { ascending: false }).order('win_pct', { ascending: false }),
+    supabase.from('standings').select('*').eq('season', new Date().getFullYear()).order('wins', { ascending: false }).order('win_pct', { ascending: false }),
     supabase.from('games').select('*').eq('status', 'final').order('game_date', { ascending: false }).limit(6),
     supabase.from('games').select('*').eq('status', 'scheduled').gte('game_date', today).order('game_date', { ascending: true }).limit(3),
     supabase.from('media').select('id,type,title,url,thumbnail_url,published_at').order('published_at', { ascending: false }).limit(8),

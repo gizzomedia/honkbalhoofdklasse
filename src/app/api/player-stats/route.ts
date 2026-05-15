@@ -10,5 +10,7 @@ export async function GET(req: NextRequest) {
     fetchPlayerPhotos(name),
   ])
 
-  return NextResponse.json({ seasonStats, photos })
+  return NextResponse.json({ seasonStats, photos }, {
+    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600' },
+  })
 }

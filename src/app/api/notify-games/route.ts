@@ -45,8 +45,16 @@ export async function GET(req: Request) {
 
     if (existing) { results.push(`${type}: already sent`); return }
 
+    // Insert log FIRST — if sending crashes, we won't send duplicates on retry
+    const { error: logErr } = await supabaseAdmin
+      .from('notification_log')
+      .insert({ type, date_key: dateKey })
+    if (logErr && logErr.code !== '23505') {
+      results.push(`${type}: log insert failed — skipping`); return
+    }
+    if (logErr?.code === '23505') { results.push(`${type}: already sent`); return }
+
     await sendGameNotification(subscribers as { email: string; token: string }[], type)
-    await supabaseAdmin.from('notification_log').insert({ type, date_key: dateKey })
     results.push(`${type}: sent to ${subscribers!.length}`)
   }
 

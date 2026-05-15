@@ -222,8 +222,10 @@ export default function PicklePage() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem(todayKey())
-    if (raw) { const s: SavedState = JSON.parse(raw); setGuesses(s.guesses); setWon(s.won); setLost(s.lost) }
+    try {
+      const raw = localStorage.getItem(todayKey())
+      if (raw) { const s: SavedState = JSON.parse(raw); setGuesses(s.guesses); setWon(s.won); setLost(s.lost) }
+    } catch { /* corrupted save — start fresh */ }
   }, [])
 
   useEffect(() => {
@@ -323,6 +325,7 @@ export default function PicklePage() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKey}
             placeholder="Type a player name…"
+            aria-label="Search for a player name"
             className="w-full bg-[#0d1b2e] border border-[var(--border)] focus:border-[var(--accent)] rounded-xl px-4 py-3.5 text-white placeholder:text-white/30 outline-none font-display font-700 text-sm [color-scheme:dark]"
           />
           {suggestions.length > 0 && (
