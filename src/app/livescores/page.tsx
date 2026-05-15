@@ -228,20 +228,20 @@ function SubscribeModal({ onClose }: { onClose: () => void }) {
             <svg className="w-4 h-4 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <p className="font-display font-800 text-sm uppercase text-white tracking-widest">Live notificaties</p>
+            <p className="font-display font-800 text-sm uppercase text-white tracking-widest">Live Notifications</p>
           </div>
           <p className="font-display font-700 text-xs text-[var(--muted)]">
-            Je ontvangt een email zodra een wedstrijd live gaat.
+            Get an email when a game goes live or a new Pickle / Immaculate is available.
           </p>
         </div>
 
         {(state === 'done' || state === 'already') ? (
           <div className="text-center py-4">
             <p className="font-display font-800 text-sm text-green-400 uppercase tracking-widest">
-              {state === 'done' ? '✓ Aangemeld!' : '✓ Al aangemeld'}
+              {state === 'done' ? '✓ Subscribed!' : '✓ Already subscribed'}
             </p>
             <p className="font-display font-700 text-xs text-[var(--muted)] mt-1">
-              {state === 'done' ? 'Je krijgt een email als een wedstrijd live gaat.' : 'Dit emailadres staat al in de lijst.'}
+              {state === 'done' ? "You'll receive an email when a game goes live." : 'This email address is already in the list.'}
             </p>
           </div>
         ) : (
@@ -249,14 +249,14 @@ function SubscribeModal({ onClose }: { onClose: () => void }) {
             <input
               ref={inputRef}
               type="email"
-              placeholder="jouw@email.nl"
+              placeholder="your@email.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && subscribe()}
               className="w-full bg-[#060e1b] border border-[var(--border)] focus:border-[var(--accent)] rounded-xl px-4 py-3 text-white placeholder:text-white/30 outline-none font-display font-700 text-sm [color-scheme:dark]"
             />
             {state === 'error' && (
-              <p className="font-display font-700 text-xs text-red-400 uppercase tracking-widest">Aanmelden mislukt, probeer opnieuw.</p>
+              <p className="font-display font-700 text-xs text-red-400 uppercase tracking-widest">Subscribe failed, please try again.</p>
             )}
             <button
               onClick={subscribe}
@@ -266,9 +266,9 @@ function SubscribeModal({ onClose }: { onClose: () => void }) {
               {state === 'loading' ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Aanmelden…
+                  Subscribing…
                 </span>
-              ) : 'Aanmelden voor notificaties'}
+              ) : 'Subscribe to notifications'}
             </button>
           </>
         )}
@@ -336,7 +336,7 @@ export default function LivescoresPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <span className="font-display font-700 text-xs uppercase tracking-widest hidden sm:block">Notificaties</span>
+            <span className="font-display font-700 text-xs uppercase tracking-widest hidden sm:block">Notifications</span>
           </button>
         </div>
       </div>

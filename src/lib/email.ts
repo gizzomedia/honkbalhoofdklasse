@@ -13,7 +13,7 @@ function baseTemplate(content: string, unsubUrl: string) {
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#060e1b;color:#fff;border-radius:12px;overflow:hidden">
       ${content}
       <div style="padding:16px 28px;border-top:1px solid #1e2e42">
-        <a href="${unsubUrl}" style="color:#4a6a8a;font-size:11px;text-decoration:none">Uitschrijven</a>
+        <a href="${unsubUrl}" style="color:#4a6a8a;font-size:11px;text-decoration:none">Unsubscribe</a>
       </div>
     </div>
   `
@@ -44,16 +44,16 @@ export async function sendLiveNotification(
         html: baseTemplate(`
           <div style="background:#fe3d00;padding:20px 28px">
             <p style="margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.8">Honkbal Hoofdklasse</p>
-            <h1 style="margin:6px 0 0;font-size:26px;font-weight:900;text-transform:uppercase">🔴 Live nu</h1>
+            <h1 style="margin:6px 0 0;font-size:26px;font-weight:900;text-transform:uppercase">🔴 Live Now</h1>
           </div>
           <div style="padding:28px">
             <p style="margin:0 0 16px;font-size:18px;font-weight:700;line-height:1.5">${gameList}</p>
             <p style="margin:0 0 24px;color:#8ba0b8;font-size:14px">
-              ${games.length === 1 ? 'Deze wedstrijd is' : 'Deze wedstrijden zijn'} zojuist begonnen.
+              ${games.length === 1 ? 'This game has' : 'These games have'} just started. Follow the live scores and boxscore on the website.
             </p>
             <a href="${SITE}/livescores"
               style="display:inline-block;background:#fe3d00;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:1px">
-              Bekijk live scores →
+              View live scores →
             </a>
           </div>
         `, unsubUrl),
@@ -70,14 +70,14 @@ export async function sendGameNotification(
   const resend = new Resend(process.env.RESEND_API_KEY)
 
   const isPickle = type === 'pickle'
-  const subject  = isPickle ? '🥒 Nieuwe Pickle van vandaag!' : '⚾ Nieuw Immaculate Grid!'
+  const subject  = isPickle ? "🥒 Today's Pickle is live!" : '⚾ New Immaculate Grid!'
   const emoji    = isPickle ? '🥒' : '⚾'
   const title    = isPickle ? 'Pickle' : 'Immaculate Grid'
   const desc     = isPickle
-    ? 'Raad de Honkbal Hoofdklasse speler van vandaag. Je hebt 9 pogingen.'
-    : 'Vul het nieuwe baseball grid van vandaag in. Ken jij de spelers?'
+    ? "Guess today's Honkbal Hoofdklasse player. You have 9 attempts."
+    : 'A new baseball grid is available. How well do you know the players?'
   const url      = isPickle ? `${SITE}/pickle` : `${SITE}/immaculate`
-  const btnLabel = isPickle ? 'Speel Pickle →' : 'Speel Immaculate →'
+  const btnLabel = isPickle ? 'Play Pickle →' : 'Play Immaculate →'
 
   await Promise.allSettled(
     emails.map(({ email, token }) => {
@@ -92,7 +92,7 @@ export async function sendGameNotification(
             <h1 style="margin:6px 0 0;font-size:26px;font-weight:900;text-transform:uppercase">${emoji} ${title}</h1>
           </div>
           <div style="padding:28px">
-            <p style="margin:0 0 8px;font-size:22px;font-weight:800">Nieuw spel beschikbaar!</p>
+            <p style="margin:0 0 8px;font-size:22px;font-weight:800">New game available!</p>
             <p style="margin:0 0 24px;color:#8ba0b8;font-size:15px">${desc}</p>
             <a href="${url}"
               style="display:inline-block;background:#fe3d00;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:1px">

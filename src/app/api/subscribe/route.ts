@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     .maybeSingle()
 
   if (!data) {
-    return new Response('<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>Al uitgeschreven of link ongeldig.</h2></body></html>',
+    return new Response('<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>Already unsubscribed or invalid link.</h2></body></html>',
       { headers: { 'content-type': 'text/html' } })
   }
 
@@ -48,9 +48,9 @@ export async function GET(req: NextRequest) {
 
   return new Response(
     `<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#060e1b;color:#fff">
-      <h2 style="color:#fe3d00">Uitgeschreven</h2>
-      <p>Je ontvangt geen notificaties meer.</p>
-      <a href="https://honkbalhoofdklasse.com" style="color:#fe3d00">Terug naar de website</a>
+      <h2 style="color:#fe3d00">Unsubscribed</h2>
+      <p>You will no longer receive notifications.</p>
+      <a href="https://honkbalhoofdklasse.com" style="color:#fe3d00">Back to the website</a>
     </body></html>`,
     { headers: { 'content-type': 'text/html' } }
   )
