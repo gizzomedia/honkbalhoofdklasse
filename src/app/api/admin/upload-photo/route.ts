@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: urlData } = supabaseAdmin.storage.from('player-photos').getPublicUrl(path)
-  const col = photoType === 'banner' ? 'banner_url' : 'headshot_url'
+  const col     = photoType === 'banner' ? 'banner_url' : 'headshot_url'
+  const sizeCol = photoType === 'banner' ? 'banner_size_kb' : 'headshot_size_kb'
+  const sizeKb  = Math.round(compressed.length / 1024)
 
   const { data: existing } = await supabaseAdmin
     .from('player_photos')
@@ -70,12 +72,12 @@ export async function POST(req: NextRequest) {
   if (existing) {
     await supabaseAdmin
       .from('player_photos')
-      .update({ [col]: urlData.publicUrl, updated_at: new Date().toISOString() })
+      .update({ [col]: urlData.publicUrl, [sizeCol]: sizeKb, updated_at: new Date().toISOString() })
       .eq('id', existing.id)
   } else {
     await supabaseAdmin
       .from('player_photos')
-      .insert({ player_name: playerName, team_id: teamId, [col]: urlData.publicUrl })
+      .insert({ player_name: playerName, team_id: teamId, [col]: urlData.publicUrl, [sizeCol]: sizeKb })
   }
 
   return NextResponse.json({

@@ -66,9 +66,10 @@ export async function POST(req: NextRequest) {
 
   const { data: urlData } = supabaseAdmin.storage.from('player-photos').getPublicUrl(path)
 
+  const sizeCol = photoType === 'banner' ? 'banner_size_kb' : 'headshot_size_kb'
   await supabaseAdmin
     .from('player_photos')
-    .update({ [col]: urlData.publicUrl })
+    .update({ [col]: urlData.publicUrl, [sizeCol]: compressedKb })
     .eq('id', record!.id)
 
   return NextResponse.json({ ok: true, original_kb: originalKb, compressed_kb: compressedKb })

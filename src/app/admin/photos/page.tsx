@@ -20,6 +20,8 @@ type PlayerPhoto = {
   headshot_url: string | null
   banner_focal_x: number | null
   banner_focal_y: number | null
+  banner_size_kb: number | null
+  headshot_size_kb: number | null
 }
 
 // ── Focal point editor ─────────────────────────────────────────────────────
@@ -237,11 +239,18 @@ function PlayerRow({
           )}
 
           <div className="flex flex-col gap-1">
-            <UploadButton
-              label="Banner"
-              uploading={uploading === `${name}-banner`}
-              onFile={f => onUpload('banner', f)}
-            />
+            <div className="flex items-center gap-2">
+              <UploadButton
+                label="Banner"
+                uploading={uploading === `${name}-banner`}
+                onFile={f => onUpload('banner', f)}
+              />
+              {photo?.banner_size_kb != null && (
+                <span className={`font-display font-700 text-[10px] uppercase tracking-widest ${photo.banner_size_kb > 400 ? 'text-yellow-500' : 'text-green-400'}`}>
+                  {photo.banner_size_kb} KB
+                </span>
+              )}
+            </div>
             {photo?.banner_url && (
               <div className="flex gap-2">
                 <button onClick={() => setEditingFocal(true)}
@@ -267,11 +276,18 @@ function PlayerRow({
             <div className="bg-[#0f1e2e] border border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted)] uppercase w-10 h-10 rounded-full shrink-0">—</div>
           )}
           <div className="flex flex-col gap-1">
-            <UploadButton
-              label="Headshot"
-              uploading={uploading === `${name}-headshot`}
-              onFile={f => onUpload('headshot', f)}
-            />
+            <div className="flex items-center gap-2">
+              <UploadButton
+                label="Headshot"
+                uploading={uploading === `${name}-headshot`}
+                onFile={f => onUpload('headshot', f)}
+              />
+              {photo?.headshot_size_kb != null && (
+                <span className={`font-display font-700 text-[10px] uppercase tracking-widest ${photo.headshot_size_kb > 400 ? 'text-yellow-500' : 'text-green-400'}`}>
+                  {photo.headshot_size_kb} KB
+                </span>
+              )}
+            </div>
             {photo?.headshot_url && (
               <button onClick={() => onRemove('headshot')}
                 className="text-[10px] font-display font-700 text-[var(--muted)] hover:text-red-400 uppercase tracking-widest text-left transition-colors">

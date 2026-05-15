@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabaseAdmin
     .from('player_photos')
-    .select('player_name, banner_url, headshot_url, banner_focal_x, banner_focal_y')
+    .select('player_name, banner_url, headshot_url, banner_focal_x, banner_focal_y, banner_size_kb, headshot_size_kb')
 
   return NextResponse.json(data ?? [])
 }
