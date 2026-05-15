@@ -1,12 +1,8 @@
 import { Resend } from 'resend'
+import { TEAM_NAMES } from '@/lib/teams'
 
 const FROM = process.env.FROM_EMAIL ?? 'Honkbal Hoofdklasse <noreply@honkbalhoofdklasse.com>'
 const SITE = 'https://honkbalhoofdklasse.com'
-
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Curaçao Neptunus', pirates: 'Amsterdam Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
-}
 
 function baseTemplate(content: string, unsubUrl: string) {
   return `

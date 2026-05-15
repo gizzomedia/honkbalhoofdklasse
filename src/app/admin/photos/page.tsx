@@ -2,17 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ROSTERS } from '@/lib/rosters-data'
+import { TEAM_NAMES } from '@/lib/teams'
 
 const ALL_PLAYERS = Object.entries(ROSTERS)
   .flatMap(([teamId, roster]) =>
     roster.players.map(p => ({ name: p.name, teamId }))
   )
   .sort((a, b) => a.name.localeCompare(b.name))
-
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Neptunus', pirates: 'Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
-}
 
 type PlayerPhoto = {
   player_name: string
@@ -97,7 +93,7 @@ function FocalPointEditor({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={url}
-            alt=""
+            alt="Banner preview"
             draggable={false}
             className="w-full h-auto block pointer-events-none"
           />
@@ -127,7 +123,7 @@ function FocalPointEditor({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={url}
-              alt=""
+              alt="Crop preview"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
               style={{ objectPosition: `${focal.x}% ${focal.y}%` }}
             />
@@ -224,7 +220,7 @@ function PlayerRow({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photo.banner_url}
-                alt=""
+                alt="Banner"
                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 style={{ objectPosition: `${focalX}% ${focalY}%` }}
               />
@@ -271,7 +267,7 @@ function PlayerRow({
         <div className="flex items-center gap-2">
           {photo?.headshot_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photo.headshot_url} alt="" className="w-10 h-10 object-cover rounded-full border border-[var(--border)] shrink-0" />
+            <img src={photo.headshot_url} alt="Headshot" className="w-10 h-10 object-cover rounded-full border border-[var(--border)] shrink-0" />
           ) : (
             <div className="bg-[#0f1e2e] border border-[var(--border)] flex items-center justify-center text-[10px] text-[var(--muted)] uppercase w-10 h-10 rounded-full shrink-0">—</div>
           )}

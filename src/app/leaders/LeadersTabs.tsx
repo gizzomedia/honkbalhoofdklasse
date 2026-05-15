@@ -2,19 +2,8 @@
 
 import { useState } from 'react'
 import PlayerStatsModal from '@/components/PlayerStatsModal'
+import { TEAM_COLORS, TEAM_SHORT, KNBSB_TEAM_MAP } from '@/lib/teams'
 
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
-const TEAM_SHORT: Record<string, string> = {
-  neptunus: 'NEP', pirates: 'PIR', kinheim: 'KIN',
-  hcaw: 'HCA', twins: 'TWI', pioniers: 'PIO', uvv: 'UVV',
-}
-const KNBSB_TEAM_MAP: Record<string, string> = {
-  NEP: 'neptunus', AMS: 'pirates', PIR: 'pirates', HCA: 'hcaw',
-  KIN: 'kinheim', PIO: 'pioniers', UVV: 'uvv', TWI: 'twins',
-}
 const LABEL_OVERRIDE: Record<string, string> = {
   PITCH_APPEAR: 'App', PITCH_SHO: 'SHO', PITCH_SHA: 'SHA',
   PITCH_SFA: 'SFA', PITCH_WP: 'WP', PITCH_HBP: 'HBP',

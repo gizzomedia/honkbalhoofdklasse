@@ -1,29 +1,13 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import type { Metadata } from 'next'
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { computeSeasonStats, fetchPlayerPhotos } from '@/lib/player-stats-lib'
 import { headshotFaceUrl } from '@/lib/cloudinary'
 import StatsTabs from './StatsTabs'
+import { TEAM_COLORS, TEAM_NAMES, TEAM_LOGOS } from '@/lib/teams'
 
 export const revalidate = 1800
-
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Curaçao Neptunus', pirates: 'Amsterdam Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
-}
-const TEAM_LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
-}
 
 export function generateStaticParams() {
   const params: { slug: string }[] = []
@@ -48,6 +32,32 @@ function findPlayer(slug: string) {
 
 function calcAge(yob: number): number {
   return new Date().getFullYear() - yob
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const found = findPlayer(slug)
+  if (!found) return {}
+  const { player, teamId } = found
+  const teamName = TEAM_NAMES[teamId] ?? teamId
+  const photos = await fetchPlayerPhotos(player.name)
+  const ogImage = photos?.headshot_url ?? photos?.banner_url ?? 'https://honkbalhoofdklasse.com/og-image.png'
+  const description = `${player.name} · ${player.pos} · ${teamName} · Honkbal Hoofdklasse 2026`
+  return {
+    title: `${player.name} | Honkbal Hoofdklasse`,
+    description,
+    alternates: { canonical: `https://honkbalhoofdklasse.com/players/${slug}` },
+    openGraph: {
+      title: `${player.name} | Honkbal Hoofdklasse`,
+      description,
+      images: [{ url: ogImage, width: 1200, height: 630 }],
+    },
+    twitter: { card: 'summary_large_image', title: player.name },
+  }
 }
 
 export default async function PlayerPage({

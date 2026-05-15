@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
 
 export const metadata: Metadata = {
   title: 'Livestream',
@@ -9,24 +10,6 @@ export const metadata: Metadata = {
 }
 
 export const revalidate = 60
-
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Neptunus', pirates: 'Amsterdam Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Oosterhout Twins', pioniers: 'Hoofddorp Pioniers', uvv: 'UVV',
-}
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
-const TEAM_LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
-}
 
 function TeamLogo({ teamId }: { teamId: string }) {
   const logo = TEAM_LOGOS[teamId]

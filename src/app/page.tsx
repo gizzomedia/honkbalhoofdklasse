@@ -3,39 +3,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import HeroSlideshow from '@/components/HeroSlideshow'
 import HomeRecentResults from '@/components/HomeRecentResults'
+import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT, KNBSB_TEAM_MAP } from '@/lib/teams'
 
 export const revalidate = 120
-
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
-const TEAM_LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
-}
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Neptunus', pirates: 'Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
-}
-const TEAM_SHORT: Record<string, string> = {
-  neptunus: 'NEP', pirates: 'PIR', kinheim: 'KIN',
-  hcaw: 'HCA', twins: 'TWI', pioniers: 'PIO', uvv: 'UVV',
-}
 
 type NewsItem = { title: string; link: string }
 type LeaderEntry = { name: string; team: string; value: string }
 type MiniLeaders = { batters: LeaderEntry[]; pitchers: LeaderEntry[] }
 
-const KNBSB_TEAM_MAP: Record<string, string> = {
-  NEP: 'Neptunus', AMS: 'Pirates', PIR: 'Pirates', HCA: 'HCAW',
-  KIN: 'Kinheim', PIO: 'Pioniers', UVV: 'UVV', TWI: 'Twins',
-}
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'application/json, text/plain, */*',
@@ -61,9 +36,9 @@ async function getMiniLeaders(): Promise<MiniLeaders> {
   try {
     const [batRes, pitRes] = await Promise.all([
       fetch('https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=batting&round=&team=&split=&language=en',
-        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/batting' }, next: { revalidate: 3600 } }),
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/batting' }, next: { revalidate: 300 } }),
       fetch('https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=pitching&round=&team=&split=&language=en',
-        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/pitching' }, next: { revalidate: 3600 } }),
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/pitching' }, next: { revalidate: 300 } }),
     ])
     const batData = (await batRes.json()).data ?? []
     const pitData = (await pitRes.json()).data ?? []

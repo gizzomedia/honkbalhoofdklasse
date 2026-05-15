@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { ROSTERS, slugify } from '@/lib/rosters-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://honkbalhoofdklasse.com'
@@ -26,7 +27,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'weekly' as const,
   }))
 
-  return [...staticRoutes, ...teamRoutes].map(r => ({
+  // Individual player pages
+  const playerRoutes = Object.values(ROSTERS).flatMap(roster =>
+    roster.players.map(player => ({
+      url: `${base}/players/${slugify(player.name)}`,
+      priority: 0.7,
+      changeFrequency: 'daily' as const,
+    }))
+  )
+
+  return [...staticRoutes, ...teamRoutes, ...playerRoutes].map(r => ({
     ...r,
     lastModified: now,
   }))

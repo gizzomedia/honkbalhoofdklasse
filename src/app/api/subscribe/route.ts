@@ -4,8 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 // POST /api/subscribe  { email }
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
-  if (!email || !email.includes('@')) {
-    return NextResponse.json({ error: 'Ongeldig emailadres' }, { status: 400 })
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+  if (!email || !EMAIL_RE.test(String(email).trim())) {
+    return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
   }
 
   const { error } = await supabaseAdmin

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'hoofdklasse2026'
-
 function auth(req: NextRequest) {
-  return req.headers.get('x-admin-password') === ADMIN_PASSWORD
+  const pw = process.env.ADMIN_PASSWORD
+  return !!pw && req.headers.get('x-admin-password') === pw
 }
 
 // Returns { streams, games } — games = upcoming + today so admin can link streams

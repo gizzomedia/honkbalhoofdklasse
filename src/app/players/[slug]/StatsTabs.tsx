@@ -2,11 +2,7 @@
 
 import { useState } from 'react'
 import type { SeasonStats } from '@/lib/player-stats-lib'
-
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
+import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
 
 function fmtAvg(v: number | null, ab: number): string {
   if (ab === 0 || v === null) return '—'

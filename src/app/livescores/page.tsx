@@ -4,24 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
 import BoxscoreModal from '@/components/BoxscoreModal'
 import NotifyButton from '@/components/NotifyButton'
-
-const TEAM_COLORS: Record<string, string> = {
-  neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
-  hcaw: '#f5b51a', twins: '#ee7e1a', pioniers: '#3d68e9', uvv: '#db002f',
-}
-const TEAM_LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
-}
-const TEAM_NAMES: Record<string, string> = {
-  neptunus: 'Neptunus', pirates: 'Pirates', kinheim: 'Kinheim',
-  hcaw: 'HCAW', twins: 'Twins', pioniers: 'Pioniers', uvv: 'UVV',
-}
+import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
 
 type Game = {
   id: string
@@ -196,15 +179,20 @@ function ScoreRow({
 export default function LivescoresPage() {
   const [data, setData]           = useState<Data | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [selected, setSelected]   = useState<Game | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/livescores')
+      if (!res.ok) throw new Error('API error')
       setData(await res.json())
       setLastRefresh(new Date())
-    } catch { /* ignore */ } finally {
+      setError(false)
+    } catch {
+      setError(true)
+    } finally {
       setLoading(false)
     }
   }, [])
@@ -250,6 +238,16 @@ export default function LivescoresPage() {
         <div className="text-center py-20">
           <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Loading scores…</p>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="text-center py-20 space-y-4">
+          <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">Could not load scores</p>
+          <button onClick={fetchData}
+            className="font-display font-800 text-xs uppercase tracking-widest border border-[var(--border)] hover:border-[var(--accent)] text-[var(--muted)] hover:text-white transition-colors px-5 py-2.5 rounded-xl">
+            Try again
+          </button>
         </div>
       )}
 

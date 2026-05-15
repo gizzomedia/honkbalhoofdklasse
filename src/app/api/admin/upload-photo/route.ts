@@ -39,6 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File too large (max 10 MB)' }, { status: 413 })
+  }
+
   const slug = playerName
     .toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')

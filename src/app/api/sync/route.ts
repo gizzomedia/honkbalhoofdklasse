@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendLiveNotification } from '@/lib/email'
+import { IOC_TO_TEAM } from '@/lib/teams'
 
 const BASE_URL   = 'https://boxscore.stenwessel.nl/api'
 const COMPETITION = 'hb2026'
-
-const IOC_TO_TEAM: Record<string, string> = {
-  NEP: 'neptunus', PIR: 'pirates', AMS: 'pirates', KIN: 'kinheim',
-  HCA: 'hcaw',    TWI: 'twins',    PIO: 'pioniers', UVV: 'uvv',
-}
 
 type SteGame = {
   id: number
@@ -92,8 +88,14 @@ export async function GET(req: Request) {
     }
 
     // ── 4. Apply game updates ────────────────────────────────────────────────
+    let gameErrors = 0
     for (const { id, patch } of gameUpdates) {
-      await supabaseAdmin.from('games').update(patch).eq('id', id)
+      try {
+        await supabaseAdmin.from('games').update(patch).eq('id', id)
+      } catch (e) {
+        console.error(`[sync] game update failed id=${id}:`, e)
+        gameErrors++
+      }
     }
 
     // ── 5. Recalculate standings from stenwessel team data ───────────────────
@@ -130,7 +132,7 @@ export async function GET(req: Request) {
     let standingsUpdated = 0
     for (const [teamId, s] of Object.entries(teamBest)) {
       const winPct = s.gp > 0 ? s.wins / s.gp : 0
-      const { error } = await supabaseAdmin
+      try { const { error } = await supabaseAdmin
         .from('standings')
         .update({
           wins:         s.wins,
@@ -144,6 +146,7 @@ export async function GET(req: Request) {
         .eq('team_id', teamId)
         .eq('season', 2026)
       if (!error) standingsUpdated++
+      } catch (e) { console.error(`[sync] standings update failed team=${teamId}:`, e) }
     }
 
     // ── 6. Auto-toggle streams based on linked game status ──────────────────
@@ -200,6 +203,7 @@ export async function GET(req: Request) {
       ok:               true,
       gamesChecked:     steGames.length,
       gamesUpdated:     gameUpdates.length,
+      gameErrors,
       newFinals,
       standingsUpdated,
       streamsToggled,
