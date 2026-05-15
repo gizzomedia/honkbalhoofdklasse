@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { ROSTERS, type Player } from '@/lib/rosters-data'
+import NotifyButton from '@/components/NotifyButton'
 
 const TEAM_COLORS: Record<string, string> = {
   neptunus: '#121b31', pirates: '#0f6f38', kinheim: '#c0232e',
@@ -290,9 +291,12 @@ export default function PicklePage() {
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
             <strong>Hoofdklasse</strong><span className="text-[var(--accent)]"> Pickle</span>
           </h1>
-          <div className="text-right shrink-0">
-            <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Guesses left</p>
-            <p className={`font-display font-800 text-3xl ${remaining <= 3 ? 'text-[var(--accent)]' : 'text-white'}`}>{remaining}</p>
+          <div className="flex items-end gap-3 shrink-0">
+            <div className="text-right">
+              <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Guesses left</p>
+              <p className={`font-display font-800 text-3xl ${remaining <= 3 ? 'text-[var(--accent)]' : 'text-white'}`}>{remaining}</p>
+            </div>
+            <NotifyButton tooltip="Get an email when a new Pickle drops (Thu & Sat)." />
           </div>
         </div>
       </div>

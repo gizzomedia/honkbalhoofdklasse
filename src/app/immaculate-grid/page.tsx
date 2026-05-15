@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { getCurrentWeekGrid, getMostRecentFriday, fridayDateKey, isValidAnswer, type Criterion, type GridConfig } from '@/lib/grid-data'
+import NotifyButton from '@/components/NotifyButton'
 import { ROSTERS } from '@/lib/rosters-data'
 
 const TEAM_COLORS: Record<string, string> = {
@@ -250,7 +251,7 @@ export default function ImmaculateGridPage() {
             Name a Hoofdklasse 2026 player matching both criteria
           </p>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="text-center">
             <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Score</p>
             <p className="font-display font-800 text-4xl text-white">{score}<span className="text-[var(--muted)] text-xl">/9</span></p>
@@ -260,6 +261,8 @@ export default function ImmaculateGridPage() {
             <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Guesses left</p>
             <p className={`font-display font-800 text-4xl ${guessesLeft <= 3 ? 'text-[var(--accent)]' : 'text-white'}`}>{guessesLeft}</p>
           </div>
+          <div className="h-12 w-px bg-[var(--border)]" />
+          <NotifyButton tooltip="Get an email when a new Immaculate Grid drops every Friday." />
         </div>
       </div>
 
