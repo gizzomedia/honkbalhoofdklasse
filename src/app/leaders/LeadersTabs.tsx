@@ -163,7 +163,7 @@ function CategoryCard({ category, statType, onSelect }: {
         <div className="divide-y divide-[var(--border)]">
           {category.data.map((player, i) => {
             const rank = ranks[i]
-            const isFirst = i === 0
+            const isFirst = rank === '1' || rank === 'T1'
             const teamKey = KNBSB_TEAM_MAP[String(player.team ?? '')] ?? ''
             const name = parseKnbsbName(player)
             const value = getStatValue(category.type, player)
