@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { getCurrentWeekGrid, getMostRecentFriday, fridayDateKey, isValidAnswer, type Criterion, type GridConfig } from '@/lib/grid-data'
 import NotifyButton from '@/components/NotifyButton'
 import { ROSTERS } from '@/lib/rosters-data'
-import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
+import { TEAM_COLORS, TEAM_LOGOS } from '@/lib/teams'
 
 const ALL_PLAYERS = Object.entries(ROSTERS).flatMap(([teamId, r]) =>
   r.players.map(p => ({ name: p.name, teamId }))
@@ -115,10 +115,6 @@ function InputModal({
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-[var(--border)] last:border-0 ${
                     i === selected ? 'bg-[var(--accent)]' : 'bg-[var(--card)] hover:bg-[var(--card-hover)]'
                   }`}>
-                  <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 p-0.5"
-                    style={{ backgroundColor: TEAM_COLORS[p.teamId] ?? '#1e335a' }}>
-                    <Image src={TEAM_LOGOS[p.teamId]} alt="" width={16} height={16} className="object-contain w-full h-full" />
-                  </div>
                   <span className="font-display font-800 text-sm text-white uppercase">{p.name}</span>
                 </button>
               ))}
@@ -137,7 +133,7 @@ function InputModal({
 
 // ── Game cell ──────────────────────────────────────────────────────────────
 type CellState = 'empty' | 'correct' | 'wrong'
-type CellData  = { state: CellState; guess: string; teamId?: string }
+type CellData  = { state: CellState; guess: string; teamId?: string; photoUrl?: string | null }
 
 function GameCell({ cell, canClick, flash, onClick }: {
   cell: CellData; canClick: boolean
@@ -147,28 +143,53 @@ function GameCell({ cell, canClick, flash, onClick }: {
     flash?.ok  ? 'border-green-500 bg-green-500/20' :
     flash && !flash.ok ? 'border-red-500 bg-red-500/20' :
     cell.state === 'correct' ? 'border-green-700/50 bg-green-900/20' :
-    cell.state === 'wrong'   ? 'border-red-900/40 bg-[#0f0a0a]' :
+    cell.state === 'wrong'   ? 'border-red-900/40 bg-[#0f0a0a] cursor-pointer hover:border-red-600/60' :
     canClick ? 'border-[#1e2e42] bg-[#080f1a] hover:border-[var(--accent)]/50 hover:bg-[#0c1620] cursor-pointer' :
     'border-[#1a2535] bg-[#080f1a] cursor-not-allowed'
 
   return (
     <div
       onClick={canClick ? onClick : undefined}
-      className={`rounded-xl border flex flex-col items-center justify-center p-3 transition-all select-none ${bg} ${flash ? 'scale-95' : ''}`}
+      className={`rounded-xl border flex flex-col items-center justify-center transition-all select-none relative overflow-hidden ${bg} ${flash ? 'scale-95' : ''}`}
       style={{ minHeight: 110 }}
     >
-      {cell.state === 'correct' && cell.teamId && (
-        <>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-2 p-1.5 shrink-0"
-            style={{ backgroundColor: TEAM_COLORS[cell.teamId] ?? '#1e335a' }}>
-            <Image src={TEAM_LOGOS[cell.teamId]} alt={cell.teamId} width={28} height={28} className="object-contain w-full h-full" />
-          </div>
-          <p className="font-display font-800 text-xs uppercase text-white text-center leading-tight">{cell.guess}</p>
-        </>
+      {/* Player photo background for correct guesses */}
+      {cell.state === 'correct' && cell.photoUrl && (
+        <Image
+          src={cell.photoUrl}
+          alt={cell.guess}
+          fill
+          className="object-cover object-top opacity-30"
+          sizes="200px"
+        />
       )}
-      {cell.state === 'wrong' && (
-        <p className="font-display font-700 text-[11px] text-red-400/60 uppercase text-center line-through leading-tight px-1">{cell.guess}</p>
-      )}
+
+      <div className="relative z-10 flex flex-col items-center justify-center p-3 w-full h-full">
+        {cell.state === 'correct' && cell.teamId && (
+          <>
+            {/* Show logo only if no photo loaded yet */}
+            {!cell.photoUrl && (
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-2 p-1.5 shrink-0"
+                style={{ backgroundColor: TEAM_COLORS[cell.teamId] ?? '#1e335a' }}>
+                <Image src={TEAM_LOGOS[cell.teamId]} alt={cell.teamId} width={28} height={28} className="object-contain w-full h-full" />
+              </div>
+            )}
+            <p className="font-display font-800 text-xs uppercase text-white text-center leading-tight drop-shadow">{cell.guess}</p>
+            {cell.photoUrl && cell.teamId && (
+              <div className="mt-1.5 w-6 h-6 rounded flex items-center justify-center p-0.5 shrink-0"
+                style={{ backgroundColor: TEAM_COLORS[cell.teamId] ?? '#1e335a' }}>
+                <Image src={TEAM_LOGOS[cell.teamId]} alt="" width={16} height={16} className="object-contain w-full h-full" />
+              </div>
+            )}
+          </>
+        )}
+        {cell.state === 'wrong' && (
+          <>
+            <p className="font-display font-700 text-[11px] text-red-400/60 uppercase text-center line-through leading-tight px-1">{cell.guess}</p>
+            <p className="font-display font-700 text-[9px] text-red-400/40 uppercase tracking-widest mt-1">tap to retry</p>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -219,6 +240,26 @@ export default function ImmaculateGridPage() {
     })
     setGuessesLeft(g => g - 1)
     setActiveCell(null)
+
+    // Fetch headshot for correct guesses — applied as cell background
+    if (valid) {
+      fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}`)
+        .then(r => r.json())
+        .then(data => {
+          const raw = data.photos?.headshot_url as string | null | undefined
+          const photoUrl = raw
+            ? raw.replace('/upload/', '/upload/c_thumb,g_face,ar_1:1,z_0.75/')
+            : null
+          setCells(prev => {
+            const next = [...prev]
+            if (next[cellIdx]?.state === 'correct') {
+              next[cellIdx] = { ...next[cellIdx], photoUrl: photoUrl ?? null }
+            }
+            return next
+          })
+        })
+        .catch(() => {})
+    }
   }, [grid])
 
   const score = cells.filter(c => c.state === 'correct').length
@@ -295,7 +336,7 @@ export default function ImmaculateGridPage() {
                 <GameCell
                   key={idx}
                   cell={cells[idx]}
-                  canClick={cells[idx].state === 'empty' && guessesLeft > 0 && !done}
+                  canClick={cells[idx].state !== 'correct' && guessesLeft > 0 && !done}
                   flash={flashes[idx] ?? null}
                   onClick={() => setActiveCell(idx)}
                 />
