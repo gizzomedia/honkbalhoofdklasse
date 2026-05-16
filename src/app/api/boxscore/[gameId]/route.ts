@@ -63,8 +63,9 @@ function extractBatters(players: RawPlayer[]): BatterStat[] {
     const name = `${p.firstname} ${p.lastname}`
     if (seen.has(name)) continue
     seen.add(name)
-    // skip pitchers that never batted
-    if (n(p.ab) === 0 && n(p.h) === 0 && n(p.r) === 0 && n(p.rbi) === 0) continue
+    // skip players with no batting activity at all (e.g. pitchers who only pitched)
+    if (n(p.ab) === 0 && n(p.h) === 0 && n(p.r) === 0 && n(p.rbi) === 0 &&
+        n(p.bb) === 0 && n(p.hbp) === 0 && n(p.sf) === 0 && n(p.sh) === 0) continue
     result.push({
       name,
       pos:    String(p.pos ?? ''),
@@ -111,14 +112,23 @@ function getTeamPlayers(boxScore: Record<string, unknown>, teamId: string | numb
   const team = boxScore[String(teamId)] as Record<string, unknown> | undefined
   if (!team) return []
   const players: RawPlayer[] = []
-  for (const section of Object.values(team)) {
-    if (!Array.isArray(section)) continue
-    for (const p of section) {
-      if (p && typeof p === 'object' && (p as RawPlayer).firstname) {
-        players.push(p as RawPlayer)
+  function collect(obj: unknown) {
+    if (!obj || typeof obj !== 'object') return
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        if (item && typeof item === 'object' && (item as RawPlayer).firstname) {
+          players.push(item as RawPlayer)
+        } else {
+          collect(item)
+        }
+      }
+    } else {
+      for (const val of Object.values(obj as Record<string, unknown>)) {
+        collect(val)
       }
     }
   }
+  collect(team)
   return players
 }
 
