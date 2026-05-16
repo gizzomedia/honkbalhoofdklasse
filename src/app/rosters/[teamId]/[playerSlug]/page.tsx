@@ -373,7 +373,7 @@ export default async function PlayerProfilePage({
           <div>
             <p className="font-display font-800 text-base uppercase text-white">KNBSB Stats</p>
             <p className="font-display font-700 text-sm text-[var(--muted)] mt-1">
-              View full statistics on the official KNBSB stats website
+              View full statistics on the KNBSB stats website
             </p>
           </div>
           <a

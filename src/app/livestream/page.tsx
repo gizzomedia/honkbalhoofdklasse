@@ -5,7 +5,7 @@ import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
 
 export const metadata: Metadata = {
   title: 'Livestream',
-  description: 'Bekijk live honkbalwedstrijden van de Honkbal Hoofdklasse via de officiële livestream.',
+  description: 'Bekijk live honkbalwedstrijden van de Honkbal Hoofdklasse via de Hoofdklasse livestream.',
   alternates: { canonical: 'https://honkbalhoofdklasse.com/livestream' },
 }
 

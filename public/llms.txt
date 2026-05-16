@@ -1,6 +1,6 @@
 # Honkbal Hoofdklasse
 
-> The official fan website for the KNBSB Honkbal Hoofdklasse — the top professional baseball league in the Netherlands.
+> The fan website for the KNBSB Honkbal Hoofdklasse — the top professional baseball league in the Netherlands.
 
 ## What this site covers
 
@@ -25,7 +25,7 @@
 
 ## Data sources
 
-Statistics are sourced from the official KNBSB stats system (stats.knbsbstats.nl).
+Statistics are sourced from the KNBSB stats system (stats.knbsbstats.nl).
 Live scores are updated every 60 seconds during games.
 
 ## Contact

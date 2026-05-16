@@ -4,11 +4,11 @@ import LeadersTabs, { type TabData, type SeasonLeaders } from './LeadersTabs'
 
 export const metadata: Metadata = {
   title: 'Honkbal Hoofdklasse Statistieken 2026 | League Leaders',
-  description: 'Officiële statistieken van de KNBSB Honkbal Hoofdklasse 2026. Batting average, home runs, RBI, ERA en meer per speler. Top batters en pitchers van Nederland.',
+  description: 'Statistieken van de KNBSB Honkbal Hoofdklasse 2026. Batting average, home runs, RBI, ERA en meer per speler. Top batters en pitchers van Nederland.',
   alternates: { canonical: 'https://honkbalhoofdklasse.com/leaders' },
   openGraph: {
     title: 'Honkbal Hoofdklasse Statistieken 2026',
-    description: 'Officiële statistieken — batting, pitching, league leaders.',
+    description: 'Statistieken — batting, pitching, league leaders.',
     url: 'https://honkbalhoofdklasse.com/leaders',
   },
 }
@@ -101,7 +101,7 @@ export default async function LeadersPage() {
           <span className="text-[var(--accent)]"> Leaders</span>
         </h1>
         <p className="text-[var(--muted)] text-sm mt-3 max-w-xl leading-relaxed">
-          Statistical leaders for the Honkbal Hoofdklasse 2026 season. Rankings cover batting average, home runs, RBI, stolen bases, ERA, strikeouts and more — sourced directly from the official KNBSB stats system.
+          Statistical leaders for the Honkbal Hoofdklasse 2026 season. Rankings cover batting average, home runs, RBI, stolen bases, ERA, strikeouts and more — sourced from the KNBSB stats system (stats.knbsbstats.nl).
         </p>
       </div>
       <LeadersTabs week={week} season={season} seriesLabel={seriesLabel} />
