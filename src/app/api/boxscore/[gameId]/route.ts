@@ -63,9 +63,12 @@ function extractBatters(players: RawPlayer[]): BatterStat[] {
     const name = `${p.firstname} ${p.lastname}`
     if (seen.has(name)) continue
     seen.add(name)
-    // skip players with no batting activity at all (e.g. pitchers who only pitched)
-    if (n(p.ab) === 0 && n(p.h) === 0 && n(p.r) === 0 && n(p.rbi) === 0 &&
-        n(p.bb) === 0 && n(p.hbp) === 0 && n(p.sf) === 0 && n(p.sh) === 0) continue
+    // Always show players in a batting-order slot (1-9); only skip pure pitchers
+    // that never appeared in the lineup (slot 0 = unkeyed section, no batting at all)
+    const inLineup = (p._slot as number) > 0
+    const hasBatted = n(p.ab) > 0 || n(p.bb) > 0 || n(p.hbp) > 0 ||
+                      n(p.sf) > 0 || n(p.sh) > 0 || n(p.r) > 0 || n(p.rbi) > 0
+    if (!inLineup && !hasBatted) continue
     result.push({
       name,
       pos:    String(p.pos ?? ''),
@@ -108,28 +111,41 @@ function extractPitchers(players: RawPlayer[]): PitcherStat[] {
   return result
 }
 
+// Returns players sorted by batting-order slot (the numeric section key in the API).
+// Each slot may contain multiple players (starter + substitutes in that spot).
 function getTeamPlayers(boxScore: Record<string, unknown>, teamId: string | number): RawPlayer[] {
   const team = boxScore[String(teamId)] as Record<string, unknown> | undefined
   if (!team) return []
-  const players: RawPlayer[] = []
-  function collect(obj: unknown) {
-    if (!obj || typeof obj !== 'object') return
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        if (item && typeof item === 'object' && (item as RawPlayer).firstname) {
-          players.push(item as RawPlayer)
-        } else {
-          collect(item)
+
+  // Group entries by their numeric key (= batting-order slot 1-9) vs non-numeric
+  const slots: [number, RawPlayer[]][] = []
+  const extra: RawPlayer[] = []
+
+  for (const [key, section] of Object.entries(team)) {
+    const slot = parseInt(key, 10)
+    const collect = (v: unknown, target: RawPlayer[]) => {
+      if (!v || typeof v !== 'object') return
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          if (item && typeof item === 'object' && (item as RawPlayer).firstname)
+            target.push({ ...(item as RawPlayer), _slot: isNaN(slot) ? 0 : slot })
+          else collect(item, target)
         }
-      }
-    } else {
-      for (const val of Object.values(obj as Record<string, unknown>)) {
-        collect(val)
+      } else {
+        for (const val of Object.values(v as Record<string, unknown>)) collect(val, target)
       }
     }
+    if (!isNaN(slot)) {
+      const bucket: RawPlayer[] = []
+      collect(section, bucket)
+      if (bucket.length) slots.push([slot, bucket])
+    } else {
+      collect(section, extra)
+    }
   }
-  collect(team)
-  return players
+
+  slots.sort((a, b) => a[0] - b[0])
+  return [...slots.flatMap(([, ps]) => ps), ...extra]
 }
 
 export async function GET(
