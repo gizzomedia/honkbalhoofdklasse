@@ -133,7 +133,7 @@ function InputModal({
 
 // ── Game cell ──────────────────────────────────────────────────────────────
 type CellState = 'empty' | 'correct' | 'wrong'
-type CellData  = { state: CellState; guess: string; teamId?: string; photoUrl?: string | null }
+type CellData  = { state: CellState; guess: string; teamId?: string; photoUrl?: string | null; focalX?: number | null; focalY?: number | null }
 
 function GameCell({ cell, canClick, flash, onClick }: {
   cell: CellData; canClick: boolean
@@ -153,13 +153,14 @@ function GameCell({ cell, canClick, flash, onClick }: {
       className={`rounded-xl border flex flex-col items-center justify-center transition-all select-none relative overflow-hidden ${bg} ${flash ? 'scale-95' : ''}`}
       style={{ minHeight: 110 }}
     >
-      {/* Player photo background for correct guesses */}
+      {/* Banner photo background for correct guesses */}
       {cell.state === 'correct' && cell.photoUrl && (
         <Image
           src={cell.photoUrl}
           alt={cell.guess}
           fill
-          className="object-cover object-top opacity-30"
+          className="object-cover opacity-40"
+          style={{ objectPosition: `${cell.focalX ?? 50}% ${cell.focalY ?? 50}%` }}
           sizes="200px"
         />
       )}
@@ -241,19 +242,18 @@ export default function ImmaculateGridPage() {
     setGuessesLeft(g => g - 1)
     setActiveCell(null)
 
-    // Fetch headshot for correct guesses — applied as cell background
+    // Fetch banner photo for correct guesses — applied as cell background
     if (valid) {
       fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}`)
         .then(r => r.json())
         .then(data => {
-          const raw = data.photos?.headshot_url as string | null | undefined
-          const photoUrl = raw
-            ? raw.replace('/upload/', '/upload/c_thumb,g_face,ar_1:1,z_0.75/')
-            : null
+          const photoUrl = (data.photos?.banner_url ?? null) as string | null
+          const focalX  = (data.photos?.banner_focal_x ?? 50) as number
+          const focalY  = (data.photos?.banner_focal_y ?? 50) as number
           setCells(prev => {
             const next = [...prev]
             if (next[cellIdx]?.state === 'correct') {
-              next[cellIdx] = { ...next[cellIdx], photoUrl: photoUrl ?? null }
+              next[cellIdx] = { ...next[cellIdx], photoUrl, focalX, focalY }
             }
             return next
           })
