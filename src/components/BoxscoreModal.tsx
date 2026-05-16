@@ -155,7 +155,7 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
                 </div>
               </td>
               {[b.ab, b.h, b.r, b.rbi, b.bb, b.so, b.hr].map((v, j) => (
-                <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 ${v > 0 ? 'text-white' : 'text-[var(--muted)]'}`}>
+                <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 tabular-nums ${v > 0 ? 'text-white' : 'text-[var(--border)]'}`}>
                   {v}
                 </td>
               ))}
