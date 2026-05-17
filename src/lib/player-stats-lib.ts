@@ -155,8 +155,17 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
 
   if (!bat && !pit) return null
 
-  const obp = bat ? num(bat.obp) : 0
-  const slg = bat ? num(bat.slg) : 0
+  // section=players stores rates as integers (219 = .219); section=leaders uses decimals (0.219)
+  function normalizeRate(v: unknown): number | null {
+    if (v == null || v === '') return null
+    const x = Number(v)
+    if (isNaN(x)) return null
+    return x > 1 ? x / 1000 : x
+  }
+
+  const rawAvg = normalizeRate(bat?.avg)
+  const rawObp = normalizeRate(bat?.obp)
+  const rawSlg = normalizeRate(bat?.slg)
 
   return {
     ab:     num(bat?.ab),
@@ -172,10 +181,10 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
     sf:     num(bat?.sf),
     sh:     num(bat?.sh),
     hbp:    num(bat?.hbp),
-    avg:    bat?.avg != null ? Number(Number(bat.avg).toFixed(3)) : null,
-    obp:    bat?.obp != null ? Number(obp.toFixed(3)) : null,
-    slg:    bat?.slg != null ? Number(slg.toFixed(3)) : null,
-    ops:    bat?.obp != null && bat?.slg != null ? Number((obp + slg).toFixed(3)) : null,
+    avg:    rawAvg != null ? Number(rawAvg.toFixed(3)) : null,
+    obp:    rawObp != null ? Number(rawObp.toFixed(3)) : null,
+    slg:    rawSlg != null ? Number(rawSlg.toFixed(3)) : null,
+    ops:    rawObp != null && rawSlg != null ? Number((rawObp + rawSlg).toFixed(3)) : null,
     games:  num(bat?.g ?? bat?.pa ?? 0),
     pitch_ip:     fmtIp(pit?.pitch_ip),
     pitch_gs:     num(pit?.pitch_gs),

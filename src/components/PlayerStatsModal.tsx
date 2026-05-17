@@ -18,7 +18,8 @@ function d(v: unknown, decimals = 0): string {
   if (v === null || v === undefined || v === '') return '—'
   const x = Number(v)
   if (isNaN(x) || (decimals === 0 && x === 0 && String(v) === '0')) return decimals === 0 ? '0' : '—'
-  return decimals > 0 ? x.toFixed(decimals).replace(/^0\./, '.') : String(x)
+  // Keep leading zero for ERA/whole-number decimals (0.00, not .00)
+  return decimals > 0 ? x.toFixed(decimals) : String(x)
 }
 function avg(v: unknown): string {
   if (v === null || v === undefined || v === '') return '—'
