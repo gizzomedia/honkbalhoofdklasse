@@ -7,39 +7,36 @@ import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/language'
 
 type NavItem = { href: string; label: string; external?: boolean }
-type NavGroup = { label: string; items: NavItem[] }
+type NavLink  = { type: 'link';     href: string; label: string }
+type NavGroup = { type: 'dropdown'; label: string; items: NavItem[] }
+type NavEntry = NavLink | NavGroup
 
-function useNavGroups(): NavGroup[] {
+function useNavEntries(): NavEntry[] {
   const { t } = useLanguage()
   return [
+    { type: 'link',     href: '/livescores', label: t.live },
+    { type: 'link',     href: '/schema',     label: t.schedule },
+    { type: 'link',     href: '/uitslagen',  label: t.results },
+    { type: 'link',     href: '/stand',      label: t.standings },
     {
-      label: 'Scores',
+      type: 'dropdown', label: 'Stats',
       items: [
-        { href: '/livescores',  label: t.live },
-        { href: '/schema',      label: t.schedule },
-        { href: '/uitslagen',   label: t.results },
-      ],
-    },
-    {
-      label: 'Stats',
-      items: [
-        { href: '/stand',   label: t.standings },
         { href: '/leaders', label: t.leaders },
         { href: '/rosters', label: t.rosters },
         { href: '/awards',  label: t.awards },
       ],
     },
     {
-      label: 'Games',
+      type: 'dropdown', label: 'Play',
       items: [
         { href: '/pickle',          label: 'Pickle' },
         { href: '/immaculate-grid', label: 'Immaculate Grid' },
       ],
     },
     {
-      label: 'Media',
+      type: 'dropdown', label: 'Media',
       items: [
-        { href: 'https://honkbalsoftbal.nl/?cat=544', label: t.news },
+        { href: 'https://honkbalsoftbal.nl/?cat=544', label: t.news, external: true },
         { href: '/livestream', label: t.livestream },
         { href: '/social',     label: t.social },
       ],
@@ -151,7 +148,7 @@ export default function NavBar() {
   const isHome = pathname === '/'
   const transparent = isHome && !scrolled
   const { t } = useLanguage()
-  const groups = useNavGroups()
+  const entries = useNavEntries()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -191,9 +188,19 @@ export default function NavBar() {
             {t.home}
           </Link>
 
-          {groups.map(group => (
-            <DropdownMenu key={group.label} group={group} pathname={pathname} />
-          ))}
+          {entries.map(entry =>
+            entry.type === 'link' ? (
+              <Link
+                key={entry.href}
+                href={entry.href}
+                className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === entry.href ? 'text-white' : 'text-white/60'}`}
+              >
+                {entry.label}
+              </Link>
+            ) : (
+              <DropdownMenu key={entry.label} group={entry} pathname={pathname} />
+            )
+          )}
 
           <a
             href="https://app.honkbalsoftbal.tv/nl/home"
@@ -233,36 +240,43 @@ export default function NavBar() {
             {t.home}
           </Link>
 
-          {/* Groups */}
-          {groups.map(group => (
-            <div key={group.label}>
-              <button
-                onClick={() => setOpenGroup(openGroup === group.label ? null : group.label)}
-                className="w-full flex items-center justify-between font-display font-800 text-xs uppercase tracking-widest text-[var(--muted)] px-4 py-2"
-              >
-                {group.label}
-                <svg className={`w-3 h-3 transition-transform ${openGroup === group.label ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {openGroup === group.label && (
-                <div className="grid grid-cols-2 gap-1 pl-2">
-                  {group.items.map(item => {
-                    const cls = `font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`
-                    return item.href.startsWith('http') ? (
-                      <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>
-                        {item.label}
-                      </a>
-                    ) : (
-                      <Link key={item.href} href={item.href} className={cls}>
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          ))}
+          {/* Entries */}
+          {entries.map(entry =>
+            entry.type === 'link' ? (
+              <Link key={entry.href} href={entry.href}
+                className={`block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === entry.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
+                {entry.label}
+              </Link>
+            ) : (
+              <div key={entry.label}>
+                <button
+                  onClick={() => setOpenGroup(openGroup === entry.label ? null : entry.label)}
+                  className="w-full flex items-center justify-between font-display font-800 text-xs uppercase tracking-widest text-[var(--muted)] px-4 py-2"
+                >
+                  {entry.label}
+                  <svg className={`w-3 h-3 transition-transform ${openGroup === entry.label ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {openGroup === entry.label && (
+                  <div className="grid grid-cols-2 gap-1 pl-2">
+                    {entry.items.map(item => {
+                      const cls = `font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === item.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`
+                      return item.external || item.href.startsWith('http') ? (
+                        <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={cls}>
+                          {item.label}
+                        </a>
+                      ) : (
+                        <Link key={item.href} href={item.href} className={cls}>
+                          {item.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          )}
 
           {/* External + Lang */}
           <a href="https://app.honkbalsoftbal.tv/nl/home" target="_blank" rel="noopener noreferrer"
