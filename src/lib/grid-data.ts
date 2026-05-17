@@ -113,7 +113,7 @@ export const WEEKLY_GRIDS: GridConfig[] = [
   {
     week: 3,
     rows: [C.pioniers, C.neptunus, C.hcaw],
-    cols: [C.catcher, C.switchHitter, C.young],
+    cols: [C.catcher, C.leftBatter, C.young],
   },
   {
     week: 4,
@@ -128,7 +128,7 @@ export const WEEKLY_GRIDS: GridConfig[] = [
   {
     week: 6,
     rows: [C.pirates, C.kinheim, C.hcaw],
-    cols: [C.pitcher, C.outfielder, C.switchHitter],
+    cols: [C.pitcher, C.outfielder, C.veteran],
   },
   {
     week: 7,
@@ -141,6 +141,16 @@ export const WEEKLY_GRIDS: GridConfig[] = [
     cols: [C.pitcher, C.catcher, C.young],
   },
 ]
+
+// Returns false if any of the 9 cells has zero valid answers
+export function gridIsValid(grid: GridConfig): boolean {
+  for (const rowCrit of grid.rows) {
+    for (const colCrit of grid.cols) {
+      if (getValidPlayers(rowCrit, colCrit).length === 0) return false
+    }
+  }
+  return true
+}
 
 // Grid changes every Friday — find the most recent Friday
 export function getMostRecentFriday(): Date {
@@ -156,7 +166,11 @@ export function getCurrentWeekGrid(): GridConfig {
   const lastFriday  = getMostRecentFriday()
   const startFriday = new Date('2026-04-03') // First Friday of 2026 season
   const fridayNum   = Math.max(0, Math.floor((lastFriday.getTime() - startFriday.getTime()) / (7 * 24 * 60 * 60 * 1000)))
-  return WEEKLY_GRIDS[fridayNum % WEEKLY_GRIDS.length]
+
+  // Only rotate through grids that have ≥1 valid answer per cell
+  const validGrids = WEEKLY_GRIDS.filter(gridIsValid)
+  if (validGrids.length === 0) return WEEKLY_GRIDS[0]
+  return validGrids[fridayNum % validGrids.length]
 }
 
 export function fridayDateKey(): string {
