@@ -12,7 +12,8 @@ const BROWSER_HEADERS = {
 type Row = Record<string, unknown>
 type KnbsbCategory = { type: string; label: string; data: Row[] }
 
-async function fetchKnbsbCategories(section: 'batting' | 'pitching'): Promise<KnbsbCategory[]> {
+// section=players → one row per player with all stats, no minimum threshold
+async function fetchAllPlayerStats(section: 'batting' | 'pitching'): Promise<Row[]> {
   try {
     const res = await fetch(
       `${KNBSB_BASE}?section=players&stats-section=${section}&round=&team=&split=&language=en`,
@@ -20,6 +21,32 @@ async function fetchKnbsbCategories(section: 'batting' | 'pitching'): Promise<Kn
         headers: {
           ...BROWSER_HEADERS,
           Referer: `https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/players/${section}`,
+        },
+        next: { revalidate: 300 },
+      }
+    )
+    if (!res.ok) return []
+    const data = (await res.json()).data ?? []
+    if (!Array.isArray(data) || data.length === 0) return []
+    // If items have a nested 'data' array it's category structure → flatten
+    if (Array.isArray((data[0] as KnbsbCategory)?.data)) {
+      return (data as KnbsbCategory[]).flatMap(cat => cat.data ?? [])
+    }
+    return data as Row[]
+  } catch {
+    return []
+  }
+}
+
+// section=leaders → used by the leaders page; also a category-based fallback
+async function fetchKnbsbCategories(section: 'batting' | 'pitching'): Promise<KnbsbCategory[]> {
+  try {
+    const res = await fetch(
+      `${KNBSB_BASE}?section=leaders&stats-section=${section}&round=&team=&split=&language=en`,
+      {
+        headers: {
+          ...BROWSER_HEADERS,
+          Referer: `https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/${section}`,
         },
         next: { revalidate: 300 },
       }
@@ -101,15 +128,30 @@ export type PlayerPhotos = {
   banner_focal_y: number | null
 } | null
 
-// ── computeSeasonStats — fetches all player stats (no minimum threshold) ──────
+function findInList(players: Row[], name: string): Row | null {
+  const target = normName(name)
+  return players.find(p => normName(parseKnbsbName(p)) === target) ?? null
+}
+
+// ── computeSeasonStats ────────────────────────────────────────────────────────
+// Uses section=players (no threshold) for individual pages.
+// Falls back to section=leaders categories (for players who appear there but
+// have a different name format in section=players).
 export async function computeSeasonStats(name: string): Promise<SeasonStats | null> {
-  const [batCats, pitCats] = await Promise.all([
+  const [batList, pitList, batCats, pitCats] = await Promise.all([
+    fetchAllPlayerStats('batting'),
+    fetchAllPlayerStats('pitching'),
     fetchKnbsbCategories('batting'),
     fetchKnbsbCategories('pitching'),
   ])
 
-  const bat = findPlayer(batCats, name)
-  const pit = findPlayer(pitCats, name)
+  // Prefer section=players (all players, no threshold)
+  let bat: Row | null = findInList(batList, name)
+  let pit: Row | null = findInList(pitList, name)
+
+  // Fall back to section=leaders categories (catches edge-case name format diffs)
+  if (!bat) bat = findPlayer(batCats, name)
+  if (!pit) pit = findPlayer(pitCats, name)
 
   if (!bat && !pit) return null
 
