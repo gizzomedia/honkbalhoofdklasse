@@ -12,18 +12,17 @@ type NavGroup = { type: 'dropdown'; label: string; items: NavItem[] }
 type NavEntry = NavLink | NavGroup
 
 function useNavEntries(): NavEntry[] {
-  const { t } = useLanguage()
   return [
-    { type: 'link',     href: '/livescores', label: t.live },
-    { type: 'link',     href: '/schema',     label: t.schedule },
-    { type: 'link',     href: '/uitslagen',  label: t.results },
-    { type: 'link',     href: '/stand',      label: t.standings },
+    { type: 'link', href: '/livescores', label: 'Scores' },
+    { type: 'link', href: '/schema',     label: 'Schedule' },
+    { type: 'link', href: '/uitslagen',  label: 'Results' },
+    { type: 'link', href: '/stand',      label: 'Standings' },
     {
       type: 'dropdown', label: 'Stats',
       items: [
-        { href: '/leaders', label: t.leaders },
-        { href: '/rosters', label: t.rosters },
-        { href: '/awards',  label: t.awards },
+        { href: '/leaders', label: 'Leaders' },
+        { href: '/rosters', label: 'Rosters' },
+        { href: '/awards',  label: 'Awards' },
       ],
     },
     {
@@ -36,9 +35,9 @@ function useNavEntries(): NavEntry[] {
     {
       type: 'dropdown', label: 'Media',
       items: [
-        { href: 'https://honkbalsoftbal.nl/?cat=544', label: t.news, external: true },
-        { href: '/livestream', label: t.livestream },
-        { href: '/social',     label: t.social },
+        { href: 'https://honkbalsoftbal.nl/?cat=544', label: 'News', external: true },
+        { href: '/livestream', label: 'Livestream' },
+        { href: '/social',     label: 'Social' },
       ],
     },
   ]
@@ -147,7 +146,7 @@ export default function NavBar() {
   const pathname = usePathname()
   const isHome = pathname === '/'
   const transparent = isHome && !scrolled
-  const { t } = useLanguage()
+  // language still used for LangDropdown
   const entries = useNavEntries()
 
   useEffect(() => {
@@ -185,7 +184,7 @@ export default function NavBar() {
             href="/"
             className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === '/' ? 'text-white' : 'text-white/60'}`}
           >
-            {t.home}
+            Home
           </Link>
 
           {entries.map(entry =>
@@ -237,7 +236,7 @@ export default function NavBar() {
           {/* Home */}
           <Link href="/"
             className={`block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === '/' ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
-            {t.home}
+            Home
           </Link>
 
           {/* Entries */}
