@@ -250,7 +250,7 @@ export default function NavBar() {
               <div key={entry.label}>
                 <button
                   onClick={() => setOpenGroup(openGroup === entry.label ? null : entry.label)}
-                  className="w-full flex items-center justify-between font-display font-800 text-xs uppercase tracking-widest text-[var(--muted)] px-4 py-2"
+                  className={`w-full flex items-center justify-between font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${entry.items.some(i => i.href === pathname) ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}
                 >
                   {entry.label}
                   <svg className={`w-3 h-3 transition-transform ${openGroup === entry.label ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
