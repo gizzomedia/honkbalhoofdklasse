@@ -101,6 +101,74 @@ export type PlayerPhotos = {
   banner_focal_y: number | null
 } | null
 
+// ── Supabase fallback — for players below the KNBSB leaders threshold ─────────
+async function fallbackFromSupabase(name: string): Promise<SeasonStats | null> {
+  const season = new Date().getFullYear()
+
+  // Find the most recent series week (cumulative stats)
+  const { data: weekRow } = await supabase
+    .from('batting_stats')
+    .select('series_week')
+    .eq('season', season)
+    .neq('series_week', 'season')
+    .order('series_week', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const latestWeek = weekRow?.series_week
+  if (!latestWeek) return null
+
+  const [{ data: bat }, { data: pit }] = await Promise.all([
+    supabase
+      .from('batting_stats')
+      .select('at_bats, hits, home_runs, rbi, stolen_bases, avg, obp, slg, ops')
+      .ilike('full_name', name)
+      .eq('season', season)
+      .eq('series_week', latestWeek)
+      .maybeSingle(),
+    supabase
+      .from('pitching_stats')
+      .select('innings_pitched, strikeouts, wins, saves, hits_allowed, walks, earned_runs')
+      .ilike('full_name', name)
+      .eq('season', season)
+      .eq('series_week', latestWeek)
+      .maybeSingle(),
+  ])
+
+  if (!bat && !pit) return null
+
+  const obp = Number(bat?.obp ?? 0)
+  const slg = Number(bat?.slg ?? 0)
+
+  return {
+    ab: Number(bat?.at_bats ?? 0),
+    h: Number(bat?.hits ?? 0),
+    hr: Number(bat?.home_runs ?? 0),
+    rbi: Number(bat?.rbi ?? 0),
+    r: 0, bb: 0, so: 0, double: 0, triple: 0,
+    sb: Number(bat?.stolen_bases ?? 0),
+    sf: 0, sh: 0, hbp: 0,
+    avg: bat?.avg != null ? Number(Number(bat.avg).toFixed(3)) : null,
+    obp: bat?.obp != null ? Number(obp.toFixed(3)) : null,
+    slg: bat?.slg != null ? Number(slg.toFixed(3)) : null,
+    ops: bat?.obp != null && bat?.slg != null ? Number((obp + slg).toFixed(3)) : null,
+    games: Number(bat?.at_bats ?? 0) > 0 ? 1 : 0,
+    pitch_ip: fmtIp(pit?.innings_pitched),
+    pitch_gs: 0,
+    pitch_er: Number(pit?.earned_runs ?? 0),
+    pitch_so: Number(pit?.strikeouts ?? 0),
+    pitch_bb: Number(pit?.walks ?? 0),
+    pitch_h: Number(pit?.hits_allowed ?? 0),
+    pitch_r: 0,
+    pitch_win: Number(pit?.wins ?? 0),
+    pitch_loss: 0,
+    pitch_save: Number(pit?.saves ?? 0),
+    pitch_appear: pit ? 1 : 0,
+    pitch_cg: 0,
+    era: null,
+  }
+}
+
 // ── computeSeasonStats — fetches from the same KNBSB API as the leaders page ─
 export async function computeSeasonStats(name: string): Promise<SeasonStats | null> {
   const [batCats, pitCats] = await Promise.all([
@@ -111,7 +179,9 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
   const bat = findPlayer(batCats, name)
   const pit = findPlayer(pitCats, name)
 
-  if (!bat && !pit) return null
+  // KNBSB leaders API only includes players above minimum thresholds —
+  // fall back to Supabase which has all players
+  if (!bat && !pit) return fallbackFromSupabase(name)
 
   const obp = bat ? num(bat.obp) : 0
   const slg = bat ? num(bat.slg) : 0

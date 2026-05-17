@@ -71,7 +71,7 @@ function DropdownMenu({ group, pathname }: { group: NavGroup; pathname: string }
       {open && (
         <div className="absolute top-full left-0 mt-2 bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xl z-50 min-w-[160px]">
           {group.items.map(item => {
-            const cls = `block px-4 py-2.5 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:bg-[var(--card-hover)] hover:text-white ${pathname === item.href ? 'text-[var(--accent)]' : 'text-white/70'}`
+            const cls = `block px-4 py-2.5 font-display font-700 text-sm uppercase tracking-wider transition-colors hover:bg-[var(--accent)] hover:text-white ${pathname === item.href ? 'text-[var(--accent)]' : 'text-white/70'}`
             return item.href.startsWith('http') ? (
               <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)} className={cls}>
                 {item.label}
