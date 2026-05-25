@@ -253,7 +253,7 @@ function ArchiveModal({ currentDayNum, activeDayNum, onSelect, onClose }: {
   onSelect: (n: number) => void
   onClose: () => void
 }) {
-  const entries: Array<{ n: number; save: SavedState; label: string; dow: string }> = []
+  const entries: Array<{ n: number; save: SavedState; label: string; dow: string; num: number }> = []
   for (let n = currentDayNum; n >= 0; n--) {
     const date = getDayDate(n)
     const save = loadDay(n)
@@ -261,7 +261,8 @@ function ArchiveModal({ currentDayNum, activeDayNum, onSelect, onClose }: {
       n,
       save,
       dow: date.getDay() === 4 ? 'Thursday' : 'Saturday',
-      label: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+      label: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+      num: n + 1,
     })
   }
 
@@ -279,7 +280,7 @@ function ArchiveModal({ currentDayNum, activeDayNum, onSelect, onClose }: {
           <button onClick={onClose} className="text-white/50 hover:text-white text-xl leading-none">✕</button>
         </div>
         <div className="overflow-y-auto max-h-[60vh]">
-          {entries.map(({ n, save, label, dow }) => {
+          {entries.map(({ n, save, label, dow, num }) => {
             const played = save.guesses.length > 0
             const isActive = n === activeDayNum
             return (
@@ -290,7 +291,10 @@ function ArchiveModal({ currentDayNum, activeDayNum, onSelect, onClose }: {
               >
                 <div>
                   <p className={`font-display font-800 text-sm uppercase tracking-wide ${isActive ? 'text-[var(--accent)]' : 'text-white'}`}>
-                    {dow}, {label}{n === currentDayNum ? ' (Today)' : ''}
+                    Pickle #{num}{n === currentDayNum ? ' (Today)' : ''}
+                  </p>
+                  <p className="font-display font-700 text-[11px] text-white/40 uppercase tracking-wider mt-0.5">
+                    {dow}, {label}
                   </p>
                   {played && (
                     <p className={`font-display font-700 text-xs uppercase tracking-wider mt-0.5 ${save.won ? 'text-green-400' : save.lost ? 'text-red-400' : 'text-yellow-400'}`}>
@@ -413,7 +417,7 @@ export default function PicklePage() {
       <div className="mb-5">
         <div className="flex items-center gap-3 mb-1 flex-wrap">
           <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm">
-            {getDayDate(activeDayNum).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            Pickle #{activeDayNum + 1} · {getDayDate(activeDayNum).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
           </p>
           {isViewingArchive && (
             <button
