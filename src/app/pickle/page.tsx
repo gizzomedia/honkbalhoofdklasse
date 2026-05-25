@@ -197,7 +197,7 @@ function GuessRow({ fb, target }: { fb: GuessFeedback; target: PoolPlayer }) {
         </FlipCell>
 
         <FlipCell hit={fb.yob} delay={4} arrow={fb.yobDir ?? undefined}>
-          <span className="font-display font-700 text-[9px] uppercase text-white/60">Born</span>
+          <span className="font-display font-700 text-[9px] uppercase text-white/60">YOB</span>
           <span className="font-display font-800 text-sm uppercase text-white">{fb.player.yob}</span>
         </FlipCell>
       </div>
@@ -509,7 +509,7 @@ export default function PicklePage() {
 
       {/* Column headers */}
       <div className="grid grid-cols-5 gap-1 mb-1 px-0">
-        {['Team', 'Pos', 'Bats', 'Throws', 'Born'].map(h => (
+        {['Team', 'Pos', 'Bats', 'Throws', 'YOB'].map(h => (
           <p key={h} className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] text-center">{h}</p>
         ))}
       </div>
@@ -534,7 +534,7 @@ export default function PicklePage() {
         ))}
         <div className="flex items-center gap-1">
           <span className="text-blue-300 text-xs font-bold">↑</span><span className="text-orange-300 text-xs font-bold ml-1">↓</span>
-          <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider ml-1">Birth year direction</span>
+          <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider ml-1">YOB direction</span>
         </div>
       </div>
     </div>
