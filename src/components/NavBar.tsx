@@ -210,12 +210,6 @@ export default function NavBar() {
             Honkbalsoftbal.tv
           </a>
 
-          <Link
-            href="/admin"
-            className="font-display font-800 text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/80 transition-colors"
-          >
-            Admin
-          </Link>
         </div>
 
         {/* Hamburger */}
@@ -283,14 +277,6 @@ export default function NavBar() {
             Honkbalsoftbal.tv
           </a>
 
-          <div className="pt-2 border-t border-[var(--border)] mt-2 flex items-center justify-end px-4">
-            <Link
-              href="/admin"
-              className="font-display font-800 text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/80 transition-colors"
-            >
-              Admin
-            </Link>
-          </div>
         </div>
       </div>
     </nav>
