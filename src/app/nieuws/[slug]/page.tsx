@@ -10,7 +10,7 @@ async function getArticle(slug: string) {
     .from('news_articles')
     .select('*')
     .eq('slug', slug)
-    .single()
+    .maybeSingle()
   return data
 }
 
