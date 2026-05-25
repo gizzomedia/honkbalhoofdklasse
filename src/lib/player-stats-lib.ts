@@ -107,17 +107,31 @@ function fmtIp(v: unknown): string {
   return `${Math.floor(n / 3)}.${n % 3}`
 }
 
+function ipToInnings(v: unknown): number {
+  const raw = String(v ?? '').trim()
+  if (!raw || raw === '0' || raw === '0.0') return 0
+  if (raw.includes('.')) {
+    const [full, outs] = raw.split('.').map(s => Number(s) || 0)
+    return full + outs / 3
+  }
+  const n = Number(raw)
+  if (isNaN(n) || n === 0) return 0
+  return Math.floor(n / 3) + (n % 3) / 3
+}
+
 // ── Public types ──────────────────────────────────────────────────────────────
 export type SeasonStats = {
   ab: number; h: number; hr: number; rbi: number; r: number
   bb: number; so: number; double: number; triple: number
   sb: number; sf: number; sh: number; hbp: number
+  pa: number; ibb: number; cs: number; gdp: number
   avg: number | null; obp: number | null; slg: number | null; ops: number | null
   pitch_ip: string; pitch_gs: number; pitch_er: number
   pitch_so: number; pitch_bb: number; pitch_h: number; pitch_r: number
   pitch_win: number; pitch_loss: number; pitch_save: number
-  pitch_appear: number; pitch_cg: number
-  era: number | null
+  pitch_appear: number; pitch_cg: number; pitch_sho: number; pitch_bf: number
+  pitch_hr: number; pitch_hbp: number; pitch_ibb: number; pitch_wp: number; pitch_bk: number
+  era: number | null; whip: number | null
   games: number
 }
 
@@ -167,6 +181,10 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
   const rawObp = normalizeRate(bat?.obp)
   const rawSlg = normalizeRate(bat?.slg)
 
+  const pitBb = num(pit?.pitch_bb)
+  const pitH  = num(pit?.pitch_h)
+  const pitIp = ipToInnings(pit?.pitch_ip)
+
   return {
     ab:     num(bat?.ab),
     h:      num(bat?.h),
@@ -181,6 +199,10 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
     sf:     num(bat?.sf),
     sh:     num(bat?.sh),
     hbp:    num(bat?.hbp),
+    pa:     num(bat?.pa),
+    ibb:    num(bat?.ibb),
+    cs:     num(bat?.cs),
+    gdp:    num(bat?.gdp),
     avg:    rawAvg != null ? Number(rawAvg.toFixed(3)) : null,
     obp:    rawObp != null ? Number(rawObp.toFixed(3)) : null,
     slg:    rawSlg != null ? Number(rawSlg.toFixed(3)) : null,
@@ -190,15 +212,23 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
     pitch_gs:     num(pit?.pitch_gs),
     pitch_er:     num(pit?.pitch_er),
     pitch_so:     num(pit?.pitch_so),
-    pitch_bb:     num(pit?.pitch_bb),
-    pitch_h:      num(pit?.pitch_h),
+    pitch_bb:     pitBb,
+    pitch_h:      pitH,
     pitch_r:      num(pit?.pitch_r),
     pitch_win:    num(pit?.pitch_win),
     pitch_loss:   num(pit?.pitch_loss),
     pitch_save:   num(pit?.pitch_save),
     pitch_appear: num(pit?.pitch_appear),
     pitch_cg:     num(pit?.pitch_cg),
+    pitch_sho:    num(pit?.pitch_sho),
+    pitch_bf:     num(pit?.pitch_bf),
+    pitch_hr:     num(pit?.pitch_hr),
+    pitch_hbp:    num(pit?.pitch_hbp),
+    pitch_ibb:    num(pit?.pitch_ibb),
+    pitch_wp:     num(pit?.pitch_wp),
+    pitch_bk:     num(pit?.pitch_bk),
     era:          pit?.era != null ? Number(Number(pit.era).toFixed(2)) : null,
+    whip:         pitIp > 0 ? Number(((pitBb + pitH) / pitIp).toFixed(2)) : null,
   }
 }
 

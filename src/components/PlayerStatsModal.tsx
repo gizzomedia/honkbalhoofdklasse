@@ -162,16 +162,24 @@ export default function PlayerStatsModal({
   const bannerPosition = `${photos?.banner_focal_x ?? 50}% ${photos?.banner_focal_y ?? 50}%`
 
   // Build batting stat row
+  // G, PA, AB, R, H, 2B, 3B, HR, RBI, BB, IBB, HBP, SO, SB, CS, SF, SH, GDP, AVG, OBP, SLG, OPS
   const batRow = st ? [
-    d(st.games), d(st.ab), d(st.h), d(st.double), d(st.triple), d(st.hr),
-    d(st.rbi), d(st.bb), d(st.so), d(st.sb), avg(st.avg), avg(st.obp), avg(st.slg), avg(st.ops),
+    d(st.games), d(st.pa), d(st.ab), d(st.r), d(st.h),
+    d(st.double), d(st.triple), d(st.hr), d(st.rbi),
+    d(st.bb), d(st.ibb), d(st.hbp), d(st.so),
+    d(st.sb), d(st.cs), d(st.sf), d(st.sh), d(st.gdp),
+    avg(st.avg), avg(st.obp), avg(st.slg), avg(st.ops),
   ] : []
 
   // Build pitching stat row
+  // App, GS, CG, SHO, IP, W, L, SV, BF, H, R, ER, BB, IBB, HBP, HR, SO, WP, BK, ERA, WHIP
   const pitRow = st ? [
-    d(st.pitch_appear), d(st.pitch_gs), ip(st.pitch_ip),
+    d(st.pitch_appear), d(st.pitch_gs), d(st.pitch_cg), d(st.pitch_sho), ip(st.pitch_ip),
     d(st.pitch_win), d(st.pitch_loss), d(st.pitch_save),
-    d(st.pitch_h), d(st.pitch_bb), d(st.pitch_so), d(st.pitch_er), d(st.era, 2),
+    d(st.pitch_bf), d(st.pitch_h), d(st.pitch_r), d(st.pitch_er),
+    d(st.pitch_bb), d(st.pitch_ibb), d(st.pitch_hbp), d(st.pitch_hr),
+    d(st.pitch_so), d(st.pitch_wp), d(st.pitch_bk),
+    d(st.era, 2), d(st.whip, 2),
   ] : []
 
   return (
@@ -326,13 +334,13 @@ export default function PlayerStatsModal({
                   <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">2026 Batting</p>
                   <StatTable
                     accentColor={accentColor}
-                    headers={['G','AB','H','2B','3B','HR','RBI','BB','SO','SB','AVG','OBP','SLG','OPS']}
+                    headers={['G','PA','AB','R','H','2B','3B','HR','RBI','BB','IBB','HBP','SO','SB','CS','SF','SH','GDP','AVG','OBP','SLG','OPS']}
                     rows={[
                       { label: '2026 Season', values: batRow, isAccent: false },
                       ...(career?.batting ?? []).map(r => ({
                         label: r.year === 'Career' ? 'Career' : `${r.year} ${r.lg}`,
                         isAccent: r.year === 'Career',
-                        values: [r.g, r.ab, r.h, '—', '—', r.hr, r.rbi, '—', '—', '—', r.avg, r.obp, r.slg, '—'],
+                        values: [r.g,'—',r.ab,'—',r.h,'—','—',r.hr,r.rbi,'—','—','—','—','—','—','—','—','—',r.avg,r.obp,r.slg,'—'],
                       })),
                     ]}
                   />
@@ -352,7 +360,7 @@ export default function PlayerStatsModal({
                   <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">2026 Pitching</p>
                   <StatTable
                     accentColor={accentColor}
-                    headers={['App','GS','IP','W','L','SV','H','BB','SO','ER','ERA']}
+                    headers={['App','GS','CG','SHO','IP','W','L','SV','BF','H','R','ER','BB','IBB','HBP','HR','SO','WP','BK','ERA','WHIP']}
                     rows={[{ label: '2026 Season', values: pitRow }]}
                   />
                   {career?.pitching && career.pitching.length > 0 && (
