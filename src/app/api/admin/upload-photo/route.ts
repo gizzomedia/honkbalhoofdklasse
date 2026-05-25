@@ -7,7 +7,6 @@ const TARGET_BYTES = 500 * 1024 // 500 KB
 async function compress(buffer: Buffer, isHeadshot: boolean): Promise<{ data: Buffer; contentType: string }> {
   const maxWidth = isHeadshot ? 800 : 1600
 
-  // Try progressively lower quality until under 500 KB
   for (let quality = 82; quality >= 20; quality -= 10) {
     const data = await sharp(buffer)
       .resize({ width: maxWidth, withoutEnlargement: true })
@@ -19,9 +18,14 @@ async function compress(buffer: Buffer, isHeadshot: boolean): Promise<{ data: Bu
     }
   }
 
-  // Fallback (shouldn't reach here)
   const data = await sharp(buffer).resize({ width: maxWidth, withoutEnlargement: true }).jpeg({ quality: 20 }).toBuffer()
   return { data, contentType: 'image/jpeg' }
+}
+
+function storagePathFromUrl(url: string): string | null {
+  // e.g. https://xxx.supabase.co/storage/v1/object/public/player-photos/slug/banner-123.jpg?v=...
+  const match = url.match(/\/player-photos\/(.+?)(?:\?|$)/)
+  return match ? match[1] : null
 }
 
 export async function POST(req: NextRequest) {
@@ -29,11 +33,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const formData  = await req.formData()
-  const file      = formData.get('file') as File | null
+  const formData   = await req.formData()
+  const file       = formData.get('file') as File | null
   const playerName = formData.get('playerName') as string | null
-  const teamId    = formData.get('teamId') as string | null
-  const photoType = formData.get('photoType') as 'banner' | 'headshot' | null
+  const teamId     = formData.get('teamId') as string | null
+  const photoType  = formData.get('photoType') as 'banner' | 'headshot' | null
 
   if (!file || !playerName || !photoType) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
@@ -52,29 +56,39 @@ export async function POST(req: NextRequest) {
   const rawBuffer = Buffer.from(await file.arrayBuffer())
   const { data: compressed, contentType } = await compress(rawBuffer, photoType === 'headshot')
 
-  const path = `${slug}/${photoType}.jpg`
+  // Unique path — timestamp ensures a fresh CDN entry every upload
+  const path = `${slug}/${photoType}-${Date.now()}.jpg`
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from('player-photos')
-    .upload(path, compressed, { contentType, upsert: true })
+    .upload(path, compressed, { contentType, upsert: false })
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 })
   }
 
   const { data: urlData } = supabaseAdmin.storage.from('player-photos').getPublicUrl(path)
-  const publicUrl = `${urlData.publicUrl}?v=${Date.now()}`
-  const col     = photoType === 'banner' ? 'banner_url' : 'headshot_url'
-  const sizeCol = photoType === 'banner' ? 'banner_size_kb' : 'headshot_size_kb'
-  const sizeKb  = Math.round(compressed.length / 1024)
+  const publicUrl = urlData.publicUrl
+  const col       = photoType === 'banner' ? 'banner_url' : 'headshot_url'
+  const sizeCol   = photoType === 'banner' ? 'banner_size_kb' : 'headshot_size_kb'
+  const sizeKb    = Math.round(compressed.length / 1024)
 
   const { data: existing } = await supabaseAdmin
     .from('player_photos')
-    .select('id')
+    .select('id, banner_url, headshot_url')
     .ilike('player_name', playerName)
     .maybeSingle()
 
   if (existing) {
+    // Delete old file from storage so it doesn't linger
+    const oldUrl = photoType === 'banner' ? existing.banner_url : existing.headshot_url
+    if (oldUrl) {
+      const oldPath = storagePathFromUrl(oldUrl)
+      if (oldPath && oldPath !== path) {
+        await supabaseAdmin.storage.from('player-photos').remove([oldPath])
+      }
+    }
+
     await supabaseAdmin
       .from('player_photos')
       .update({ [col]: publicUrl, [sizeCol]: sizeKb, updated_at: new Date().toISOString() })
@@ -85,8 +99,5 @@ export async function POST(req: NextRequest) {
       .insert({ player_name: playerName, team_id: teamId, [col]: publicUrl, [sizeCol]: sizeKb })
   }
 
-  return NextResponse.json({
-    url: publicUrl,
-    size_kb: Math.round(compressed.length / 1024),
-  })
+  return NextResponse.json({ url: publicUrl, size_kb: sizeKb })
 }
