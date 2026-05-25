@@ -330,7 +330,7 @@ export default function AdminPhotosPage() {
   const [compressing, setCompressing] = useState<{ done: number; total: number } | null>(null)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('admin-pw')
+    const stored = localStorage.getItem('admin-pw')
     if (stored) { setSavedPw(stored); setAuthed(true); loadPhotos(stored) }
   }, [])
 
@@ -377,7 +377,7 @@ export default function AdminPhotosPage() {
   async function login() {
     const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': pw } })
     if (res.ok) {
-      sessionStorage.setItem('admin-pw', pw)
+      localStorage.setItem('admin-pw', pw)
       setSavedPw(pw)
       setAuthed(true)
       setPhotos(await res.json())

@@ -49,7 +49,7 @@ export default function AdminStreamsPage() {
   const [msg, setMsg]         = useState<string | null>(null)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('admin-pw')
+    const stored = localStorage.getItem('admin-pw')
     if (stored) { setSavedPw(stored); setAuthed(true); load(stored) }
   }, [])
 
@@ -64,7 +64,7 @@ export default function AdminStreamsPage() {
   async function login() {
     const res = await fetch('/api/admin/streams', { headers: { 'x-admin-password': pw } })
     if (res.ok) {
-      sessionStorage.setItem('admin-pw', pw)
+      localStorage.setItem('admin-pw', pw)
       setSavedPw(pw); setAuthed(true)
       const { games: g, streams: s } = await res.json()
       setGames(g ?? []); setStreams(s ?? [])
