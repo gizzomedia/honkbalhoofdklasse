@@ -155,7 +155,7 @@ export default function PlayerStatsModal({
 
   const hasBatting  = n(st?.ab) > 0
   const hasPitching = n(st?.pitch_appear) > 0
-  const age         = rosterPlayer?.yob ? new Date().getFullYear() - rosterPlayer.yob : null
+  const age         = rosterPlayer?.yob ?? null
 
   const bannerUrl      = photos?.banner_url ?? null
   const headshotUrl    = headshotFaceUrl(photos?.headshot_url ?? null)
@@ -274,7 +274,7 @@ export default function PlayerStatsModal({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-white/50 font-display font-700 uppercase tracking-widest text-[10px]">
                 {rosterPlayer?.pos && <span className="text-white/75">{rosterPlayer.pos}</span>}
                 {rosterPlayer?.bt  && <><span className="text-white/25">|</span><span>B/T: <span className="text-white/75">{rosterPlayer.bt}</span></span></>}
-                {age               && <><span className="text-white/25">|</span><span>Age: <span className="text-white/75">{age}</span></span></>}
+                {age               && <><span className="text-white/25">|</span><span>YOB: <span className="text-white/75">{age}</span></span></>}
               </div>
             </div>
           </div>
