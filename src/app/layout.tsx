@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import NavBar from '@/components/NavBar'
 import { LanguageProvider } from '@/lib/language'
 import './globals.css'
@@ -229,6 +230,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   )
