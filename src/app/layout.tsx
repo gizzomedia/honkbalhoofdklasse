@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import NavBar from '@/components/NavBar'
 import { LanguageProvider } from '@/lib/language'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const barlowCondensed = Barlow_Condensed({
@@ -229,6 +230,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   )
