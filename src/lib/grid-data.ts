@@ -101,44 +101,64 @@ export type GridConfig = {
 
 export const WEEKLY_GRIDS: GridConfig[] = [
   {
+    // Teams as rows — classic opener
     week: 1,
     rows: [C.neptunus, C.pirates, C.kinheim],
     cols: [C.pitcher, C.infielder, C.young],
   },
   {
+    // Teams as cols — inverted layout
     week: 2,
-    rows: [C.hcaw, C.twins, C.uvv],
-    cols: [C.pitcher, C.outfielder, C.veteran],
+    rows: [C.outfielder, C.veteran, C.leftBatter],
+    cols: [C.hcaw, C.uvv, C.pirates],
   },
   {
+    // Teams as rows — handedness focus
     week: 3,
     rows: [C.pioniers, C.neptunus, C.hcaw],
-    cols: [C.catcher, C.leftBatter, C.young],
+    cols: [C.catcher, C.leftBatter, C.rightBatter],
   },
   {
+    // Teams as cols — position players only
     week: 4,
-    rows: [C.kinheim, C.pirates, C.uvv],
-    cols: [C.pitcher, C.leftBatter, C.veteran],
+    rows: [C.catcher, C.outfielder, C.nonPitcher],
+    cols: [C.kinheim, C.uvv, C.twins],
   },
   {
+    // Teams as rows — age + handedness
     week: 5,
     rows: [C.twins, C.pioniers, C.neptunus],
     cols: [C.infielder, C.rightBatter, C.young],
   },
   {
+    // Teams as cols — pitcher spotlight
     week: 6,
-    rows: [C.pirates, C.kinheim, C.hcaw],
-    cols: [C.pitcher, C.outfielder, C.veteran],
+    rows: [C.pitcher, C.infielder, C.veteran],
+    cols: [C.pirates, C.kinheim, C.hcaw],
   },
   {
+    // Teams as rows — veteran vs young
     week: 7,
     rows: [C.uvv, C.twins, C.pioniers],
-    cols: [C.nonPitcher, C.leftBatter, C.veteran],
+    cols: [C.veteran, C.young, C.outfielder],
   },
   {
+    // Teams as cols — mixed criteria
     week: 8,
-    rows: [C.neptunus, C.kinheim, C.uvv],
-    cols: [C.pitcher, C.catcher, C.young],
+    rows: [C.pitcher, C.leftBatter, C.young],
+    cols: [C.neptunus, C.uvv, C.pioniers],
+  },
+  {
+    // Teams as rows — catcher + infielder
+    week: 9,
+    rows: [C.neptunus, C.hcaw, C.kinheim],
+    cols: [C.catcher, C.infielder, C.veteran],
+  },
+  {
+    // Teams as cols — position players focus
+    week: 10,
+    rows: [C.nonPitcher, C.rightBatter, C.young],
+    cols: [C.pirates, C.twins, C.uvv],
   },
 ]
 
