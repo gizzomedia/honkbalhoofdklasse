@@ -20,24 +20,46 @@ const ALL_PLAYERS: PoolPlayer[] = Object.entries(ROSTERS)
   .flatMap(([teamId, r]) => r.players.map(p => ({ ...p, teamId })))
   .sort((a, b) => a.name.localeCompare(b.name))
 
-// ── Daily player ──────────────────────────────────────────────────────────────
+// ── Day numbering ─────────────────────────────────────────────────────────────
 
-// Game days: Thursday (4) and Saturday (6)
-// On other days, use the most recent game day's puzzle
+// Game days: Thursday (4) and Saturday (6), alternating each week.
+// Day 0 = Thursday April 2, 2026 (day 1 = Sat Apr 4, day 2 = Thu Apr 9, …)
+const START_PICKLE_THU = new Date('2026-04-02')
+
 function getGameDayDate(): Date {
   const now = new Date()
   const dow = now.getDay() // 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat
-  const daysBack = [1, 2, 3, 4, 0, 1, 0][dow] // Sun→Sat Mon→Sat Tue→Sat Wed→Sat Thu→Thu Fri→Thu Sat→Sat
+  const daysBack = [1, 2, 3, 4, 0, 1, 0][dow]
   const d = new Date(now)
   d.setDate(d.getDate() - daysBack)
   return d
 }
 
-function getDailyPlayer(): PoolPlayer {
-  const gameDay = getGameDayDate()
-  const day     = Math.floor(gameDay.getTime() / 86400000)
-  let seed      = day * 1664525 + 1013904223
-  const arr     = [...ALL_PLAYERS]
+function getDayDate(n: number): Date {
+  const weekIdx = Math.floor(n / 2)
+  const dayInWeek = n % 2 // 0=Thu, 1=Sat
+  const d = new Date(START_PICKLE_THU)
+  d.setDate(d.getDate() + weekIdx * 7 + (dayInWeek === 1 ? 2 : 0))
+  return d
+}
+
+function dateToDayNum(date: Date): number {
+  const daysSinceStart = Math.floor((date.getTime() - START_PICKLE_THU.getTime()) / 86400000)
+  if (daysSinceStart < 0) return 0
+  const weekIdx = Math.floor(daysSinceStart / 7)
+  const dayInWeek = date.getDay() === 6 ? 1 : 0
+  return weekIdx * 2 + dayInWeek
+}
+
+function getCurrentDayNum(): number {
+  return Math.max(0, dateToDayNum(getGameDayDate()))
+}
+
+function getPlayerForDayNum(n: number): PoolPlayer {
+  const date = getDayDate(n)
+  const day = Math.floor(date.getTime() / 86400000)
+  let seed = day * 1664525 + 1013904223
+  const arr = [...ALL_PLAYERS]
   for (let i = arr.length - 1; i > 0; i--) {
     seed = (seed * 1664525 + 1013904223) & 0xffffffff
     const j = Math.abs(seed) % (i + 1)
@@ -46,12 +68,7 @@ function getDailyPlayer(): PoolPlayer {
   return arr[0]
 }
 
-function todayKey() {
-  const d = getGameDayDate()
-  return `pickle_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`
-}
-
-// ── Feedback ──────────────────────────────────────────────────────────────────
+// ── Feedback types ────────────────────────────────────────────────────────────
 
 type Hit = 'correct' | 'close' | 'wrong'
 type Dir = 'up' | 'down' | null
@@ -60,6 +77,35 @@ type GuessFeedback = {
   player: PoolPlayer
   team: Hit; pos: Hit; bats: Hit; throws: Hit; yob: Hit; yobDir: Dir
 }
+
+// ── Save / load ───────────────────────────────────────────────────────────────
+
+type SavedState = { guesses: GuessFeedback[]; won: boolean; lost: boolean }
+
+function dayKey(n: number) { return `pickle_d${n}` }
+
+function loadDay(n: number): SavedState {
+  try {
+    const raw = localStorage.getItem(dayKey(n))
+    if (raw) return JSON.parse(raw)
+  } catch { /* corrupted */ }
+  return { guesses: [], won: false, lost: false }
+}
+
+function saveDayState(n: number, state: SavedState) {
+  try { localStorage.setItem(dayKey(n), JSON.stringify(state)) } catch { /* quota */ }
+}
+
+function migrateOldSave(currentDayNum: number) {
+  const gameDayDate = getGameDayDate()
+  const oldKey = `pickle_${gameDayDate.getFullYear()}_${gameDayDate.getMonth()}_${gameDayDate.getDate()}`
+  const newKey = dayKey(currentDayNum)
+  if (localStorage.getItem(newKey)) return
+  const old = localStorage.getItem(oldKey)
+  if (old) { localStorage.setItem(newKey, old); localStorage.removeItem(oldKey) }
+}
+
+// ── Evaluate ──────────────────────────────────────────────────────────────────
 
 function evaluate(guess: PoolPlayer, target: PoolPlayer): GuessFeedback {
   const yobDiff = target.yob - guess.yob
@@ -115,7 +161,6 @@ function GuessRow({ fb, target }: { fb: GuessFeedback; target: PoolPlayer }) {
   const isCorrect = fb.player.name.toLowerCase() === target.name.toLowerCase()
   return (
     <div className="space-y-1">
-      {/* Name bar */}
       <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
         isCorrect ? 'bg-green-700 border-green-600' : 'bg-[#0d1b2e] border-[var(--border)]'
       }`}>
@@ -127,9 +172,7 @@ function GuessRow({ fb, target }: { fb: GuessFeedback; target: PoolPlayer }) {
         {isCorrect && <span className="text-green-300 font-bold shrink-0">✓</span>}
       </div>
 
-      {/* 5 attribute cells */}
       <div className="grid grid-cols-5 gap-1">
-        {/* Team */}
         <FlipCell hit={fb.team} delay={0}>
           <div className="w-7 h-7 rounded-lg flex items-center justify-center p-1 shrink-0"
             style={{ backgroundColor: TEAM_COLORS[fb.player.teamId] }}>
@@ -138,25 +181,21 @@ function GuessRow({ fb, target }: { fb: GuessFeedback; target: PoolPlayer }) {
           <span className="font-display font-700 text-[9px] uppercase text-white/70 text-center leading-none">{TEAM_NAMES[fb.player.teamId]}</span>
         </FlipCell>
 
-        {/* Position */}
         <FlipCell hit={fb.pos} delay={1}>
           <span className="font-display font-800 text-sm uppercase text-white">{fb.player.pos}</span>
           <span className="font-display font-700 text-[9px] uppercase text-white/60 text-center leading-none">{POS_LABEL[fb.player.pos]?.slice(0,6) ?? fb.player.pos}</span>
         </FlipCell>
 
-        {/* Bats */}
         <FlipCell hit={fb.bats} delay={2}>
           <span className="font-display font-700 text-[9px] uppercase text-white/60">Bats</span>
           <span className="font-display font-800 text-base uppercase text-white">{fb.player.bt[0]}</span>
         </FlipCell>
 
-        {/* Throws */}
         <FlipCell hit={fb.throws} delay={3}>
           <span className="font-display font-700 text-[9px] uppercase text-white/60">Throws</span>
           <span className="font-display font-800 text-base uppercase text-white">{fb.player.bt.at(-1)}</span>
         </FlipCell>
 
-        {/* Born */}
         <FlipCell hit={fb.yob} delay={4} arrow={fb.yobDir ?? undefined}>
           <span className="font-display font-700 text-[9px] uppercase text-white/60">Born</span>
           <span className="font-display font-800 text-sm uppercase text-white">{fb.player.yob}</span>
@@ -187,7 +226,7 @@ function EmptyRows({ count }: { count: number }) {
 
 // ── Share ─────────────────────────────────────────────────────────────────────
 
-function buildShareText(guesses: GuessFeedback[], won: boolean): string {
+function buildShareText(guesses: GuessFeedback[], won: boolean, dateStr: string): string {
   const row = (fb: GuessFeedback) => [
     fb.team   === 'correct' ? '🟩' : '🟥',
     fb.pos    === 'correct' ? '🟩' : '🟥',
@@ -197,7 +236,7 @@ function buildShareText(guesses: GuessFeedback[], won: boolean): string {
   ].join('')
 
   return [
-    `Hoofdklasse Pickle — ${new Date().toLocaleDateString('nl-NL')}`,
+    `Hoofdklasse Pickle — ${dateStr}`,
     won ? `✅ ${guesses.length}/${MAX_GUESSES}` : `❌ ${MAX_GUESSES}/${MAX_GUESSES}`,
     '',
     ...guesses.map(row),
@@ -206,12 +245,84 @@ function buildShareText(guesses: GuessFeedback[], won: boolean): string {
   ].join('\n')
 }
 
+// ── Archive Modal ─────────────────────────────────────────────────────────────
+
+function ArchiveModal({ currentDayNum, activeDayNum, onSelect, onClose }: {
+  currentDayNum: number
+  activeDayNum: number
+  onSelect: (n: number) => void
+  onClose: () => void
+}) {
+  const entries: Array<{ n: number; save: SavedState; label: string; dow: string }> = []
+  for (let n = currentDayNum; n >= 0; n--) {
+    const date = getDayDate(n)
+    const save = loadDay(n)
+    entries.push({
+      n,
+      save,
+      dow: date.getDay() === 4 ? 'Thursday' : 'Saturday',
+      label: date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl mt-24 mx-4 w-full max-w-md overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <h2 className="font-display font-800 text-lg uppercase tracking-wide text-white">Previous Puzzles</h2>
+          <button onClick={onClose} className="text-white/50 hover:text-white text-xl leading-none">✕</button>
+        </div>
+        <div className="overflow-y-auto max-h-[60vh]">
+          {entries.map(({ n, save, label, dow }) => {
+            const played = save.guesses.length > 0
+            const isActive = n === activeDayNum
+            return (
+              <button
+                key={n}
+                onClick={() => { onSelect(n); onClose() }}
+                className={`w-full flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)] last:border-0 transition-colors text-left ${isActive ? 'bg-[var(--accent)]/15' : 'hover:bg-[var(--card-hover)]'}`}
+              >
+                <div>
+                  <p className={`font-display font-800 text-sm uppercase tracking-wide ${isActive ? 'text-[var(--accent)]' : 'text-white'}`}>
+                    {dow}, {label}{n === currentDayNum ? ' (Today)' : ''}
+                  </p>
+                  {played && (
+                    <p className={`font-display font-700 text-xs uppercase tracking-wider mt-0.5 ${save.won ? 'text-green-400' : save.lost ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {save.won
+                        ? `Won · ${save.guesses.length}/${MAX_GUESSES}`
+                        : save.lost
+                          ? 'Lost'
+                          : `In progress · ${save.guesses.length}/${MAX_GUESSES}`}
+                    </p>
+                  )}
+                </div>
+                <span className={`font-display font-700 text-xs uppercase tracking-widest shrink-0 ml-4 ${
+                  played
+                    ? (save.won ? 'text-green-400' : save.lost ? 'text-red-400' : 'text-yellow-400')
+                    : 'text-[var(--accent)]'
+                }`}>
+                  {played ? (save.won ? '✓' : save.lost ? '✗' : '…') : 'Play →'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-type SavedState = { guesses: GuessFeedback[]; won: boolean; lost: boolean }
-
 export default function PicklePage() {
-  const target = getDailyPlayer()
+  const currentDayNum = getCurrentDayNum()
+  const [activeDayNum, setActiveDayNum] = useState(currentDayNum)
   const [guesses, setGuesses]   = useState<GuessFeedback[]>([])
   const [won,  setWon]          = useState(false)
   const [lost, setLost]         = useState(false)
@@ -219,18 +330,37 @@ export default function PicklePage() {
   const [suggestions, setSugg]  = useState<PoolPlayer[]>([])
   const [selIdx, setSelIdx]     = useState(-1)
   const [shared, setShared]     = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const skipNextSaveRef = useRef(false)
 
+  const target = getPlayerForDayNum(activeDayNum)
+
+  // Load save on mount + migrate old date-based key
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(todayKey())
-      if (raw) { const s: SavedState = JSON.parse(raw); setGuesses(s.guesses); setWon(s.won); setLost(s.lost) }
-    } catch { /* corrupted save — start fresh */ }
+    migrateOldSave(currentDayNum)
+    const s = loadDay(currentDayNum)
+    setGuesses(s.guesses); setWon(s.won); setLost(s.lost)
+  }, [currentDayNum])
+
+  // Persist state after any guess, skip once after a day switch
+  useEffect(() => {
+    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return }
+    if (guesses.length > 0 || won || lost)
+      saveDayState(activeDayNum, { guesses, won, lost })
+  }, [guesses, won, lost, activeDayNum])
+
+  const handleDayChange = useCallback((n: number) => {
+    skipNextSaveRef.current = true
+    const s = loadDay(n)
+    setActiveDayNum(n)
+    setGuesses(s.guesses)
+    setWon(s.won)
+    setLost(s.lost)
+    setQuery('')
+    setSugg([])
+    setSelIdx(-1)
   }, [])
-
-  useEffect(() => {
-    if (guesses.length > 0) localStorage.setItem(todayKey(), JSON.stringify({ guesses, won, lost }))
-  }, [guesses, won, lost])
 
   useEffect(() => {
     if (query.length < 2) { setSugg([]); return }
@@ -260,24 +390,51 @@ export default function PicklePage() {
   }
 
   const share = () => {
-    navigator.clipboard.writeText(buildShareText(guesses, won))
+    const dateStr = getDayDate(activeDayNum).toLocaleDateString('nl-NL')
+    navigator.clipboard.writeText(buildShareText(guesses, won, dateStr))
     setShared(true); setTimeout(() => setShared(false), 2000)
   }
 
   const remaining = MAX_GUESSES - guesses.length
+  const isViewingArchive = activeDayNum < currentDayNum
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-8">
+      {showArchive && (
+        <ArchiveModal
+          currentDayNum={currentDayNum}
+          activeDayNum={activeDayNum}
+          onSelect={handleDayChange}
+          onClose={() => setShowArchive(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="mb-5">
-        <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">
-          {getGameDayDate().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
+        <div className="flex items-center gap-3 mb-1 flex-wrap">
+          <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm">
+            {getDayDate(activeDayNum).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+          {isViewingArchive && (
+            <button
+              onClick={() => handleDayChange(currentDayNum)}
+              className="font-display font-700 text-xs text-white/60 hover:text-white uppercase tracking-wider transition-colors"
+            >
+              ← Today&apos;s Puzzle
+            </button>
+          )}
+        </div>
         <div className="flex items-end justify-between gap-4">
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
             <strong>Hoofdklasse</strong><span className="text-[var(--accent)]"> Pickle</span>
           </h1>
-          <div className="flex items-end gap-3 shrink-0">
+          <div className="flex items-center gap-3 shrink-0 pb-1">
+            <button
+              onClick={() => setShowArchive(true)}
+              className="font-display font-700 text-xs text-white/60 hover:text-white uppercase tracking-wider transition-colors border border-white/20 hover:border-white/40 rounded-lg px-2.5 py-1.5"
+            >
+              Archive ▾
+            </button>
             <div className="text-right">
               <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">Guesses left</p>
               <p className={`font-display font-800 text-3xl ${remaining <= 3 ? 'text-[var(--accent)]' : 'text-white'}`}>{remaining}</p>
