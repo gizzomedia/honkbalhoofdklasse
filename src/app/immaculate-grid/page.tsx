@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import { getCurrentWeekGrid, getMostRecentFriday, fridayDateKey, isValidAnswer, type Criterion, type GridConfig } from '@/lib/grid-data'
+import {
+  getCurrentFridayNum, getGridForFridayNum, getFridayDate,
+  fridayDateKey, isValidAnswer, type Criterion, type GridConfig,
+} from '@/lib/grid-data'
 import NotifyButton from '@/components/NotifyButton'
 import { ROSTERS } from '@/lib/rosters-data'
 import { TEAM_COLORS, TEAM_LOGOS } from '@/lib/teams'
@@ -11,7 +14,37 @@ const ALL_PLAYERS = Object.entries(ROSTERS).flatMap(([teamId, r]) =>
   r.players.map(p => ({ name: p.name, teamId }))
 ).sort((a, b) => a.name.localeCompare(b.name))
 
-// ── Header cell: logo for teams, bold text for criteria ────────────────────
+const CURRENT_FRIDAY_NUM = getCurrentFridayNum()
+
+// ── localStorage helpers ───────────────────────────────────────────────────
+type SavedState = { cells: CellData[]; guessesLeft: number }
+
+function saveKey(weekNum: number) { return `hk_grid_w${weekNum}` }
+
+function loadWeek(weekNum: number): SavedState {
+  try {
+    const raw = localStorage.getItem(saveKey(weekNum))
+    if (raw) return JSON.parse(raw) as SavedState
+  } catch { /* ignore */ }
+  return { cells: Array(9).fill(null).map(() => ({ state: 'empty' as CellState, guess: '' })), guessesLeft: 9 }
+}
+
+function saveWeekState(weekNum: number, cells: CellData[], guessesLeft: number) {
+  try { localStorage.setItem(saveKey(weekNum), JSON.stringify({ cells, guessesLeft })) } catch { /* ignore */ }
+}
+
+function migrateOldSave() {
+  // Move date-based save (old format) to week-based save for current week
+  try {
+    const newKey = saveKey(CURRENT_FRIDAY_NUM)
+    if (!localStorage.getItem(newKey)) {
+      const old = localStorage.getItem(`hk_grid_${fridayDateKey()}`)
+      if (old) localStorage.setItem(newKey, old)
+    }
+  } catch { /* ignore */ }
+}
+
+// ── Header cell ────────────────────────────────────────────────────────────
 function HeaderCell({ crit, axis }: { crit: Criterion; axis: 'row' | 'col' }) {
   const isTeam = crit.type === 'team'
   const size = axis === 'col' ? 64 : 56
@@ -83,7 +116,6 @@ function InputModal({
       <div className="relative w-full max-w-sm bg-[#0a1220] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}>
 
-        {/* Criteria context */}
         <div className="px-5 py-4 border-b border-[var(--border)] bg-[#060e1a]">
           <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Name a player who is a…</p>
           <div className="flex items-center gap-2 flex-wrap">
@@ -131,6 +163,75 @@ function InputModal({
   )
 }
 
+// ── Archive modal ──────────────────────────────────────────────────────────
+function ArchiveModal({ currentWeek, selectedWeek, onSelect, onClose }: {
+  currentWeek: number; selectedWeek: number
+  onSelect: (week: number) => void; onClose: () => void
+}) {
+  // Build list of all past weeks (newest first, excluding current)
+  const weeks = Array.from({ length: currentWeek }, (_, i) => currentWeek - 1 - i)
+
+  function getScore(week: number): number | null {
+    try {
+      const raw = localStorage.getItem(saveKey(week))
+      if (!raw) return null
+      const s = JSON.parse(raw) as SavedState
+      return s.cells.filter(c => c.state === 'correct').length
+    } catch { return null }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-xs bg-[#0a1220] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '80vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between shrink-0">
+          <p className="font-display font-800 text-sm uppercase text-white tracking-widest">Grid Archive</p>
+          <button onClick={onClose} className="text-white/60 hover:text-white text-xl leading-none">×</button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-2">
+          {weeks.length === 0 && (
+            <p className="px-4 py-8 text-center font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">
+              No previous grids yet
+            </p>
+          )}
+          {weeks.map(week => {
+            const score = getScore(week)
+            const date  = getFridayDate(week).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            const isActive = week === selectedWeek
+
+            return (
+              <button
+                key={week}
+                onClick={() => { onSelect(week); onClose() }}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-[var(--accent)]/20 border border-[var(--accent)]/30' : 'hover:bg-[var(--card-hover)]'}`}
+              >
+                <div className="text-left">
+                  <p className="font-display font-800 text-sm uppercase text-white">Grid #{week + 1}</p>
+                  <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">{date}</p>
+                </div>
+                {score !== null ? (
+                  <span className="font-display font-800 text-sm" style={{
+                    color: score === 9 ? '#22c55e' : score >= 6 ? '#f59e0b' : 'rgba(255,255,255,0.45)',
+                  }}>
+                    {score}/9
+                  </span>
+                ) : (
+                  <span className="font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-widest">Play →</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Game cell ──────────────────────────────────────────────────────────────
 type CellState = 'empty' | 'correct' | 'wrong'
 type CellData  = { state: CellState; guess: string; teamId?: string; photoUrl?: string | null; focalX?: number | null; focalY?: number | null }
@@ -153,12 +254,9 @@ function GameCell({ cell, canClick, flash, onClick }: {
       className={`rounded-xl border flex flex-col items-center justify-center transition-all select-none relative overflow-hidden ${bg} ${flash ? 'scale-95' : ''}`}
       style={{ minHeight: 110 }}
     >
-      {/* Banner photo background for correct guesses */}
       {cell.state === 'correct' && cell.photoUrl && (
         <Image
-          src={cell.photoUrl}
-          alt={cell.guess}
-          fill
+          src={cell.photoUrl} alt={cell.guess} fill
           className="object-cover opacity-40"
           style={{ objectPosition: `${cell.focalX ?? 50}% ${cell.focalY ?? 50}%` }}
           sizes="200px"
@@ -168,7 +266,6 @@ function GameCell({ cell, canClick, flash, onClick }: {
       <div className="relative z-10 flex flex-col items-center justify-center p-3 w-full h-full">
         {cell.state === 'correct' && cell.teamId && (
           <>
-            {/* Show logo only if no photo loaded yet */}
             {!cell.photoUrl && (
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-2 p-1.5 shrink-0"
                 style={{ backgroundColor: TEAM_COLORS[cell.teamId] ?? '#1e335a' }}>
@@ -196,27 +293,38 @@ function GameCell({ cell, canClick, flash, onClick }: {
 }
 
 // ── Main page ──────────────────────────────────────────────────────────────
-const SAVE_KEY = () => `hk_grid_${fridayDateKey()}`
-
 export default function ImmaculateGridPage() {
-  const grid: GridConfig = getCurrentWeekGrid()
-  const [cells, setCells] = useState<CellData[]>(() =>
-    Array(9).fill(null).map(() => ({ state: 'empty' as CellState, guess: '' }))
-  )
-  const [guessesLeft, setGuessesLeft] = useState(9)
-  const [activeCell, setActiveCell] = useState<number | null>(null)
-  const [flashes, setFlashes] = useState<Record<number, { ok: boolean }>>({})
+  const [selectedWeek, setSelectedWeek] = useState(CURRENT_FRIDAY_NUM)
+  const [cells, setCells] = useState<CellData[]>(() => {
+    migrateOldSave()
+    return loadWeek(CURRENT_FRIDAY_NUM).cells
+  })
+  const [guessesLeft, setGuessesLeft] = useState(() => loadWeek(CURRENT_FRIDAY_NUM).guessesLeft)
+  const [activeCell, setActiveCell]   = useState<number | null>(null)
+  const [flashes, setFlashes]         = useState<Record<number, { ok: boolean }>>({})
+  const [showArchive, setShowArchive] = useState(false)
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SAVE_KEY())
-      if (saved) { const p = JSON.parse(saved); setCells(p.cells); setGuessesLeft(p.guessesLeft) }
-    } catch { /* corrupted save — start fresh */ }
-  }, [])
+  // Prevent the save effect from firing right after a week switch
+  const skipNextSaveRef = useRef(false)
 
+  const grid: GridConfig = getGridForFridayNum(selectedWeek)
+
+  // When selectedWeek changes, load that week's state
+  function handleWeekChange(week: number) {
+    skipNextSaveRef.current = true
+    setSelectedWeek(week)
+    const saved = loadWeek(week)
+    setCells(saved.cells)
+    setGuessesLeft(saved.guessesLeft)
+    setActiveCell(null)
+    setFlashes({})
+  }
+
+  // Save whenever cells or guessesLeft change (but skip right after a week switch)
   useEffect(() => {
-    localStorage.setItem(SAVE_KEY(), JSON.stringify({ cells, guessesLeft }))
-  }, [cells, guessesLeft])
+    if (skipNextSaveRef.current) { skipNextSaveRef.current = false; return }
+    saveWeekState(selectedWeek, cells, guessesLeft)
+  }, [cells, guessesLeft]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGuess = useCallback((cellIdx: number, playerName: string) => {
     const row = Math.floor(cellIdx / 3)
@@ -242,14 +350,13 @@ export default function ImmaculateGridPage() {
     setGuessesLeft(g => g - 1)
     setActiveCell(null)
 
-    // Fetch banner photo for correct guesses — applied as cell background
     if (valid) {
       fetch(`/api/player-stats?name=${encodeURIComponent(playerName)}`)
         .then(r => r.json())
         .then(data => {
           const photoUrl = (data.photos?.banner_url ?? null) as string | null
-          const focalX  = (data.photos?.banner_focal_x ?? 50) as number
-          const focalY  = (data.photos?.banner_focal_y ?? 50) as number
+          const focalX   = (data.photos?.banner_focal_x ?? 50) as number
+          const focalY   = (data.photos?.banner_focal_y ?? 50) as number
           setCells(prev => {
             const next = [...prev]
             if (next[cellIdx]?.state === 'correct') {
@@ -264,19 +371,43 @@ export default function ImmaculateGridPage() {
 
   const score = cells.filter(c => c.state === 'correct').length
   const done  = guessesLeft === 0 || score === 9
+  const isArchive = selectedWeek < CURRENT_FRIDAY_NUM
+  const gridDate  = getFridayDate(selectedWeek)
 
-  // Grid layout: 4 cols × 4 rows (corner + 3 headers each direction)
-  // col widths: [header, cell, cell, cell]
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+
       {/* Header */}
-      <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
+      <div className="flex items-end justify-between mb-4 flex-wrap gap-4">
         <div>
-          <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-1">
-            {getMostRecentFriday().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Season 2026
-          </p>
+          <div className="flex items-center gap-3 mb-1 flex-wrap">
+            <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm">
+              {gridDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Season 2026
+            </p>
+            <span className="text-white/20 text-sm">·</span>
+            <button
+              onClick={() => setShowArchive(true)}
+              className="font-display font-700 text-xs text-white/50 hover:text-white uppercase tracking-widest transition-colors"
+            >
+              Previous Grids ▾
+            </button>
+            {isArchive && (
+              <>
+                <span className="text-white/20 text-sm">·</span>
+                <button
+                  onClick={() => handleWeekChange(CURRENT_FRIDAY_NUM)}
+                  className="font-display font-700 text-xs text-[var(--accent)] hover:text-white uppercase tracking-widest transition-colors"
+                >
+                  ← Current Grid
+                </button>
+              </>
+            )}
+          </div>
           <h1 className="font-display font-800 italic text-5xl uppercase tracking-tight text-white">
-            <strong>Immaculate</strong><span className="text-[var(--accent)]"> Grid</span>
+            {isArchive
+              ? <><strong>Grid</strong><span className="text-[var(--accent)]"> #{selectedWeek + 1}</span></>
+              : <><strong>Immaculate</strong><span className="text-[var(--accent)]"> Grid</span></>
+            }
           </h1>
           <p className="font-display font-700 text-[var(--muted)] text-sm mt-1 uppercase tracking-wider">
             Name a Hoofdklasse 2026 player matching both criteria
@@ -300,9 +431,11 @@ export default function ImmaculateGridPage() {
       {done && (
         <div className="mb-6 bg-[var(--card)] border border-[var(--border)] rounded-xl px-5 py-4 text-center">
           <p className="font-display font-800 text-xl uppercase text-white">
-            {score === 9 ? 'Perfect — Immaculate!' : score >= 6 ? `${score}/9 — Great game!` : score >= 3 ? `${score}/9 — Good effort!` : `${score}/9 — Better luck next week!`}
+            {score === 9 ? 'Perfect — Immaculate!' : score >= 6 ? `${score}/9 — Great game!` : score >= 3 ? `${score}/9 — Good effort!` : `${score}/9 — Better luck next time!`}
           </p>
-          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-1">New grid every Friday</p>
+          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-1">
+            {isArchive ? 'Select another grid from the archive →' : 'New grid every Friday'}
+          </p>
         </div>
       )}
 
@@ -311,7 +444,6 @@ export default function ImmaculateGridPage() {
         className="grid gap-2"
         style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', gridTemplateRows: 'auto auto auto auto' }}
       >
-        {/* Row 0: corner + 3 column headers */}
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl flex items-center justify-center" style={{ minHeight: 110 }}>
           <Image
             src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png"
@@ -324,7 +456,6 @@ export default function ImmaculateGridPage() {
           </div>
         ))}
 
-        {/* Rows 1-3: row header + 3 game cells */}
         {grid.rows.map((rowCrit, row) => (
           <>
             <div key={`h${row}`} className="bg-[var(--card)] border border-[var(--border)] rounded-xl" style={{ minHeight: 110 }}>
@@ -353,7 +484,7 @@ export default function ImmaculateGridPage() {
           {[
             'Name any Hoofdklasse 2026 player matching the row AND column criteria',
             'Each cell uses 1 guess — whether correct or not — you have 9 total',
-            'New grid every week',
+            'New grid every Friday · play old grids anytime via Previous Grids',
           ].map((t, i) => (
             <li key={i} className="font-display font-700 text-xs text-[var(--muted)] flex gap-2">
               <span className="text-[var(--accent)]">·</span>{t}
@@ -368,6 +499,15 @@ export default function ImmaculateGridPage() {
           colCrit={grid.cols[activeCell % 3]}
           onSubmit={name => handleGuess(activeCell, name)}
           onClose={() => setActiveCell(null)}
+        />
+      )}
+
+      {showArchive && (
+        <ArchiveModal
+          currentWeek={CURRENT_FRIDAY_NUM}
+          selectedWeek={selectedWeek}
+          onSelect={handleWeekChange}
+          onClose={() => setShowArchive(false)}
         />
       )}
     </div>

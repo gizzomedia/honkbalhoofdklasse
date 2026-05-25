@@ -152,6 +152,8 @@ export function gridIsValid(grid: GridConfig): boolean {
   return true
 }
 
+const START_FRIDAY = new Date('2026-04-03') // First Friday of 2026 season
+
 // Grid changes every Friday — find the most recent Friday
 export function getMostRecentFriday(): Date {
   const now = new Date()
@@ -162,15 +164,28 @@ export function getMostRecentFriday(): Date {
   return d
 }
 
-export function getCurrentWeekGrid(): GridConfig {
-  const lastFriday  = getMostRecentFriday()
-  const startFriday = new Date('2026-04-03') // First Friday of 2026 season
-  const fridayNum   = Math.max(0, Math.floor((lastFriday.getTime() - startFriday.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+// How many Fridays have passed since the season started (0-indexed)
+export function getCurrentFridayNum(): number {
+  const lastFriday = getMostRecentFriday()
+  return Math.max(0, Math.floor((lastFriday.getTime() - START_FRIDAY.getTime()) / (7 * 24 * 60 * 60 * 1000)))
+}
 
-  // Only rotate through grids that have ≥1 valid answer per cell
+// The calendar date of a given fridayNum
+export function getFridayDate(fridayNum: number): Date {
+  const d = new Date(START_FRIDAY)
+  d.setDate(d.getDate() + fridayNum * 7)
+  return d
+}
+
+// Get the grid config for a specific fridayNum (rotates through valid grids)
+export function getGridForFridayNum(fridayNum: number): GridConfig {
   const validGrids = WEEKLY_GRIDS.filter(gridIsValid)
   if (validGrids.length === 0) return WEEKLY_GRIDS[0]
   return validGrids[fridayNum % validGrids.length]
+}
+
+export function getCurrentWeekGrid(): GridConfig {
+  return getGridForFridayNum(getCurrentFridayNum())
 }
 
 export function fridayDateKey(): string {
