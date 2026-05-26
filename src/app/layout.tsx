@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import NavBar from '@/components/NavBar'
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { LanguageProvider } from '@/lib/language'
 import './globals.css'
 
@@ -82,6 +83,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <head>
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Hoofdklasse" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
@@ -231,6 +236,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </footer>
         <Analytics />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   )
