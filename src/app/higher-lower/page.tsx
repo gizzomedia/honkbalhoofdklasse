@@ -63,7 +63,7 @@ function PanelBg({ player, flash }: { player: HLPlayer; flash?: 'correct' | 'wro
         className="absolute inset-0"
         style={{ background: `linear-gradient(160deg, ${color}d0 0%, ${color}60 50%, #06101e 100%)` }}
       />
-      <div className="absolute inset-0 bg-[#06101e]/50" />
+      <div className="absolute inset-0 bg-[#06101e]/60" />
       {logo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
           <Image src={logo} alt={name} width={400} height={400}
@@ -284,14 +284,14 @@ export default function HigherLowerPage() {
 
           <div className="relative z-10 flex flex-col items-center text-center gap-3 max-w-xs">
             <TeamBadge player={left} />
-            <p className="font-display font-800 text-3xl md:text-4xl text-white leading-tight">
+            <p className="font-display font-800 text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
               &ldquo;{left.name}&rdquo;
             </p>
-            <p className="font-display font-700 text-sm text-white/50 uppercase tracking-wider">has</p>
-            <p className="font-display font-800 text-7xl md:text-8xl text-[var(--accent)] leading-none tabular-nums drop-shadow-lg">
+            <p className="font-display font-700 text-sm text-white/70 uppercase tracking-wider">has</p>
+            <p className="font-display font-800 text-8xl md:text-9xl text-white leading-none tabular-nums drop-shadow-xl">
               {stat.fmt(leftVal)}
             </p>
-            <p className="font-display font-700 text-sm text-white/50 uppercase tracking-wider">{stat.label}</p>
+            <p className="font-display font-800 text-base text-white/80 uppercase tracking-widest">{stat.label}</p>
           </div>
         </div>
       )}
@@ -316,14 +316,14 @@ export default function HigherLowerPage() {
 
           <div className="relative z-10 flex flex-col items-center text-center gap-4 max-w-xs w-full">
             <TeamBadge player={right} />
-            <p className="font-display font-800 text-3xl md:text-4xl text-white leading-tight">
+            <p className="font-display font-800 text-3xl md:text-4xl text-white leading-tight drop-shadow-md">
               &ldquo;{right.name}&rdquo;
             </p>
-            <p className="font-display font-700 text-sm text-white/50 uppercase tracking-wider">has</p>
+            <p className="font-display font-700 text-sm text-white/70 uppercase tracking-wider">has</p>
 
             {phase === 'reveal' ? (
               /* Revealed value */
-              <p className={`font-display font-800 text-7xl md:text-8xl leading-none tabular-nums drop-shadow-lg ${
+              <p className={`font-display font-800 text-8xl md:text-9xl leading-none tabular-nums drop-shadow-xl ${
                 lastResult === 'correct' ? 'text-green-400' : 'text-red-400'
               }`}>
                 {stat.fmt(rightVal)}
@@ -354,7 +354,7 @@ export default function HigherLowerPage() {
               </div>
             )}
 
-            <p className="font-display font-700 text-sm text-white/40 uppercase tracking-wider">
+            <p className="font-display font-800 text-sm text-white/70 uppercase tracking-widest">
               {stat.label} than {left?.name.split(' ')[0]}
             </p>
           </div>
