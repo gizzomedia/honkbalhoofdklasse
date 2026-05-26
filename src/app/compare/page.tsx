@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
@@ -243,8 +243,8 @@ function PlayerSelector({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function ComparePage() {
-  const router       = useSearchParams()
+function CompareContent() {
+  const searchParams = useSearchParams()
   const nav          = useRouter()
   const [players, setPlayers] = useState<CmpPlayer[]>([])
   const [p1,      setP1]      = useState<CmpPlayer | null>(null)
@@ -256,14 +256,14 @@ export default function ComparePage() {
       .then(r => r.json())
       .then((data: CmpPlayer[]) => {
         setPlayers(data)
-        const a = router.get('a')
-        const b = router.get('b')
+        const a = searchParams.get('a')
+        const b = searchParams.get('b')
         if (a) setP1(data.find(p => p.name === a) ?? null)
         if (b) setP2(data.find(p => p.name === b) ?? null)
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [router])
+  }, [searchParams])
 
   const updateUrl = useCallback((np1: CmpPlayer | null, np2: CmpPlayer | null) => {
     const params = new URLSearchParams()
@@ -415,5 +415,17 @@ export default function ComparePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="font-display font-700 text-sm uppercase text-[var(--muted)] tracking-wider animate-pulse">Laden…</p>
+      </div>
+    }>
+      <CompareContent />
+    </Suspense>
   )
 }
