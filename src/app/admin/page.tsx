@@ -15,7 +15,15 @@ export default function AdminPage() {
           </div>
           <span className="font-display font-800 text-[var(--accent)] text-lg group-hover:translate-x-1 transition-transform">→</span>
         </Link>
-<Link href="/admin/streams"
+<Link href="/admin/analytics"
+          className="flex items-center justify-between w-full bg-[#0a1220] border border-[#1a2a3a] hover:border-[var(--accent)] transition-colors px-6 py-4 rounded-xl group">
+          <div>
+            <p className="font-display font-800 text-sm uppercase text-white tracking-wide">Analytics</p>
+            <p className="font-display font-700 text-xs text-[var(--muted)] mt-0.5">Vercel web analytics</p>
+          </div>
+          <span className="font-display font-800 text-[var(--accent)] text-lg group-hover:translate-x-1 transition-transform">→</span>
+        </Link>
+        <Link href="/admin/streams"
           className="flex items-center justify-between w-full bg-[#0a1220] border border-[#1a2a3a] hover:border-[var(--accent)] transition-colors px-6 py-4 rounded-xl group">
           <div>
             <p className="font-display font-800 text-sm uppercase text-white tracking-wide">Streams</p>
