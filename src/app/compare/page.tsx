@@ -38,13 +38,17 @@ function gridPoints(level: number, cx: number, cy: number, R: number): string {
   }).join(' ')
 }
 
+// Fixed colors for radar — guaranteed contrast regardless of team
+const RADAR_C1 = '#fe3d00'  // accent orange (player 1)
+const RADAR_C2 = '#38bdf8'  // sky blue (player 2)
+
 function RadarChart({ p1, p2, all }: { p1: CmpPlayer; p2: CmpPlayer; all: CmpPlayer[] }) {
   const SIZE = 280
   const cx   = SIZE / 2
   const cy   = SIZE / 2
   const R    = 100
-  const c1   = TEAM_COLORS[p1.teamId] ?? '#fe3d00'
-  const c2   = TEAM_COLORS[p2.teamId] ?? '#3b82f6'
+  const c1   = RADAR_C1
+  const c2   = RADAR_C2
 
   return (
     <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="overflow-visible">
@@ -277,8 +281,9 @@ function CompareContent() {
 
   const both = p1 && p2
 
-  const c1 = p1 ? (TEAM_COLORS[p1.teamId] ?? '#fe3d00') : '#fe3d00'
-  const c2 = p2 ? (TEAM_COLORS[p2.teamId] ?? '#3b82f6') : '#3b82f6'
+  // Team colors — used for logos/selectors only
+  const tc1 = p1 ? (TEAM_COLORS[p1.teamId] ?? '#1e335a') : '#1e335a'
+  const tc2 = p2 ? (TEAM_COLORS[p2.teamId] ?? '#1e335a') : '#1e335a'
 
   return (
     <div className="max-w-3xl mx-auto px-4 pt-28 pb-16">
@@ -321,7 +326,7 @@ function CompareContent() {
 
             {/* Legend */}
             <div className="flex gap-6">
-              {[{ p: p1, c: c1 }, { p: p2, c: c2 }].map(({ p, c }) => (
+              {[{ p: p1, c: RADAR_C1 }, { p: p2, c: RADAR_C2 }].map(({ p, c }) => (
                 <div key={p.name} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c }} />
                   <span className="font-display font-700 text-xs text-white/70 uppercase tracking-wider">{p.name}</span>
@@ -334,9 +339,9 @@ function CompareContent() {
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
             {/* Table header */}
             <div className="grid grid-cols-[1fr_auto_1fr] border-b border-[var(--border)]">
-              <div className="px-4 py-3 flex items-center gap-2" style={{ borderLeft: `3px solid ${c1}` }}>
+              <div className="px-4 py-3 flex items-center gap-2" style={{ borderLeft: `3px solid ${RADAR_C1}` }}>
                 {TEAM_LOGOS[p1.teamId] && (
-                  <div className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center p-1" style={{ backgroundColor: c1 }}>
+                  <div className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center p-1" style={{ backgroundColor: tc1 }}>
                     <Image src={TEAM_LOGOS[p1.teamId]!} alt="" width={16} height={16} className="object-contain w-full h-full" />
                   </div>
                 )}
@@ -345,10 +350,10 @@ function CompareContent() {
               <div className="px-4 py-3 flex items-center justify-center">
                 <span className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)]">Stat</span>
               </div>
-              <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderRight: `3px solid ${c2}` }}>
+              <div className="px-4 py-3 flex items-center justify-end gap-2" style={{ borderRight: `3px solid ${RADAR_C2}` }}>
                 <p className="font-display font-800 text-sm text-white truncate">{p2.name}</p>
                 {TEAM_LOGOS[p2.teamId] && (
-                  <div className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center p-1" style={{ backgroundColor: c2 }}>
+                  <div className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center p-1" style={{ backgroundColor: tc2 }}>
                     <Image src={TEAM_LOGOS[p2.teamId]!} alt="" width={16} height={16} className="object-contain w-full h-full" />
                   </div>
                 )}
@@ -375,7 +380,7 @@ function CompareContent() {
                       {fmtStat(row, v1)}
                     </span>
                     {!tie && p1Better && (
-                      <div className="ml-2 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: c1 }} />
+                      <div className="ml-2 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: RADAR_C1 }} />
                     )}
                   </div>
                   <div className="px-4 py-2.5 flex items-center justify-center min-w-[52px]">
@@ -385,7 +390,7 @@ function CompareContent() {
                   </div>
                   <div className="px-4 py-2.5 flex items-center justify-end">
                     {!tie && p2Better && (
-                      <div className="mr-2 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: c2 }} />
+                      <div className="mr-2 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: RADAR_C2 }} />
                     )}
                     <span className={`font-display font-800 text-sm tabular-nums ${
                       !tie && p2Better ? 'text-white' : 'text-white/40'
