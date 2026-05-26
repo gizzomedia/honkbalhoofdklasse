@@ -23,6 +23,7 @@ function useNavEntries(): NavEntry[] {
         { href: '/leaders', label: 'Leaders' },
         { href: '/teams',   label: 'Teams'   },
         { href: '/rosters', label: 'Rosters' },
+        { href: '/compare', label: 'Compare' },
         { href: '/awards',  label: 'Awards'  },
       ],
     },
