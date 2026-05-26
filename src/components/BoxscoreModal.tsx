@@ -144,7 +144,7 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
         </thead>
         <tbody className="divide-y divide-[var(--border)]">
           {batters.map((b, i) => {
-            const isPinch = b.pos === 'PH' || b.pos === 'PR'
+            const isPinch = b.pos.startsWith('PH') || b.pos.startsWith('PR')
             return (
             <tr key={i} className="hover:bg-white/[0.02] transition-colors">
               <td className="py-2 pr-3">
