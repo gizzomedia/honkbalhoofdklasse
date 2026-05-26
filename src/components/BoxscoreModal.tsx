@@ -143,13 +143,16 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
           </tr>
         </thead>
         <tbody className="divide-y divide-[var(--border)]">
-          {batters.map((b, i) => (
+          {batters.map((b, i) => {
+            const isPinch = b.pos === 'PH' || b.pos === 'PR'
+            return (
             <tr key={i} className="hover:bg-white/[0.02] transition-colors">
               <td className="py-2 pr-3">
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center gap-2 ${isPinch ? 'pl-5' : ''}`}>
                   {b.pos && (
-                    <span className="font-display font-700 text-[10px] uppercase text-center min-w-[20px]"
-                      style={{ color: teamColor }}>{b.pos}</span>
+                    <span className={`font-display font-700 text-[10px] uppercase text-center min-w-[20px] ${isPinch ? 'text-[var(--accent)]' : 'text-white/70'}`}>
+                      {b.pos}
+                    </span>
                   )}
                   <span className="font-display font-700 text-xs uppercase text-white">{b.name}</span>
                 </div>
@@ -160,7 +163,8 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
                 </td>
               ))}
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>
