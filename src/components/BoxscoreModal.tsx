@@ -148,9 +148,10 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
             return (
             <tr key={i} className="hover:bg-white/[0.02] transition-colors">
               <td className="py-2 pr-3">
-                <div className={`flex items-center gap-2 ${isPinch ? 'pl-5' : ''}`}>
+                <div className="flex items-center gap-1.5">
+                  {isPinch && <span className="text-white/30 text-xs shrink-0 pl-2">↳</span>}
                   {b.pos && (
-                    <span className={`font-display font-700 text-[10px] uppercase text-center min-w-[20px] ${isPinch ? 'text-[var(--accent)]' : 'text-white/70'}`}>
+                    <span className={`font-display font-700 text-[10px] uppercase text-center min-w-[24px] shrink-0 ${isPinch ? 'text-[var(--accent)]' : 'text-white/60'}`}>
                       {b.pos}
                     </span>
                   )}
