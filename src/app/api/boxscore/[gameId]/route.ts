@@ -44,7 +44,7 @@ function ipToString(raw: unknown): string {
 type RawPlayer = Record<string, unknown>
 
 export type BatterStat = {
-  name: string; pos: string
+  name: string; pos: string; isSubstitute: boolean
   ab: number; h: number; r: number; rbi: number
   bb: number; so: number; hr: number; double: number; triple: number
 }
@@ -57,6 +57,7 @@ export type PitcherStat = {
 
 function extractBatters(players: RawPlayer[]): BatterStat[] {
   const seen = new Set<string>()
+  const slotSeen = new Set<number>() // first player per batting slot = starter
   const result: BatterStat[] = []
   for (const p of players) {
     if (!p.firstname) continue
@@ -65,13 +66,18 @@ function extractBatters(players: RawPlayer[]): BatterStat[] {
     seen.add(name)
     const pos = String(p.pos ?? '')
     if (pos === 'P') continue  // pitchers belong in the pitching table only
-    const inLineup = (p._slot as number) > 0
+    const slot = p._slot as number
+    const inLineup = slot > 0
     const hasBatted = n(p.ab) > 0 || n(p.bb) > 0 || n(p.hbp) > 0 ||
                       n(p.sf) > 0 || n(p.sh) > 0 || n(p.r) > 0 || n(p.rbi) > 0
     if (!inLineup && !hasBatted) continue
+    // A player is a substitute when another player already occupied this batting slot
+    const isSubstitute = inLineup && slotSeen.has(slot)
+    if (inLineup) slotSeen.add(slot)
     result.push({
       name,
       pos,
+      isSubstitute,
       ab:     n(p.ab),
       h:      n(p.h),
       r:      n(p.r),
