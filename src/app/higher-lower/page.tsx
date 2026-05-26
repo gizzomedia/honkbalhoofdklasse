@@ -116,11 +116,13 @@ export default function HigherLowerPage() {
       .then(r => r.json())
       .then((data: HLPlayer[]) => {
         setPlayers(data)
-        const seed   = todaySeed()
-        const seq    = seededShuffle(data, seed)
-        const sStat  = seed % STATS.length
+        const seed = todaySeed()
+        // Sort: players with more non-zero stats first, then shuffle within groups
+        const rich  = data.filter(p => p.hr > 0 || p.sb > 0)
+        const sparse = data.filter(p => p.hr === 0 && p.sb === 0)
+        const seq = [...seededShuffle(rich, seed), ...seededShuffle(sparse, seed + 1)]
         setSequence(seq)
-        setStatIdx(sStat)
+        setStatIdx(0) // always start with batting average
         setPhase('playing')
       })
       .catch(() => setPhase('gameover'))
@@ -150,13 +152,23 @@ export default function HigherLowerPage() {
           setHighScore(newScore)
           localStorage.setItem('hl-highscore', String(newScore))
         }
-        // Rotate stat every 5 correct answers
-        if (newScore % 5 === 0) setStatIdx(i => i + 1)
-        // Check if we ran out of players
-        if (idx + 2 >= sequence.length) {
+        // Rotate stat every 2 correct answers
+        const nextStatIdx = newScore % 2 === 0 ? statIdx + 1 : statIdx
+        const nextStat = STATS[nextStatIdx % STATS.length]
+        if (newScore % 2 === 0) setStatIdx(nextStatIdx)
+
+        // Find next right-player with non-zero value for upcoming stat (skip up to 4)
+        let nextIdx = idx + 1
+        for (let skip = 0; skip < 4; skip++) {
+          const candidate = sequence[nextIdx + 1]
+          if (!candidate || (candidate[nextStat.key] as number) > 0) break
+          nextIdx++
+        }
+
+        if (nextIdx + 1 >= sequence.length) {
           setPhase('gameover')
         } else {
-          setIdx(i => i + 1)
+          setIdx(nextIdx)
           setLastResult(null)
           setPhase('playing')
         }
@@ -195,7 +207,7 @@ export default function HigherLowerPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 min-h-screen flex flex-col">
+    <div className="max-w-2xl mx-auto px-4 py-6">
 
       {/* Header */}
       <div className="text-center mb-6">
@@ -222,7 +234,7 @@ export default function HigherLowerPage() {
 
       {/* Game over */}
       {phase === 'gameover' && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center py-8">
+        <div className="flex flex-col items-center gap-6 text-center py-8">
           <div>
             <p className="font-display font-700 text-[var(--muted)] uppercase tracking-widest text-sm mb-2">Game Over</p>
             <p className="font-display font-800 italic text-6xl text-white">{score}</p>
@@ -249,7 +261,7 @@ export default function HigherLowerPage() {
 
       {/* Playing */}
       {(phase === 'playing' || phase === 'reveal') && left && right && (
-        <div className="flex-1 flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           {/* Cards */}
           <div className="flex gap-3 items-stretch">
             <PlayerCard
@@ -280,7 +292,7 @@ export default function HigherLowerPage() {
           </p>
 
           {/* Buttons */}
-          <div className="flex gap-3 mt-auto">
+          <div className="flex gap-3">
             <button
               onClick={() => guess(true)}
               disabled={phase === 'reveal'}
@@ -298,7 +310,7 @@ export default function HigherLowerPage() {
           </div>
 
           {/* Stat changes hint */}
-          {score > 0 && score % 5 === 4 && (
+          {score > 0 && score % 2 === 1 && (
             <p className="text-center font-display font-700 text-[10px] text-[var(--accent)] uppercase tracking-wider">
               Next correct answer changes the stat!
             </p>
