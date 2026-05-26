@@ -63,15 +63,15 @@ function extractBatters(players: RawPlayer[]): BatterStat[] {
     const name = `${p.firstname} ${p.lastname}`
     if (seen.has(name)) continue
     seen.add(name)
-    // Always show players in a batting-order slot (1-9); only skip pure pitchers
-    // that never appeared in the lineup (slot 0 = unkeyed section, no batting at all)
+    const pos = String(p.pos ?? '')
+    if (pos === 'P') continue  // pitchers belong in the pitching table only
     const inLineup = (p._slot as number) > 0
     const hasBatted = n(p.ab) > 0 || n(p.bb) > 0 || n(p.hbp) > 0 ||
                       n(p.sf) > 0 || n(p.sh) > 0 || n(p.r) > 0 || n(p.rbi) > 0
     if (!inLineup && !hasBatted) continue
     result.push({
       name,
-      pos:    String(p.pos ?? ''),
+      pos,
       ab:     n(p.ab),
       h:      n(p.h),
       r:      n(p.r),
