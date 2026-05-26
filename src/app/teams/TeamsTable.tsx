@@ -99,39 +99,35 @@ export default function TeamsTable({
     return (
       <button
         onClick={() => setSortKey(btn.key)}
-        className={`font-display font-700 text-[10px] uppercase tracking-wider transition-colors px-2 py-1 rounded ${
+        className={`shrink-0 font-display font-700 text-xs uppercase tracking-wider transition-all px-3.5 py-2 rounded-full border ${
           active
-            ? 'text-[var(--accent)] bg-[var(--accent)]/10'
-            : 'text-[var(--muted)] hover:text-white'
+            ? 'text-white bg-[var(--accent)] border-[var(--accent)]'
+            : 'text-[var(--muted)] border-white/10 hover:text-white hover:border-white/30'
         }`}
       >
         {btn.label}
-        {active && (
-          <span className="ml-0.5">{ASC_KEYS.includes(btn.key) ? '↑' : '↓'}</span>
-        )}
+        {active && <span className="ml-1 text-white/70">{ASC_KEYS.includes(btn.key) ? '↑' : '↓'}</span>}
       </button>
     )
   }
 
   return (
     <div>
-      {/* Sort controls */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
+      {/* Sort controls — horizontally scrollable on mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setSortKey('standings')}
-          className={`font-display font-700 text-[10px] uppercase tracking-wider transition-colors px-2 py-1 rounded ${
+          className={`shrink-0 font-display font-700 text-xs uppercase tracking-wider transition-all px-3.5 py-2 rounded-full border ${
             sortKey === 'standings'
-              ? 'text-[var(--accent)] bg-[var(--accent)]/10'
-              : 'text-[var(--muted)] hover:text-white'
+              ? 'text-white bg-[var(--accent)] border-[var(--accent)]'
+              : 'text-[var(--muted)] border-white/10 hover:text-white hover:border-white/30'
           }`}
         >
           Standings
         </button>
-        <div className="w-px h-4 bg-white/10" />
-        <span className="font-display font-700 text-[10px] uppercase text-white/20 tracking-wider">Batting</span>
+        <div className="shrink-0 w-px h-5 bg-white/10 mx-1" />
         {BATTING_SORTS.map(btn => <SortBtn key={btn.key} btn={btn} />)}
-        <div className="w-px h-4 bg-white/10" />
-        <span className="font-display font-700 text-[10px] uppercase text-white/20 tracking-wider">Pitching</span>
+        <div className="shrink-0 w-px h-5 bg-white/10 mx-1" />
         {PITCHING_SORTS.map(btn => <SortBtn key={btn.key} btn={btn} />)}
       </div>
 
@@ -165,12 +161,13 @@ export default function TeamsTable({
 
               {/* Name + record */}
               <div className="flex-1 min-w-0">
-                <p className="font-display font-800 text-lg uppercase tracking-wide text-white leading-none">{name}</p>
+                <p className="font-display font-800 text-base md:text-lg uppercase tracking-wide text-white leading-none truncate">{name}</p>
                 {s && (
                   <p className="font-display font-700 text-xs text-[var(--muted)] mt-1">
-                    {s.wins}–{s.losses} &middot; {s.win_pct.toFixed(3).replace('0.', '.')}
-                    &middot; <span className={rd >= 0 ? 'text-green-400' : 'text-red-400'}>
-                      {rd >= 0 ? '+' : ''}{rd} RD
+                    {s.wins}–{s.losses}
+                    <span className="hidden sm:inline"> &middot; {s.win_pct.toFixed(3).replace('0.', '.')}</span>
+                    <span className={`ml-1 ${rd >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {rd >= 0 ? '+' : ''}{rd}
                     </span>
                   </p>
                 )}
