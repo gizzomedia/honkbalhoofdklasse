@@ -21,8 +21,9 @@ function useNavEntries(): NavEntry[] {
       type: 'dropdown', label: 'Stats',
       items: [
         { href: '/leaders', label: 'Leaders' },
+        { href: '/teams',   label: 'Teams'   },
         { href: '/rosters', label: 'Rosters' },
-        { href: '/awards',  label: 'Awards' },
+        { href: '/awards',  label: 'Awards'  },
       ],
     },
     {

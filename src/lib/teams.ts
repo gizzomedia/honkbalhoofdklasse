@@ -26,6 +26,12 @@ export const TEAM_SHORT: Record<string, string> = {
   hcaw: 'HCA', twins: 'TWI', pioniers: 'PIO', uvv: 'UVV',
 }
 
+/** Maps KNBSB numeric team IDs to internal team IDs */
+export const KNBSB_NUMERIC_ID_MAP: Record<number, string> = {
+  39583: 'pirates', 39587: 'neptunus', 39584: 'hcaw',
+  39586: 'kinheim', 39588: 'twins',   39589: 'uvv', 39585: 'pioniers',
+}
+
 /** Maps KNBSB API team codes to internal team IDs */
 export const KNBSB_TEAM_MAP: Record<string, string> = {
   NEP: 'neptunus', AMS: 'pirates', PIR: 'pirates',
