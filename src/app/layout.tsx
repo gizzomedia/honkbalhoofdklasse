@@ -226,7 +226,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
         <Analytics />
         <ServiceWorkerRegistrar />
-        <GoogleAnalytics gaId="G-4F3JS3E6HF" />
+        <GoogleAnalytics gaId="G-T743EVXTYR" />
       </body>
     </html>
   )
