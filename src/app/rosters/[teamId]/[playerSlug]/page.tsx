@@ -20,13 +20,14 @@ export async function generateMetadata({
   const player = roster.players.find(p => slugify(p.name) === playerSlug)
   if (!player) return {}
   const teamName = TEAM_NAMES[teamId] ?? teamId
-  const description = `${player.name} · ${player.pos} · ${teamName} · Honkbal Hoofdklasse 2026`
+  const posLabel = POS_LABELS[player.pos] ?? player.pos
+  const description = `${player.name} is a ${posLabel} for ${teamName} in the 2026 KNBSB Honkbal Hoofdklasse. #${player.uniform} · B/T ${player.bt} · Born ${player.yob}.`
   const canonical = `https://honkbalhoofdklasse.com/rosters/${teamId}/${playerSlug}`
   return {
-    title: `${player.name} | ${teamName} Roster`,
+    title: `${player.name} – ${posLabel} | ${teamName} | Honkbal Hoofdklasse 2026`,
     description,
     alternates: { canonical },
-    openGraph: { title: `${player.name} | Honkbal Hoofdklasse`, description, url: canonical },
+    openGraph: { title: `${player.name} · ${teamName} · Honkbal Hoofdklasse`, description, url: canonical },
   }
 }
 
@@ -92,7 +93,33 @@ export default async function PlayerProfilePage({
   const age = new Date().getFullYear() - player.yob
   const posLabel = POS_LABELS[player.pos] ?? player.pos
 
+  const personSchema = {
+    '@context': 'https://schema.org',
+    '@type': ['Person', 'Athlete'],
+    name: player.name,
+    url: `https://honkbalhoofdklasse.com/rosters/${teamId}/${playerSlug}`,
+    sport: 'Baseball',
+    description: `${player.name} is a ${posLabel} for ${teamName} in the 2026 KNBSB Honkbal Hoofdklasse. #${player.uniform}.`,
+    birthDate: String(player.yob),
+    affiliation: {
+      '@type': 'SportsTeam',
+      name: teamName,
+      url: `https://honkbalhoofdklasse.com/rosters/${teamId}`,
+      memberOf: {
+        '@type': 'SportsOrganization',
+        '@id': 'https://honkbalhoofdklasse.com/#league',
+        name: 'KNBSB Honkbal Hoofdklasse',
+      },
+    },
+    ...(player.instagram ? { sameAs: [`https://www.instagram.com/${player.instagram}/`] } : {}),
+  }
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
+    />
     <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
       {/* Terug knop */}
@@ -418,5 +445,6 @@ export default async function PlayerProfilePage({
       </section>
 
     </div>
+    </>
   )
 }
