@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/uitslagen`, priority: 0.8, changeFrequency: 'daily' as const },
     { url: `${base}/schema`, priority: 0.8, changeFrequency: 'weekly' as const },
     { url: `${base}/leaders`, priority: 0.8, changeFrequency: 'daily' as const },
+    { url: `${base}/stats`,   priority: 0.8, changeFrequency: 'daily' as const },
     { url: `${base}/rosters`, priority: 0.7, changeFrequency: 'weekly' as const },
     { url: `${base}/nieuws`, priority: 0.7, changeFrequency: 'daily' as const },
     { url: `${base}/awards`, priority: 0.6, changeFrequency: 'weekly' as const },
