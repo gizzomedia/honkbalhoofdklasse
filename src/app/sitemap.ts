@@ -28,11 +28,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
 
   // Individual player pages
-  const playerRoutes = Object.values(ROSTERS).flatMap(roster =>
+  const playerRoutes = Object.entries(ROSTERS).flatMap(([teamId, roster]) =>
     roster.players.map(player => ({
-      url: `${base}/players/${slugify(player.name)}`,
+      url: `${base}/rosters/${teamId}/${slugify(player.name)}`,
       priority: 0.7,
-      changeFrequency: 'daily' as const,
+      changeFrequency: 'weekly' as const,
     }))
   )
 

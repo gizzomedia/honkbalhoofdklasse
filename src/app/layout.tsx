@@ -59,17 +59,23 @@ const schemaOrg = {
       url: 'https://honkbalhoofdklasse.com',
       logo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png',
       sport: 'Baseball',
-      description: 'De hoogste honkbalcompetitie van Nederland, georganiseerd door de KNBSB.',
+      description: 'The highest baseball competition in the Netherlands, organised by the KNBSB. Teams: Curaçao Neptunus, Amsterdam Pirates, Kinheim, HCAW, Oosterhout Twins, Hoofddorp Pioniers and UVV.',
       location: { '@type': 'Country', name: 'Netherlands' },
       memberOf: { '@type': 'SportsOrganization', name: 'KNBSB', url: 'https://knbsb.nl' },
+      sameAs: [
+        'https://www.instagram.com/honkbalhoofdklasse/',
+        'https://www.tiktok.com/@honkbalhoofdklasse',
+        'https://www.youtube.com/@Honkbalhoofdklasse',
+        'https://www.facebook.com/profile.php?id=61579476197609',
+      ],
     },
     {
       '@type': 'WebSite',
       '@id': 'https://honkbalhoofdklasse.com/#website',
       url: 'https://honkbalhoofdklasse.com',
       name: 'Honkbal Hoofdklasse',
-      description: 'Live scores, standen, statistieken en nieuws van de KNBSB Honkbal Hoofdklasse.',
-      inLanguage: 'nl-NL',
+      description: 'Live scores, standings, statistics and news from the KNBSB Honkbal Hoofdklasse.',
+      inLanguage: 'en',
       potentialAction: {
         '@type': 'SearchAction',
         target: { '@type': 'EntryPoint', urlTemplate: 'https://honkbalhoofdklasse.com/leaders?q={search_term_string}' },
@@ -81,7 +87,7 @@ const schemaOrg = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nl" className={`${barlowCondensed.variable} ${inter.variable}`}>
+    <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -131,24 +137,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         </LanguageProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SportsOrganization",
-            "name": "Honkbal Hoofdklasse",
-            "url": "https://honkbalhoofdklasse.com",
-            "sport": "Baseball",
-            "description": "De hoogste honkbalcompetitie in Nederland, georganiseerd door KNBSB.",
-            "logo": "https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png",
-            "sameAs": [
-              "https://www.instagram.com/honkbalhoofdklasse/",
-              "https://www.tiktok.com/@honkbalhoofdklasse",
-              "https://www.youtube.com/@Honkbalhoofdklasse",
-              "https://www.facebook.com/profile.php?id=61579476197609"
-            ]
-          }) }}
-        />
         <footer className="border-t border-[var(--border)] bg-[var(--card)]">
           <div className="max-w-5xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
