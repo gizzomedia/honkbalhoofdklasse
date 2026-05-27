@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ROSTERS } from '@/lib/rosters-data'
 import { TEAM_NAMES } from '@/lib/teams'
+import AdminGate from '@/components/AdminGate'
 
 const ALL_PLAYERS = Object.entries(ROSTERS)
   .flatMap(([teamId, roster]) =>
@@ -320,19 +321,12 @@ function PlayerRow({
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function AdminPhotosPage() {
-  const [authed, setAuthed] = useState(false)
-  const [pw, setPw] = useState('')
   const [savedPw, setSavedPw] = useState('')
   const [photos, setPhotos] = useState<PlayerPhoto[]>([])
   const [uploading, setUploading] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [compressing, setCompressing] = useState<{ done: number; total: number } | null>(null)
-
-  useEffect(() => {
-    const stored = localStorage.getItem('admin-pw')
-    if (stored) { setSavedPw(stored); setAuthed(true); loadPhotos(stored) }
-  }, [])
 
   async function loadPhotos(password: string) {
     const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': password } })
@@ -372,18 +366,6 @@ export default function AdminPhotosPage() {
         ))
       }
     }))
-  }
-
-  async function login() {
-    const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': pw } })
-    if (res.ok) {
-      localStorage.setItem('admin-pw', pw)
-      setSavedPw(pw)
-      setAuthed(true)
-      setPhotos(await res.json())
-    } else {
-      alert('Verkeerd wachtwoord')
-    }
   }
 
   async function upload(playerName: string, teamId: string, photoType: 'banner' | 'headshot', file: File) {
@@ -469,34 +451,14 @@ export default function AdminPhotosPage() {
     return !ph?.banner_url && !ph?.headshot_url
   })
 
-  if (!authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 w-full max-w-sm space-y-4">
-          <div>
-            <p className="font-display font-700 text-[var(--accent)] text-xs uppercase tracking-widest mb-1">Admin</p>
-            <h1 className="font-display font-800 italic text-3xl uppercase text-white">Player Photos</h1>
-          </div>
-          <input
-            type="password"
-            placeholder="Wachtwoord"
-            value={pw}
-            onChange={e => setPw(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && login()}
-            className="w-full bg-[#0d1b2e] border border-[var(--border)] focus:border-[var(--accent)] rounded-lg px-4 py-3 text-white placeholder:text-white/40 outline-none font-display font-700 text-sm [color-scheme:dark]"
-          />
-          <button
-            onClick={login}
-            className="w-full bg-[var(--accent)] py-3 rounded-lg font-display font-800 text-sm uppercase tracking-wider text-white hover:bg-[var(--accent)]/80 transition-colors"
-          >
-            Inloggen →
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
+    <AdminGate
+      checkAuth={async pw => {
+        const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': pw } })
+        return res.ok
+      }}
+      onAuth={pw => { setSavedPw(pw); loadPhotos(pw) }}
+    >
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
@@ -573,5 +535,6 @@ export default function AdminPhotosPage() {
         </section>
       )}
     </div>
+    </AdminGate>
   )
 }
