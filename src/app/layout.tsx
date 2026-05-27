@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import NavBar from '@/components/NavBar'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { LanguageProvider } from '@/lib/language'
@@ -225,6 +226,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
         <Analytics />
         <ServiceWorkerRegistrar />
+        <GoogleAnalytics gaId="G-4F3JS3E6HF" />
       </body>
     </html>
   )

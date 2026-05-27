@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@next/third-parties": "^16.2.6",
     "@supabase/supabase-js": "^2.49.4",
     "@types/sharp": "^0.31.1",
     "@vercel/analytics": "^2.0.1",
