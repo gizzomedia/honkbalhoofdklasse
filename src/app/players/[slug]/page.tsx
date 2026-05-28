@@ -7,7 +7,7 @@ import { headshotFaceUrl } from '@/lib/cloudinary'
 import StatsTabs from './StatsTabs'
 import { TEAM_COLORS, TEAM_NAMES, TEAM_LOGOS } from '@/lib/teams'
 
-export const revalidate = 1800
+export const revalidate = 300
 
 export function generateStaticParams() {
   const params: { slug: string }[] = []

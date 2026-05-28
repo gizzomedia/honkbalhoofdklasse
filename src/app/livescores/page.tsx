@@ -197,11 +197,13 @@ export default function LivescoresPage() {
     }
   }, [])
 
+  // Poll faster when games are live, slower otherwise.
   useEffect(() => {
     fetchData()
-    const t = setInterval(fetchData, 60_000)
+    const interval = hasLive ? 15_000 : 60_000
+    const t = setInterval(fetchData, interval)
     return () => clearInterval(t)
-  }, [fetchData])
+  }, [fetchData, hasLive])
 
   const hasLive = (data?.live?.length ?? 0) > 0
 

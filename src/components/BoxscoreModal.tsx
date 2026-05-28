@@ -232,11 +232,26 @@ export default function BoxscoreModal({
   const [tab, setTab]       = useState<'away' | 'home'>('away')
 
   useEffect(() => {
+    let cancelled = false
+    const liveRef = { current: false }
+
+    function load() {
+      fetch(`/api/boxscore/${gameId}`)
+        .then(r => r.json())
+        .then(d => {
+          if (!cancelled) {
+            setData(d)
+            liveRef.current = d?.isLive ?? false
+            setTab(prev => prev === 'away' ? (d?.awayId ?? 'away') : prev)
+          }
+        })
+        .finally(() => { if (!cancelled) setLoading(false) })
+    }
     setLoading(true)
-    fetch(`/api/boxscore/${gameId}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setTab(d?.awayId ?? 'away') })
-      .finally(() => setLoading(false))
+    load()
+    // Poll every 15 s — liveRef tracks whether we're mid-game.
+    const t = setInterval(() => { if (liveRef.current) load() }, 15_000)
+    return () => { cancelled = true; clearInterval(t) }
   }, [gameId])
 
   useEffect(() => {
