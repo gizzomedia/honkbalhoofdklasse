@@ -1,6 +1,8 @@
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { AWARD_CATEGORIES, getAwardsByPlayer } from '@/lib/awards-data'
 import { supabase } from '@/lib/supabase'
+import { computeSeasonStats } from '@/lib/player-stats-lib'
+import type { SeasonStats } from '@/lib/player-stats-lib'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -49,21 +51,6 @@ const POS_LABELS: Record<string, string> = {
 type BattingRow  = { year:string; age:string; lg:string; team:string; g:string; ab:string; r:string; h:string; d:string; t:string; hr:string; rbi:string; bb:string; so:string; avg:string; obp:string; slg:string }
 type PitchingRow = { year:string; age:string; lg:string; team:string; w:string; l:string; era:string; g:string; gs:string; sv:string; ip:string; h:string; bb:string; so:string; whip:string }
 
-type SeasonStats = {
-  ab: number; r: number; h: number; double: number; triple: number
-  hr: number; rbi: number; bb: number; so: number; sb: number; cs: number
-  avg: number; obp: number; slg: number; ops: number
-} | null
-
-async function getSeasonStats(playerName: string): Promise<SeasonStats> {
-  try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://honkbalhoofdklasse.com'
-    const res = await fetch(`${base}/api/compare`, { next: { revalidate: 3600 } })
-    if (!res.ok) return null
-    const players: ({ name: string } & Exclude<SeasonStats, null>)[] = await res.json()
-    return players.find(p => p.name.toLowerCase() === playerName.toLowerCase()) ?? null
-  } catch { return null }
-}
 
 async function getCareerStats(bbrefId: string): Promise<{ batting: BattingRow[]; pitching: PitchingRow[] }> {
   try {
@@ -102,7 +89,7 @@ export default async function PlayerProfilePage({
     Promise.resolve(getAwardsByPlayer(player.name)),
     getPlayerPhotos(player.name),
     player.bbref_id ? getCareerStats(player.bbref_id) : Promise.resolve({ batting: [], pitching: [] }),
-    getSeasonStats(player.name),
+    computeSeasonStats(player.name),
   ])
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
@@ -377,15 +364,14 @@ export default async function PlayerProfilePage({
           </a>
         </div>
 
-        {season ? (
-          <>
+        <>
             {/* Key stats grid */}
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-3">
               {[
-                { label: 'AVG', value: season.avg.toFixed(3) },
-                { label: 'OBP', value: season.obp.toFixed(3) },
-                { label: 'SLG', value: season.slg.toFixed(3) },
-                { label: 'OPS', value: season.ops.toFixed(3) },
+                { label: 'AVG', value: season.avg != null ? season.avg.toFixed(3) : '—' },
+                { label: 'OBP', value: season.obp != null ? season.obp.toFixed(3) : '—' },
+                { label: 'SLG', value: season.slg != null ? season.slg.toFixed(3) : '—' },
+                { label: 'OPS', value: season.ops != null ? season.ops.toFixed(3) : '—' },
                 { label: 'AB',  value: season.ab  },
               ].map(s => (
                 <div key={s.label} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 text-center">
@@ -417,14 +403,6 @@ export default async function PlayerProfilePage({
               </table>
             </div>
           </>
-        ) : (
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 text-center">
-            <p className="font-display font-800 text-base uppercase text-[var(--muted)] italic">Nog geen stats</p>
-            <p className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-widest mt-2">
-              Stats verschijnen zodra de speler minimaal 10 at-bats heeft
-            </p>
-          </div>
-        )}
       </section>
 
       {/* Awards sectie */}
