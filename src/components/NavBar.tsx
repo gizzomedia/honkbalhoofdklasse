@@ -32,6 +32,7 @@ function useNavEntries(): NavEntry[] {
     {
       type: 'dropdown', label: 'Play',
       items: [
+        { href: '/pick-em',         label: 'Pick \'em'      },
         { href: '/pickle',          label: 'Pickle'         },
         { href: '/immaculate-grid', label: 'Immaculate Grid'},
         { href: '/higher-lower',    label: 'Higher Lower'   },
