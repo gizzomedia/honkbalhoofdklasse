@@ -10,6 +10,7 @@ export type AdminUser = {
   can_livestream: boolean
   can_highlights: boolean
   is_super_admin: boolean
+  stream_team: string | null
 }
 
 async function getAdminUser(): Promise<AdminUser | null> {
