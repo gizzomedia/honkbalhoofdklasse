@@ -76,14 +76,14 @@ async function getCareerStats(bbrefId: string): Promise<{ batting: BattingRow[];
   } catch { return { batting: [], pitching: [] } }
 }
 
-async function getPlayerPhotos(playerName: string): Promise<{ banner_url: string | null; headshot_url: string | null }> {
+async function getPlayerPhotos(playerName: string): Promise<{ banner_url: string | null; headshot_url: string | null; banner_focal_x: number | null; banner_focal_y: number | null }> {
   const { data } = await supabase
     .from('player_photos')
-    .select('banner_url, headshot_url')
+    .select('banner_url, headshot_url, banner_focal_x, banner_focal_y')
     .ilike('player_name', playerName)
     .limit(1)
     .maybeSingle()
-  return data ?? { banner_url: null, headshot_url: null }
+  return data ?? { banner_url: null, headshot_url: null, banner_focal_x: null, banner_focal_y: null }
 }
 
 export default async function PlayerProfilePage({
@@ -165,7 +165,8 @@ export default async function PlayerProfilePage({
                 src={photos.banner_url}
                 alt={player.name}
                 fill
-                className="object-cover object-top"
+                className="object-cover"
+                style={{ objectPosition: `${photos.banner_focal_x ?? 50}% ${photos.banner_focal_y ?? 50}%` }}
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a1220]" />
