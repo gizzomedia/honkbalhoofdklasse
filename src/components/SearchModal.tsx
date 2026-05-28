@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { TEAM_NAMES, TEAM_LOGOS, TEAM_COLORS } from '@/lib/teams'
+import PlayerStatsModal from '@/components/PlayerStatsModal'
 
 type PlayerResult = {
   name: string
@@ -27,9 +28,10 @@ const ALL_PLAYERS: PlayerResult[] = Object.entries(ROSTERS).flatMap(([teamId, ro
 )
 
 export default function SearchModal({ onClose }: { onClose: () => void }) {
-  const [query, setQuery]     = useState('')
-  const [results, setResults] = useState<PlayerResult[]>([])
-  const [active, setActive]   = useState(0)
+  const [query, setQuery]           = useState('')
+  const [results, setResults]       = useState<PlayerResult[]>([])
+  const [active, setActive]         = useState(0)
+  const [selected, setSelected]     = useState<PlayerResult | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const router   = useRouter()
 
@@ -46,8 +48,7 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
   }, [query])
 
   function go(player: PlayerResult) {
-    router.push(`/rosters/${player.teamId}/${player.slug}`)
-    onClose()
+    setSelected(player)
   }
 
   function onKey(e: React.KeyboardEvent) {
@@ -55,6 +56,17 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
     if (e.key === 'ArrowDown') { setActive(a => Math.min(a + 1, results.length - 1)); e.preventDefault() }
     if (e.key === 'ArrowUp')   { setActive(a => Math.max(a - 1, 0)); e.preventDefault() }
     if (e.key === 'Enter' && results[active]) go(results[active])
+  }
+
+  if (selected) {
+    return (
+      <PlayerStatsModal
+        playerName={selected.name}
+        teamId={selected.teamId}
+        statType={selected.pos === 'P' ? 'pitching' : 'batting'}
+        onClose={onClose}
+      />
+    )
   }
 
   return (
