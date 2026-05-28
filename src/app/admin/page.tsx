@@ -82,6 +82,6 @@ export default async function AdminPage() {
           <SignOutButton />
         </div>
       </div>
-    </AdminGate>
+    </div>
   )
 }
