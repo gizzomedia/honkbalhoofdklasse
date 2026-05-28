@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import AdminGate from '@/components/AdminGate'
 
 type Game = {
   id: number
@@ -39,8 +40,6 @@ function detectPlatform(url: string) {
 }
 
 export default function AdminStreamsPage() {
-  const [authed, setAuthed]   = useState(false)
-  const [pw, setPw]           = useState('')
   const [savedPw, setSavedPw] = useState('')
   const [games, setGames]     = useState<Game[]>([])
   const [streams, setStreams]  = useState<Stream[]>([])
@@ -48,27 +47,12 @@ export default function AdminStreamsPage() {
   const [saving, setSaving]   = useState<number | null>(null)
   const [msg, setMsg]         = useState<string | null>(null)
 
-  useEffect(() => {
-    const stored = localStorage.getItem('admin-pw')
-    if (stored) { setSavedPw(stored); setAuthed(true); load(stored) }
-  }, [])
-
   async function load(password: string) {
     const res = await fetch('/api/admin/streams', { headers: { 'x-admin-password': password } })
     if (!res.ok) return
     const { games: g, streams: s } = await res.json()
     setGames(g ?? [])
     setStreams(s ?? [])
-  }
-
-  async function login() {
-    const res = await fetch('/api/admin/streams', { headers: { 'x-admin-password': pw } })
-    if (res.ok) {
-      localStorage.setItem('admin-pw', pw)
-      setSavedPw(pw); setAuthed(true)
-      const { games: g, streams: s } = await res.json()
-      setGames(g ?? []); setStreams(s ?? [])
-    } else alert('Verkeerd wachtwoord')
   }
 
   function streamForGame(gameId: number) {
@@ -119,25 +103,14 @@ export default function AdminStreamsPage() {
 
   function flash(m: string) { setMsg(m); setTimeout(() => setMsg(null), 3000) }
 
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#06101e]">
-      <div className="bg-[#0a1220] border border-[#1a2a3a] p-8 rounded-2xl w-full max-w-sm space-y-4">
-        <h1 className="font-display font-800 text-2xl uppercase text-white">Admin · Streams</h1>
-        <input
-          type="password" placeholder="Wachtwoord" value={pw}
-          onChange={e => setPw(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && login()}
-          className="w-full bg-[#060e1b] border border-[#1a2a3a] text-white px-4 py-3 rounded-xl font-display text-sm focus:outline-none focus:border-[var(--accent)]"
-        />
-        <button onClick={login}
-          className="w-full bg-[var(--accent)] text-white font-display font-800 uppercase tracking-widest text-sm py-3 rounded-xl hover:opacity-90">
-          Inloggen
-        </button>
-      </div>
-    </div>
-  )
-
   return (
+    <AdminGate
+      checkAuth={async pw => {
+        const res = await fetch('/api/admin/streams', { headers: { 'x-admin-password': pw } })
+        return res.ok
+      }}
+      onAuth={pw => { setSavedPw(pw); load(pw) }}
+    >
     <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
 
       {/* Header */}
@@ -235,5 +208,6 @@ export default function AdminStreamsPage() {
         })}
       </div>
     </div>
+    </AdminGate>
   )
 }
