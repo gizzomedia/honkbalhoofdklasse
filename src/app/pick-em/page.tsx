@@ -69,6 +69,7 @@ export default function PickEmPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderEntry[]>([])
   const [tab, setTab]                 = useState<'picks' | 'leaderboard'>('picks')
   const [loading, setLoading]         = useState(true)
+  const [showPast, setShowPast]       = useState(false)
 
   // Load user from localStorage
   useEffect(() => {
@@ -145,6 +146,13 @@ export default function PickEmPage() {
     const games = grouped[k]
     return games.some(g => g.game_date >= today || g.status === 'scheduled' || g.status === 'live')
   }) ?? weekKeys[weekKeys.length - 1]
+
+  const isWeekPast = (week: string) =>
+    grouped[week].every(g => g.status === 'final')
+
+  const pastWeeks    = weekKeys.filter(isWeekPast)
+  const upcomingWeeks = weekKeys.filter(k => !isWeekPast(k))
+  const visibleWeeks  = showPast ? weekKeys : upcomingWeeks
 
   const myRank = user ? leaderboard.findIndex(e => e.token === user.token) + 1 : 0
   const myEntry = user ? leaderboard.find(e => e.token === user.token) : null
@@ -245,7 +253,15 @@ export default function PickEmPage() {
         {/* Picks tab */}
         {!loading && tab === 'picks' && (
           <div className="space-y-8">
-            {weekKeys.map(week => {
+            {pastWeeks.length > 0 && (
+              <button
+                onClick={() => setShowPast(s => !s)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 font-display font-800 text-xs uppercase tracking-wider text-[var(--muted)] hover:text-white border border-[#1a2a3a] hover:border-[var(--accent)] rounded-xl transition-colors"
+              >
+                {showPast ? '↑ Verberg gespeelde rondes' : `↓ Toon ${pastWeeks.length} gespeelde ${pastWeeks.length === 1 ? 'ronde' : 'rondes'}`}
+              </button>
+            )}
+            {visibleWeeks.map(week => {
               const weekGames = grouped[week]
               const dates = [...new Set(weekGames.map(g => g.game_date))].sort()
               const isCurrentWeek = week === activeWeek
