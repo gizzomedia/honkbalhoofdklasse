@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://honkbalhoofdklasse.com/livestream' },
 }
 
-export const revalidate = 60
+export const revalidate = 30
 
 function TeamLogo({ teamId }: { teamId: string }) {
   const logo = TEAM_LOGOS[teamId]

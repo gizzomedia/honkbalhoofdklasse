@@ -151,7 +151,10 @@ export async function GET() {
       standings[s.team_id] = { wins: s.wins, losses: s.losses }
     }
 
-    return NextResponse.json({ live, finished, upcoming, standings, updatedAt: new Date().toISOString() })
+    return NextResponse.json(
+      { live, finished, upcoming, standings, updatedAt: new Date().toISOString() },
+      { headers: { 'Cache-Control': 'no-store' } },
+    )
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
