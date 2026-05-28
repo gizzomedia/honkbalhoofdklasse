@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import LeadersTabs, { type TabData, type SeasonLeaders } from './LeadersTabs'
 
 export const metadata: Metadata = {
@@ -44,7 +44,7 @@ async function getSeasonLeaders(): Promise<SeasonLeaders> {
 }
 
 async function getLatestSeriesWeek(): Promise<string | null> {
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('batting_stats')
     .select('series_week')
     .eq('season', new Date().getFullYear())
@@ -56,7 +56,7 @@ async function getLatestSeriesWeek(): Promise<string | null> {
 
 async function getSerieData(seriesWeek: string): Promise<TabData> {
   const [{ data: batters }, { data: pitchers }] = await Promise.all([
-    supabase
+    supabaseAdmin
       .from('batting_stats')
       .select('full_name, team_id, at_bats, hits, home_runs, rbi, stolen_bases, avg, obp, slg, ops')
       .eq('season', new Date().getFullYear())
@@ -64,7 +64,7 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
       .gte('at_bats', 1)
       .order('avg', { ascending: false })
       .limit(30),
-    supabase
+    supabaseAdmin
       .from('pitching_stats')
       .select('full_name, team_id, innings_pitched, strikeouts, wins, saves, hits_allowed, walks, earned_runs')
       .eq('season', new Date().getFullYear())
@@ -79,18 +79,13 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
   }
 }
 
-function formatSeriesLabel(seriesWeek: string): string {
-  const d = new Date(seriesWeek + 'T12:00:00')
-  return `Series ${d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}`
-}
-
 export default async function LeadersPage() {
   const seriesWeek = await getLatestSeriesWeek()
   const [season, week] = await Promise.all([
     getSeasonLeaders(),
     seriesWeek ? getSerieData(seriesWeek) : Promise.resolve(null),
   ])
-  const seriesLabel = seriesWeek ? formatSeriesLabel(seriesWeek) : null
+  const seriesLabel = seriesWeek ? 'This Series' : null
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">

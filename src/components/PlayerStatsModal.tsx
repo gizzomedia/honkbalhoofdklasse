@@ -153,7 +153,7 @@ export default function PlayerStatsModal({
     }
   }, [onClose])
 
-  const hasBatting  = n(st?.ab) > 0
+  const hasBatting  = true
   const hasPitching = n(st?.pitch_appear) > 0
   const age         = rosterPlayer?.yob ?? null
 
@@ -322,14 +322,10 @@ export default function PlayerStatsModal({
                 </div>
               ))}
             </div>
-          ) : !st ? (
-            <div className="text-center py-14">
-              <p className="font-display font-700 text-[var(--muted)] uppercase text-sm tracking-widest">No 2026 stats available</p>
-            </div>
           ) : (
             <>
               {/* ── BATTING ── */}
-              {(tab === 'batting' || (!hasPitching && hasBatting)) && hasBatting && (
+              {(tab === 'batting' || !hasPitching) && (
                 <div className="px-5 pt-5 pb-4">
                   <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">2026 Batting</p>
                   <StatTable

@@ -135,6 +135,17 @@ export type SeasonStats = {
   games: number
 }
 
+const ZERO_STATS: SeasonStats = {
+  ab: 0, h: 0, hr: 0, rbi: 0, r: 0, bb: 0, so: 0, double: 0, triple: 0,
+  sb: 0, sf: 0, sh: 0, hbp: 0, pa: 0, ibb: 0, cs: 0, gdp: 0, games: 0,
+  avg: null, obp: null, slg: null, ops: null,
+  pitch_ip: '0.0', pitch_gs: 0, pitch_er: 0, pitch_so: 0, pitch_bb: 0,
+  pitch_h: 0, pitch_r: 0, pitch_win: 0, pitch_loss: 0, pitch_save: 0,
+  pitch_appear: 0, pitch_cg: 0, pitch_sho: 0, pitch_bf: 0,
+  pitch_hr: 0, pitch_hbp: 0, pitch_ibb: 0, pitch_wp: 0, pitch_bk: 0,
+  era: null, whip: null,
+}
+
 export type PlayerPhotos = {
   banner_url: string | null
   headshot_url: string | null
@@ -151,7 +162,7 @@ function findInList(players: Row[], name: string): Row | null {
 // Uses section=players (no threshold) for individual pages.
 // Falls back to section=leaders categories (for players who appear there but
 // have a different name format in section=players).
-export async function computeSeasonStats(name: string): Promise<SeasonStats | null> {
+export async function computeSeasonStats(name: string): Promise<SeasonStats> {
   const [batList, pitList, batCats, pitCats] = await Promise.all([
     fetchAllPlayerStats('batting'),
     fetchAllPlayerStats('pitching'),
@@ -167,7 +178,7 @@ export async function computeSeasonStats(name: string): Promise<SeasonStats | nu
   if (!bat) bat = findPlayer(batCats, name)
   if (!pit) pit = findPlayer(pitCats, name)
 
-  if (!bat && !pit) return null
+  if (!bat && !pit) return { ...ZERO_STATS }
 
   // section=players stores rates as integers (219 = .219); section=leaders uses decimals (0.219)
   function normalizeRate(v: unknown): number | null {
