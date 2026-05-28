@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
-import ScorecardButton from '@/components/ScorecardButton'
 
 export const revalidate = 86400
 
@@ -131,15 +130,12 @@ export default async function PlayerProfilePage({
         >
           ← Rosters
         </Link>
-        <div className="flex items-center gap-2">
-          <ScorecardButton teamId={teamId} playerSlug={playerSlug} playerName={player.name} />
-          <Link
-            href={`/compare?a=${encodeURIComponent(player.name)}`}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] text-white transition-colors"
-          >
-            Compare
-          </Link>
-        </div>
+        <Link
+          href={`/compare?a=${encodeURIComponent(player.name)}`}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] text-white transition-colors"
+        >
+          Compare
+        </Link>
       </div>
 
       {/* Player header card */}
