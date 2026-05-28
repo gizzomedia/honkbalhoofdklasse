@@ -17,9 +17,7 @@ export async function GET(request: Request) {
     if (!exchangeError) {
       return NextResponse.redirect(`${origin}/admin`)
     }
-    const msg = encodeURIComponent(exchangeError.message)
-    return NextResponse.redirect(`${origin}/admin/login?error=auth&msg=${msg}`)
   }
 
-  return NextResponse.redirect(`${origin}/admin/login?error=nocode`)
+  return NextResponse.redirect(`${origin}/admin/login?error=auth`)
 }

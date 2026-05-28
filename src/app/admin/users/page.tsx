@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 
 type AdminUser = {
   email: string
@@ -30,14 +29,13 @@ export default function UsersPage() {
   const [adding,  setAdding]  = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
-  const supabase = createClient()
-
   useEffect(() => { load() }, [])
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase.from('admin_users').select('*').order('email')
-    setUsers((data ?? []) as AdminUser[])
+    const res = await fetch('/admin/api/users')
+    const data = await res.json()
+    setUsers(Array.isArray(data) ? data : [])
     setLoading(false)
   }
 
@@ -45,7 +43,11 @@ export default function UsersPage() {
     setSaving(email + key)
     const user = users.find(u => u.email === email)!
     const newVal = !user[key]
-    await supabase.from('admin_users').update({ [key]: newVal }).eq('email', email)
+    await fetch('/admin/api/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, key, value: newVal }),
+    })
     setUsers(prev => prev.map(u => u.email === email ? { ...u, [key]: newVal } : u))
     setSaving(null)
   }
@@ -54,17 +56,14 @@ export default function UsersPage() {
     if (!newEmail.trim()) return
     setAdding(true)
     setError(null)
-    const { error } = await supabase.from('admin_users').insert({
-      email: newEmail.trim().toLowerCase(),
-      name: null,
-      can_photos: false,
-      can_analytics: false,
-      can_livestream: false,
-      can_highlights: false,
-      is_super_admin: false,
+    const res = await fetch('/admin/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newEmail }),
     })
-    if (error) {
-      setError(error.message)
+    const data = await res.json()
+    if (!res.ok) {
+      setError(data.error ?? 'Toevoegen mislukt')
     } else {
       setNewEmail('')
       load()
@@ -74,7 +73,11 @@ export default function UsersPage() {
 
   async function removeUser(email: string) {
     if (!confirm(`${email} verwijderen?`)) return
-    await supabase.from('admin_users').delete().eq('email', email)
+    await fetch('/admin/api/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
     setUsers(prev => prev.filter(u => u.email !== email))
   }
 

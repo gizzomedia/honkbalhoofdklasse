@@ -13,14 +13,8 @@ function LoginContent() {
   const next = searchParams.get('next') ?? '/admin'
 
   useEffect(() => {
-    const err = searchParams.get('error')
-    const msg = searchParams.get('msg')
-    if (err === 'auth' && msg) {
-      setError(`Auth fout: ${msg}`)
-    } else if (err === 'auth') {
-      setError('Je account heeft geen toegang tot het beheerportaal.')
-    } else if (err === 'nocode') {
-      setError('Geen auth code ontvangen — probeer opnieuw.')
+    if (searchParams.get('error')) {
+      setError('Inloggen mislukt of geen toegang. Probeer opnieuw.')
     }
   }, [searchParams])
 
