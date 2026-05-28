@@ -159,7 +159,7 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
                 </div>
               </td>
               {[b.ab, b.h, b.r, b.rbi, b.bb, b.so, b.hr].map((v, j) => (
-                <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 tabular-nums ${v > 0 ? 'text-white' : 'text-[var(--border)]'}`}>
+                <td key={j} className="font-display font-700 text-xs text-center py-2 px-2 tabular-nums text-white">
                   {v}
                 </td>
               ))}
@@ -203,7 +203,7 @@ function PitchingTable({ pitchers, teamColor }: { pitchers: PitcherStat[]; teamC
                   </div>
                 </td>
                 {[p.ip, p.h, p.r, p.er, p.bb, p.so].map((v, j) => (
-                  <td key={j} className={`font-display font-700 text-xs text-center py-2 px-2 ${Number(v) > 0 || j === 0 ? 'text-white' : 'text-[var(--muted)]'}`}>
+                  <td key={j} className="font-display font-700 text-xs text-center py-2 px-2 text-white">
                     {v}
                   </td>
                 ))}
