@@ -1,7 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { ROSTERS, slugify } from '@/lib/rosters-data'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
-import { supabaseAdmin } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 
@@ -41,9 +40,10 @@ export async function GET(
     { label: 'SB',  value: sb  },
   ]
 
-  // Fetch player photo from Supabase
+  // Fetch player photo from Supabase (lazy import to avoid build-time env var errors)
   let photoUrl: string | null = null
   try {
+    const { supabaseAdmin } = await import('@/lib/supabase')
     const { data } = await supabaseAdmin
       .from('player_photos')
       .select('banner_url, headshot_url')
