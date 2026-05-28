@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/language'
+import SearchModal from './SearchModal'
 
 type NavItem = { href: string; label: string; external?: boolean }
 type NavLink  = { type: 'link';     href: string; label: string }
@@ -147,11 +148,22 @@ export default function NavBar() {
   const [open, setOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const pathname = usePathname()
   const isHome = pathname === '/'
   const transparent = isHome && !scrolled
-  // language still used for LangDropdown
   const entries = useNavEntries()
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(s => !s)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -162,6 +174,8 @@ export default function NavBar() {
   useEffect(() => { setOpen(false); setOpenGroup(null) }, [pathname])
 
   return (
+    <>
+    {searchOpen && <SearchModal onClose={() => setSearchOpen(false)} />}
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       transparent
         ? 'bg-transparent border-transparent'
@@ -181,6 +195,19 @@ export default function NavBar() {
             @honkbalhoofdklasse
           </p>
         </Link>
+
+        {/* Search button */}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 text-white/50 hover:text-white transition-colors bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 hidden lg:flex"
+          aria-label="Zoeken"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className="font-display font-700 text-xs text-white/40 uppercase tracking-wider">Zoeken</span>
+          <kbd className="font-display font-700 text-[10px] text-white/30 border border-white/10 rounded px-1.5 py-0.5">⌘K</kbd>
+        </button>
 
         {/* Desktop nav */}
         <div className="hidden lg:flex items-center gap-6">
@@ -281,8 +308,20 @@ export default function NavBar() {
             Honkbalsoftbal.tv
           </a>
 
+          {/* Mobile search */}
+          <button
+            onClick={() => { setOpen(false); setSearchOpen(true) }}
+            className="w-full flex items-center gap-3 font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl text-white/60 hover:text-white hover:bg-[var(--card-hover)] transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Zoeken
+          </button>
+
         </div>
       </div>
     </nav>
+    </>
   )
 }
