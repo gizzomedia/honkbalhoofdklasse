@@ -49,6 +49,22 @@ const POS_LABELS: Record<string, string> = {
 type BattingRow  = { year:string; age:string; lg:string; team:string; g:string; ab:string; r:string; h:string; d:string; t:string; hr:string; rbi:string; bb:string; so:string; avg:string; obp:string; slg:string }
 type PitchingRow = { year:string; age:string; lg:string; team:string; w:string; l:string; era:string; g:string; gs:string; sv:string; ip:string; h:string; bb:string; so:string; whip:string }
 
+type SeasonStats = {
+  ab: number; r: number; h: number; double: number; triple: number
+  hr: number; rbi: number; bb: number; so: number; sb: number; cs: number
+  avg: number; obp: number; slg: number; ops: number
+} | null
+
+async function getSeasonStats(playerName: string): Promise<SeasonStats> {
+  try {
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://honkbalhoofdklasse.com'
+    const res = await fetch(`${base}/api/compare`, { next: { revalidate: 3600 } })
+    if (!res.ok) return null
+    const players: ({ name: string } & Exclude<SeasonStats, null>)[] = await res.json()
+    return players.find(p => p.name.toLowerCase() === playerName.toLowerCase()) ?? null
+  } catch { return null }
+}
+
 async function getCareerStats(bbrefId: string): Promise<{ batting: BattingRow[]; pitching: PitchingRow[] }> {
   try {
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://honkbalhoofdklasse.com'
@@ -82,10 +98,11 @@ export default async function PlayerProfilePage({
   const player = roster.players.find(p => slugify(p.name) === playerSlug)
   if (!player) notFound()
 
-  const [awards, photos, career] = await Promise.all([
+  const [awards, photos, career, season] = await Promise.all([
     Promise.resolve(getAwardsByPlayer(player.name)),
     getPlayerPhotos(player.name),
     player.bbref_id ? getCareerStats(player.bbref_id) : Promise.resolve({ batting: [], pitching: [] }),
+    getSeasonStats(player.name),
   ])
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
@@ -396,30 +413,71 @@ export default async function PlayerProfilePage({
         </section>
       )}
 
-      {/* Stats link */}
+      {/* 2026 Season Stats */}
       <section>
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-6 bg-[var(--accent)] shrink-0" />
           <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
-            <strong>Stats</strong>
+            <strong>2026 Stats</strong>
           </h2>
-        </div>
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="font-display font-800 text-base uppercase text-white">KNBSB Stats</p>
-            <p className="font-display font-700 text-sm text-[var(--muted)] mt-1">
-              View full statistics on the KNBSB stats website
-            </p>
-          </div>
           <a
-            href={`https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/roster`}
+            href="https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/players/batting"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 bg-[var(--accent)] px-5 py-2.5 font-display font-800 text-sm uppercase tracking-wider text-white hover:bg-[var(--accent)]/80 transition-colors rounded-lg"
+            className="ml-auto font-display font-700 text-[10px] text-[var(--muted)] hover:text-white uppercase tracking-widest transition-colors"
           >
-            View Stats →
+            KNBSB →
           </a>
         </div>
+
+        {season ? (
+          <>
+            {/* Key stats grid */}
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-3">
+              {[
+                { label: 'AVG', value: season.avg.toFixed(3) },
+                { label: 'OBP', value: season.obp.toFixed(3) },
+                { label: 'SLG', value: season.slg.toFixed(3) },
+                { label: 'OPS', value: season.ops.toFixed(3) },
+                { label: 'AB',  value: season.ab  },
+              ].map(s => (
+                <div key={s.label} className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 text-center">
+                  <p className="font-display font-900 text-xl text-white" style={{ color: s.label === 'AVG' || s.label === 'OPS' ? teamColor === '#121b31' ? 'var(--accent)' : teamColor : undefined }}>
+                    {s.value}
+                  </p>
+                  <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Full stats table */}
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    {['H','2B','3B','HR','RBI','R','BB','SO','SB','CS'].map(h => (
+                      <th key={h} className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest px-3 py-2 text-center">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {[season.h, season.double, season.triple, season.hr, season.rbi, season.r, season.bb, season.so, season.sb, season.cs].map((v, i) => (
+                      <td key={i} className="font-display font-700 px-3 py-2.5 text-center text-white">{v}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 text-center">
+            <p className="font-display font-800 text-base uppercase text-[var(--muted)] italic">Nog geen stats</p>
+            <p className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-widest mt-2">
+              Stats verschijnen zodra de speler minimaal 10 at-bats heeft
+            </p>
+          </div>
+        )}
       </section>
 
       {/* Instagram team feed */}
