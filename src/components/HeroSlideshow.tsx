@@ -1,19 +1,64 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+
+const IMAGES = [
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159379/Twins_HCAW_7_mei_2026-54_f6fnno.jpg',
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159379/Pirates_Neptunus_28_mei_2026-50_z2yivd.jpg',
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159377/Twins_HCAW_7_mei_2026-29_yjlwjm.jpg',
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159377/Twins_HCAW_7_mei_2026-19_nifdlo.jpg',
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159501/UVV_vs_Pioniers_16_april_2026-41_akfnm2.jpg',
+  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780159483/UVV_vs_Pioniers_16_april_2026-47_ukuhkf.jpg',
+]
+
+const INTERVAL = 5000
+
 export default function HeroSlideshow() {
+  const [current, setCurrent] = useState(0)
+  const [prev, setPrev]       = useState<number | null>(null)
+  const [fading, setFading]   = useState(false)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPrev(current)
+      setFading(true)
+      setTimeout(() => {
+        setCurrent(c => (c + 1) % IMAGES.length)
+        setFading(false)
+        setPrev(null)
+      }, 800)
+    }, INTERVAL)
+    return () => clearInterval(timer)
+  }, [current])
+
   return (
     <div
       className="relative flex items-end overflow-hidden"
       style={{ height: '100vh', marginTop: '-80px' }}
     >
-      {/* Video background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 w-full h-full object-cover"
-        src="https://res.cloudinary.com/dqld625sq/video/upload/v1778618776/Website_hero_video_f8xbej.mp4"
+      {/* Previous image (fading out) */}
+      {prev !== null && (
+        <Image
+          key={`prev-${prev}`}
+          src={IMAGES[prev]}
+          alt=""
+          fill
+          className="object-cover transition-opacity duration-700"
+          style={{ opacity: fading ? 0 : 1 }}
+          priority
+        />
+      )}
+
+      {/* Current image */}
+      <Image
+        key={`cur-${current}`}
+        src={IMAGES[current]}
+        alt=""
+        fill
+        className="object-cover transition-opacity duration-700"
+        style={{ opacity: fading ? 0 : 1 }}
+        priority={current === 0}
       />
 
       {/* Gradient overlays */}
@@ -31,6 +76,17 @@ export default function HeroSlideshow() {
           <br />
           <strong className="text-[var(--accent)]">HOOFDKLASSE</strong>
         </h1>
+      </div>
+
+      {/* Dot indicators */}
+      <div className="absolute bottom-8 right-8 flex gap-2 z-10">
+        {IMAGES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setPrev(current); setFading(true); setTimeout(() => { setCurrent(i); setFading(false); setPrev(null) }, 800) }}
+            className={`w-2 h-2 rounded-full transition-all ${i === current ? 'bg-white w-5' : 'bg-white/40'}`}
+          />
+        ))}
       </div>
     </div>
   )
