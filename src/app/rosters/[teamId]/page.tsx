@@ -38,13 +38,17 @@ async function getSupplementalPlayers(teamId: string, knownNames: Set<string>): 
 
   async function fetchSection(section: string): Promise<string[]> {
     try {
-      const url = `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=players&stats-section=${section}&round=&team=${teamNum}&split=&language=en`
+      const url = `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=players&stats-section=${section}&round=&team=&split=&language=en`
       const res = await fetch(url, { headers: KNBSB_HEADERS, next: { revalidate: 3600 } })
       if (!res.ok) return []
       const d = await res.json()
       let data = d.data ?? []
       if (data.length && Array.isArray(data[0]?.data)) data = data.flatMap((c: { data: unknown[] }) => c.data)
-      return (data as Record<string, unknown>[]).map(p => parseName(String(p.name ?? ''))).filter(Boolean)
+      // Filter by teamid since the team query param is ignored by the API
+      return (data as Record<string, unknown>[])
+        .filter(p => Number(p.teamid) === teamNum)
+        .map(p => parseName(String(p.name ?? '')))
+        .filter(Boolean)
     } catch { return [] }
   }
 
