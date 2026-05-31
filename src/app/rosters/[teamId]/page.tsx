@@ -33,7 +33,15 @@ async function getSupplementalPlayers(teamId: string, knownNames: Set<string>): 
 
   function parseName(raw: string): string {
     const parts = raw.replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean)
-    return parts.length >= 2 ? `${parts[1]} ${parts[0].charAt(0) + parts[0].slice(1).toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}` : parts[0] ?? ''
+    if (parts.length >= 2) {
+      const tussenvoegsel = new Set(['van', 'de', 'den', 'der', 'het', 'op', 'ten', 'ter', 't'])
+      const last = parts[0].split(' ').map((w, i, arr) => {
+        const lower = w.toLowerCase()
+        return (i < arr.length - 1 && tussenvoegsel.has(lower)) ? lower : lower.charAt(0).toUpperCase() + lower.slice(1)
+      }).join(' ')
+      return `${parts[1]} ${last}`.trim()
+    }
+    return parts[0] ?? ''
   }
 
   async function fetchSection(section: string): Promise<string[]> {
