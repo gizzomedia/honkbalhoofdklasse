@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/language'
 import SearchModal from './SearchModal'
+import PushNotifications from './PushNotifications'
 
 type NavItem = { href: string; label: string; external?: boolean }
 type NavLink  = { type: 'link';     href: string; label: string }
@@ -195,6 +196,9 @@ export default function NavBar() {
             @honkbalhoofdklasse
           </p>
         </Link>
+
+        {/* Push notifications bell */}
+        <PushNotifications />
 
         {/* Search button */}
         <button

@@ -5,6 +5,10 @@
       "schedule": "*/2 * * * *"
     },
     {
+      "path": "/api/push/live-monitor",
+      "schedule": "*/1 * * * *"
+    },
+    {
       "path": "/api/notify-games",
       "schedule": "0 7 * * 4,5,6"
     }

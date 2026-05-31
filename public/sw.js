@@ -70,3 +70,31 @@ self.addEventListener('fetch', e => {
       )
   )
 })
+
+// Push notifications
+self.addEventListener('push', e => {
+  if (!e.data) return
+  const data = e.data.json()
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:  data.body,
+      icon:  data.icon  || '/icons/icon-192.png',
+      badge: data.badge || '/icons/badge-72.png',
+      data:  data.data  || {},
+      tag:   data.tag   || 'hk-notif',
+      renotify: true,
+    })
+  )
+})
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = e.notification.data?.url || '/'
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cs => {
+      const existing = cs.find(c => c.url === self.location.origin + url)
+      if (existing) return existing.focus()
+      return clients.openWindow(url)
+    })
+  )
+})
