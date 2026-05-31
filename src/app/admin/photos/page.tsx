@@ -475,7 +475,7 @@ export default function AdminPhotosPage() {
           <p className="font-display font-700 text-[var(--accent)] text-xs uppercase tracking-widest mb-1">Admin</p>
           <h1 className="font-display font-800 italic text-4xl uppercase text-white">Player Photos</h1>
           <p className="font-display font-700 text-[var(--muted)] text-sm mt-1 uppercase tracking-wider">
-            {photos.filter(p => p.banner_url || p.headshot_url).length} van {ALL_PLAYERS.length} spelers hebben foto&apos;s
+            {photos.filter(p => p.banner_url || p.headshot_url).length} van {allPlayers.length} spelers hebben foto&apos;s
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
