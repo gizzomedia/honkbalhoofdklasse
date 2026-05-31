@@ -50,6 +50,8 @@ export const AWARDS: Award[] = [
   { season: 2026, category: 'hottest-player-week', playerName: 'Dwayne Kemp',         teamId: 'neptunus', label: 'Week 3', note: '6/11 (.545), 6 RBI' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Christian Diaz',      teamId: 'neptunus', label: 'Week 4', note: '7-for-13 (.538), 1 HR, 4 RBI' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Noah Zavolas',        teamId: 'kinheim',  label: 'Week 5', note: 'CG shutout, 12K, 0.00 ERA' },
+  { season: 2026, category: 'hottest-player-week', playerName: 'Jeandro Tromp',       teamId: 'pirates',  label: 'Week 6', note: '9-for-12 (.750), 17 TB, 3 2B, 3B, HR, 4 RBI, 4 R, 2.186 OPS' },
+  { season: 2026, category: 'hottest-player-week', playerName: 'Nando Mostaert',      teamId: 'twins',    label: 'Week 7', note: '5-for-9 (.556), 2 2B, HR, 10 TB, 5 RBI, 4 R, 1.778 OPS' },
   // SSK Pitcher of the Month 2026
   { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis',  teamId: 'neptunus', label: 'Month 1' },
   // Batking Hitter of the Month 2026
