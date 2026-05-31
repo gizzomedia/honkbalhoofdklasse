@@ -192,10 +192,6 @@ export default function NavBar() {
             height={120}
             className="object-contain"
           />
-          {/* Only show text on xl+ to avoid crowding the nav */}
-          <p className="font-display font-800 text-xl tracking-wide text-white hidden xl:block">
-            @honkbalhoofdklasse
-          </p>
         </Link>
 
         {/* Desktop nav */}
