@@ -1,34 +1,37 @@
 # Honkbal Hoofdklasse
 
-> The fan website for the KNBSB Honkbal Hoofdklasse — the top professional baseball league in the Netherlands.
+> De officiële statistieken- en informatiesite voor de KNBSB Honkbal Hoofdklasse — het hoogste niveau van het Nederlandse honkbal.
 
-## What this site covers
+## Kernpagina's
 
-- Live scores, boxscores and standings for all Honkbal Hoofdklasse games
-- Season 2026 batting and pitching statistics for all players
-- League leaders per statistical category
-- Player profiles with career stats
-- Team rosters for all 7 clubs: Curaçao Neptunus, Amsterdam Pirates, Kinheim, HCAW, Oosterhout Twins, Hoofddorp Pioniers and UVV
-- Daily baseball trivia games: Pickle (Thu & Sat) and Immaculate Grid (Fri)
-- Game schedule and upcoming fixtures
-- Awards and honours per season
+- [Homepage](https://honkbalhoofdklasse.com/) — live scores, standen, laatste nieuws
+- [Standen](https://honkbalhoofdklasse.com/stand) — actueel klassement 2026
+- [Live scores](https://honkbalhoofdklasse.com/livescores) — real-time wedstrijdscores per inning
+- [Uitslagen](https://honkbalhoofdklasse.com/uitslagen) — alle wedstrijduitslagen
+- [Speelschema](https://honkbalhoofdklasse.com/schema) — volledig speelschema 2026
+- [Statistieken Leaders](https://honkbalhoofdklasse.com/leaders) — batting average, home runs, ERA, strikeouts
+- [Roosters](https://honkbalhoofdklasse.com/rosters) — spelersroosters alle 7 clubs
+- [Awards](https://honkbalhoofdklasse.com/awards) — Speler van de Week en seizoensawards
+- [Teams](https://honkbalhoofdklasse.com/teams) — teamstatistieken en overzicht
+- [Speler vergelijken](https://honkbalhoofdklasse.com/compare) — radar chart + stats vergelijking
+- [Pick 'em](https://honkbalhoofdklasse.com/pick-em) — voorspel wedstrijduitslagen
 
-## Teams
+## Clubs (seizoen 2026)
 
-- Curaçao Neptunus (Rotterdam)
-- Amsterdam Pirates
-- Kinheim (Haarlem)
-- HCAW (Bussum)
-- Oosterhout Twins
-- Hoofddorp Pioniers
-- UVV (Utrecht)
+- [Curaçao Neptunus](https://honkbalhoofdklasse.com/rosters/neptunus) — Rotterdam
+- [Amsterdam Pirates](https://honkbalhoofdklasse.com/rosters/pirates) — Amsterdam
+- [Kinheim](https://honkbalhoofdklasse.com/rosters/kinheim) — Haarlem
+- [HCAW](https://honkbalhoofdklasse.com/rosters/hcaw) — Bussum
+- [Oosterhout Twins](https://honkbalhoofdklasse.com/rosters/twins) — Oosterhout
+- [Hoofddorp Pioniers](https://honkbalhoofdklasse.com/rosters/pioniers) — Hoofddorp
+- [UVV](https://honkbalhoofdklasse.com/rosters/uvv) — Utrecht
 
-## Data sources
+## Over de competitie
 
-Statistics are sourced from the KNBSB stats system (stats.knbsbstats.nl).
-Live scores are updated every 60 seconds during games.
+De Honkbal Hoofdklasse is de hoogste honkbalcompetitie in Nederland, georganiseerd door de KNBSB (Koninklijke Nederlandse Baseball en Softbal Bond). Het seizoen loopt van april tot september. Statistieken worden aangeleverd via stats.knbsbstats.nl. Live scores worden elke 60 seconden bijgewerkt.
 
 ## Contact
 
 Instagram: @honkbalhoofdklasse
 Website: https://honkbalhoofdklasse.com
+Sitemap: https://honkbalhoofdklasse.com/sitemap.xml
