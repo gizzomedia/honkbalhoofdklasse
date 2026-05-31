@@ -192,13 +192,14 @@ export default function NavBar() {
             height={120}
             className="object-contain"
           />
-          <p className="font-display font-800 text-xl tracking-wide text-white hidden sm:block">
+          {/* Only show text on xl+ to avoid crowding the nav */}
+          <p className="font-display font-800 text-xl tracking-wide text-white hidden xl:block">
             @honkbalhoofdklasse
           </p>
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden lg:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-5">
           <Link
             href="/"
             className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === '/' ? 'text-white' : 'text-white/60'}`}
@@ -247,9 +248,11 @@ export default function NavBar() {
 
         </div>
 
-        {/* Hamburger */}
-        <button
-          className="lg:hidden flex flex-col gap-1.5 p-2 shrink-0"
+        {/* Mobile: bell + hamburger */}
+        <div className="lg:hidden flex items-center gap-1">
+          <div className="lg:hidden"><PushNotifications /></div>
+          <button
+          className="flex flex-col gap-1.5 p-2 shrink-0"
           onClick={() => setOpen(o => !o)}
           aria-label="Menu"
         >
@@ -257,6 +260,7 @@ export default function NavBar() {
           <span className={`block w-6 h-0.5 bg-white transition-all duration-200 ${open ? 'opacity-0' : ''}`} />
           <span className={`block w-6 h-0.5 bg-white transition-all duration-200 origin-center ${open ? '-rotate-45 -translate-y-2' : ''}`} />
         </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
