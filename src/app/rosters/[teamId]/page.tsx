@@ -5,11 +5,61 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
-export const revalidate = false
+export const revalidate = 3600
 
 const POS_LABELS: Record<string, string> = {
   P: 'Pitcher', C: 'Catcher', IF: 'Infielder', OF: 'Outfielder',
   'C/IF': 'Catcher / Infielder', UTL: 'Utility', DH: 'Designated Hitter',
+}
+
+const KNBSB_TEAM_IDS: Record<string, number> = {
+  pirates: 39583, neptunus: 39587, hcaw: 39584,
+  kinheim: 39586, twins: 39588, uvv: 39589, pioniers: 39585,
+}
+
+const KNBSB_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'nl-NL,nl;q=0.9',
+  'Origin': 'https://stats.knbsbstats.nl',
+  'Referer': 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/players/batting',
+}
+
+type SupplementalPlayer = { name: string; pos: 'P' | '?' }
+
+async function getSupplementalPlayers(teamId: string, knownNames: Set<string>): Promise<SupplementalPlayer[]> {
+  const teamNum = KNBSB_TEAM_IDS[teamId]
+  if (!teamNum) return []
+
+  function parseName(raw: string): string {
+    const parts = raw.replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean)
+    return parts.length >= 2 ? `${parts[1]} ${parts[0].charAt(0) + parts[0].slice(1).toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}` : parts[0] ?? ''
+  }
+
+  async function fetchSection(section: string): Promise<string[]> {
+    try {
+      const url = `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=players&stats-section=${section}&round=&team=${teamNum}&split=&language=en`
+      const res = await fetch(url, { headers: KNBSB_HEADERS, next: { revalidate: 3600 } })
+      if (!res.ok) return []
+      const d = await res.json()
+      let data = d.data ?? []
+      if (data.length && Array.isArray(data[0]?.data)) data = data.flatMap((c: { data: unknown[] }) => c.data)
+      return (data as Record<string, unknown>[]).map(p => parseName(String(p.name ?? ''))).filter(Boolean)
+    } catch { return [] }
+  }
+
+  const [batters, pitchers] = await Promise.all([fetchSection('batting'), fetchSection('pitching')])
+  const pitcherSet = new Set(pitchers.map(n => n.toLowerCase()))
+
+  const seen = new Set<string>()
+  const result: SupplementalPlayer[] = []
+  for (const name of [...batters, ...pitchers]) {
+    const lower = name.toLowerCase()
+    if (knownNames.has(lower) || seen.has(lower) || !name) continue
+    seen.add(lower)
+    result.push({ name, pos: pitcherSet.has(lower) ? 'P' : '?' })
+  }
+  return result
 }
 
 const TEAM_DESCRIPTIONS: Record<string, string> = {
@@ -62,6 +112,9 @@ export default async function TeamRosterPage({
   const teamName  = TEAM_NAMES[teamId] ?? teamId
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo  = TEAM_LOGOS[teamId]
+
+  const knownNames = new Set(roster.players.map(p => p.name.toLowerCase()))
+  const supplemental = await getSupplementalPlayers(teamId, knownNames)
 
   const sportsTeamSchema = {
     '@context': 'https://schema.org',
@@ -167,6 +220,36 @@ export default async function TeamRosterPage({
             </section>
           )
         })}
+
+        {/* Supplemental players — in stats but not yet in static roster */}
+        {supplemental.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-1 h-5 shrink-0 bg-[var(--muted)]" />
+              <h2 className="font-display font-800 italic text-xl uppercase text-white tracking-tight">
+                <strong>Nieuw dit seizoen</strong>
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {supplemental.map(player => (
+                <div
+                  key={player.name}
+                  className="flex items-center gap-4 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3"
+                >
+                  <span className="font-display font-800 text-lg w-8 text-center shrink-0 text-[var(--muted)]">—</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-800 text-sm uppercase text-white truncate">
+                      <strong>{player.name}</strong>
+                    </p>
+                    <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                      {player.pos === 'P' ? 'Pitcher' : 'Positiespeler'}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Coaching staff */}
         {roster.coaches.length > 0 && (
