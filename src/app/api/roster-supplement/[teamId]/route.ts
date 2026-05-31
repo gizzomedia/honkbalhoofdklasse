@@ -29,7 +29,7 @@ function parseName(raw: string): string {
   return parts[0] ?? ''
 }
 
-async function fetchNames(section: string, teamNum: number): Promise<{ name: string; isPitcher: boolean }[]> {
+async function fetchSection(section: string, teamNum: number): Promise<Record<string, unknown>[]> {
   try {
     const url = `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=players&stats-section=${section}&round=&team=&split=&language=en`
     const res = await fetch(url, { headers: HEADERS, cache: 'no-store' })
@@ -37,11 +37,21 @@ async function fetchNames(section: string, teamNum: number): Promise<{ name: str
     const d = await res.json()
     let data = d.data ?? []
     if (data.length && Array.isArray(data[0]?.data)) data = data.flatMap((c: { data: unknown[] }) => c.data)
-    return (data as Record<string, unknown>[])
-      .filter(p => Number(p.teamid) === teamNum)
-      .map(p => ({ name: parseName(String(p.name ?? '')), isPitcher: section === 'pitching' }))
-      .filter(p => p.name)
+    return (data as Record<string, unknown>[]).filter(p => Number(p.teamid) === teamNum)
   } catch { return [] }
+}
+
+function inferPos(p: Record<string, unknown>): string {
+  const po  = Number(p.field_po ?? 0)
+  const a   = Number(p.field_a  ?? 0)
+  const pb  = Number(p.field_pb ?? 0)
+  const sba = Number(p.field_sba ?? 0)
+  if (pb > 0 || sba > 0) return 'C'
+  if (po > 30 && a < po * 0.3) return 'C'
+  if (a > po) return 'IF'
+  if (po > 0 && a === 0) return 'OF'
+  if (a > 0) return 'IF'
+  return 'UTL'
 }
 
 export async function GET(
@@ -55,20 +65,34 @@ export async function GET(
   const roster = ROSTERS[teamId]
   const knownNames = new Set(roster?.players.map(p => p.name.toLowerCase()) ?? [])
 
-  const [batters, pitchers] = await Promise.all([
-    fetchNames('batting', teamNum),
-    fetchNames('pitching', teamNum),
+  const [batters, pitchers, fielding] = await Promise.all([
+    fetchSection('batting', teamNum),
+    fetchSection('pitching', teamNum),
+    fetchSection('fielding', teamNum),
   ])
 
-  const pitcherNames = new Set(pitchers.map(p => p.name.toLowerCase()))
+  const pitcherNames = new Set(pitchers.map(p => parseName(String(p.name ?? '')).toLowerCase()))
+  const fieldingByName = new Map(
+    fielding.map(p => [parseName(String(p.name ?? '')).toLowerCase(), p])
+  )
+
   const seen = new Set<string>()
   const result: { name: string; pos: string }[] = []
 
-  for (const { name } of [...batters, ...pitchers]) {
+  for (const row of [...batters, ...pitchers]) {
+    const name = parseName(String(row.name ?? ''))
     const lower = name.toLowerCase()
     if (!name || knownNames.has(lower) || seen.has(lower)) continue
     seen.add(lower)
-    result.push({ name, pos: pitcherNames.has(lower) ? 'P' : '?' })
+
+    let pos: string
+    if (pitcherNames.has(lower)) {
+      pos = 'P'
+    } else {
+      const fd = fieldingByName.get(lower)
+      pos = fd ? inferPos(fd) : 'UTL'
+    }
+    result.push({ name, pos })
   }
 
   return NextResponse.json(result)
