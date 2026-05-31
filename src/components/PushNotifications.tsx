@@ -104,8 +104,8 @@ export default function PushNotifications() {
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-sm bg-[#0a1220] border border-[#1a2a3a] rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center sm:px-4 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-sm bg-[#0a1220] border border-[#1a2a3a] rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="font-display font-800 text-lg uppercase text-white">Notifications</h2>
