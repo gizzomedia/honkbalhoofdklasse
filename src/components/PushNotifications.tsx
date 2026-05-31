@@ -81,14 +81,12 @@ export default function PushNotifications() {
     )
   }
 
-  if (status === 'unsupported') return null
-
   return (
     <>
       {/* Bell button */}
       <button
         onClick={() => status === 'subscribed' ? unsubscribe() : setOpen(true)}
-        disabled={saving || status === 'denied'}
+        disabled={saving || status === 'denied' || status === 'unsupported'}
         className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
           status === 'subscribed'
             ? 'bg-[var(--accent)]/20 text-[var(--accent)]'
