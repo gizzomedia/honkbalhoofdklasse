@@ -5,7 +5,7 @@ import { ROSTERS } from '@/lib/rosters-data'
 import { TEAM_NAMES } from '@/lib/teams'
 import AdminGate from '@/components/AdminGate'
 
-const ALL_PLAYERS = Object.entries(ROSTERS)
+const STATIC_PLAYERS = Object.entries(ROSTERS)
   .flatMap(([teamId, roster]) =>
     roster.players.map(p => ({ name: p.name, teamId }))
   )
@@ -327,6 +327,16 @@ export default function AdminPhotosPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [filter, setFilter] = useState('')
   const [compressing, setCompressing] = useState<{ done: number; total: number } | null>(null)
+  const [allPlayers, setAllPlayers] = useState(STATIC_PLAYERS)
+
+  useEffect(() => {
+    fetch('/api/all-players')
+      .then(r => r.json())
+      .then((data: { name: string; teamId: string }[]) => {
+        setAllPlayers(data.map(p => ({ name: p.name, teamId: p.teamId })).sort((a, b) => a.name.localeCompare(b.name)))
+      })
+      .catch(() => {})
+  }, [])
 
   async function loadPhotos(password: string) {
     const res = await fetch('/api/admin/photos', { headers: { 'x-admin-password': password } })
@@ -436,11 +446,11 @@ export default function AdminPhotosPage() {
   }
 
   const filtered = filter
-    ? ALL_PLAYERS.filter(p =>
+    ? allPlayers.filter(p =>
         p.name.toLowerCase().includes(filter.toLowerCase()) ||
         TEAM_NAMES[p.teamId]?.toLowerCase().includes(filter.toLowerCase())
       )
-    : ALL_PLAYERS
+    : allPlayers
 
   const withPhotos = filtered.filter(p => {
     const ph = photos.find(x => x.player_name.toLowerCase() === p.name.toLowerCase())
