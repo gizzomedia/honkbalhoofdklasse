@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import type { StaticRosters } from '@/lib/rosters-data'
 import PlayerStatsModal from '@/components/PlayerStatsModal'
@@ -20,13 +20,30 @@ const SECTIONS: Section[] = [
 
 type SelectedPlayer = { name: string; teamId: string; statType: 'batting' | 'pitching' }
 
+type NewPlayer = { name: string; pos: string; uniform: string; bt: string; yob: number }
+
 export default function RosterTabs({ rosters }: { rosters: StaticRosters }) {
   const availableTeams = TEAM_ORDER.filter(t => rosters[t])
   const [activeTeam, setActiveTeam] = useState(availableTeams[0] ?? '')
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer | null>(null)
+  const [newPlayers, setNewPlayers] = useState<NewPlayer[]>([])
+  const [loadedTeam, setLoadedTeam] = useState('')
+
+  const loadSupplemental = useCallback((teamId: string) => {
+    if (loadedTeam === teamId) return
+    fetch(`/api/roster-supplement/${teamId}`)
+      .then(r => r.json())
+      .then((data: NewPlayer[]) => { setNewPlayers(data); setLoadedTeam(teamId) })
+      .catch(() => {})
+  }, [loadedTeam])
+
+  useEffect(() => { loadSupplemental(activeTeam) }, [activeTeam, loadSupplemental])
 
   const team = rosters[activeTeam]
-  const players = team?.players ?? []
+  const staticPlayers = team?.players ?? []
+  const knownNames = new Set(staticPlayers.map(p => p.name.toLowerCase()))
+  const supplemental = newPlayers.filter(p => !knownNames.has(p.name.toLowerCase()))
+  const players = [...staticPlayers, ...supplemental]
   const coaches = team?.coaches ?? []
   const color = TEAM_COLORS[activeTeam] ?? '#1e335a'
 
