@@ -62,8 +62,12 @@ export default function HeroSlideshow() {
       />
 
       {/* Gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#04080f] from-30% via-[#04080f]/70 via-55% to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#04080f] via-transparent to-transparent" />
+      {/* Mobile: softer full overlay + strong bottom */}
+      <div className="absolute inset-0 bg-[#04080f]/50 md:hidden" />
+      {/* Desktop: directional gradient from left */}
+      <div className="absolute inset-0 hidden md:block bg-gradient-to-r from-[#04080f] from-30% via-[#04080f]/70 via-55% to-transparent" />
+      {/* Both: fade to dark at bottom */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#04080f] via-[#04080f]/30 to-transparent" />
 
       {/* Text */}
       <div className="relative z-10 px-6 md:px-12 pb-20 max-w-6xl">
