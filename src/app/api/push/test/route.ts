@@ -5,11 +5,6 @@ import webpush from 'web-push'
 export const runtime = 'nodejs'
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET
-  if (secret && req.headers.get('Authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   webpush.setVapidDetails(
     process.env.VAPID_EMAIL ?? 'mailto:info@honkbalhoofdklasse.com',
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
