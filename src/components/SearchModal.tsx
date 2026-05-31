@@ -16,7 +16,7 @@ type PlayerResult = {
   slug: string
 }
 
-const ALL_PLAYERS: PlayerResult[] = Object.entries(ROSTERS).flatMap(([teamId, roster]) =>
+const STATIC_PLAYERS: PlayerResult[] = Object.entries(ROSTERS).flatMap(([teamId, roster]) =>
   roster.players.map(p => ({
     name: p.name,
     teamId,
@@ -32,23 +32,41 @@ export default function SearchModal({ onClose }: { onClose: () => void }) {
   const [results, setResults]       = useState<PlayerResult[]>([])
   const [active, setActive]         = useState(0)
   const [selected, setSelected]     = useState<PlayerResult | null>(null)
+  const [allPlayers, setAllPlayers] = useState<PlayerResult[]>(STATIC_PLAYERS)
   const inputRef = useRef<HTMLInputElement>(null)
   const router   = useRouter()
 
   useEffect(() => { inputRef.current?.focus() }, [])
 
+  // Load full player list (including mid-season additions) from API
+  useEffect(() => {
+    fetch('/api/all-players')
+      .then(r => r.json())
+      .then((data: { name: string; teamId: string; teamName: string; pos: string; uniform: string }[]) => {
+        setAllPlayers(data.map(p => ({ ...p, slug: slugify(p.name) })))
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (!query.trim()) { setResults([]); return }
     const q = query.toLowerCase()
-    const filtered = ALL_PLAYERS.filter(p =>
+    const filtered = allPlayers.filter(p =>
       p.name.toLowerCase().includes(q) || p.teamName.toLowerCase().includes(q)
     ).slice(0, 7)
     setResults(filtered)
     setActive(0)
-  }, [query])
+  }, [query, allPlayers])
 
   function go(player: PlayerResult) {
-    setSelected(player)
+    // New players (uniform '?') don't have a profile page — go to team roster
+    const isNew = player.uniform === '?'
+    if (isNew) {
+      router.push(`/rosters/${player.teamId}`)
+      onClose()
+    } else {
+      setSelected(player)
+    }
   }
 
   function onKey(e: React.KeyboardEvent) {
