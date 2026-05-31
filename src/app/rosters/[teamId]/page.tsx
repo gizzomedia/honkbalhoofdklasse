@@ -4,9 +4,87 @@ import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import SupplementalRoster from '@/components/SupplementalRoster'
 
-export const revalidate = false
+export const dynamic = 'force-dynamic'
+
+const KNBSB_TEAM_IDS: Record<string, number> = {
+  pirates: 39583, neptunus: 39587, hcaw: 39584,
+  kinheim: 39586, twins: 39588, uvv: 39589, pioniers: 39585,
+}
+const KNBSB_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'nl-NL,nl;q=0.9',
+  'Origin': 'https://stats.knbsbstats.nl',
+  'Referer': 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/players/batting',
+}
+
+function parseName(raw: string): string {
+  const parts = raw.replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean)
+  if (parts.length >= 2) {
+    const tussenvoegsel = new Set(['van', 'de', 'den', 'der', 'het', 'op', 'ten', 'ter', 't'])
+    const last = parts[0].split(' ').map((w, i, arr) => {
+      const lower = w.toLowerCase()
+      return (i < arr.length - 1 && tussenvoegsel.has(lower)) ? lower : lower.charAt(0).toUpperCase() + lower.slice(1)
+    }).join(' ')
+    return `${parts[1]} ${last}`.trim()
+  }
+  return parts[0] ?? ''
+}
+
+async function fetchStats(section: string, teamNum: number): Promise<Record<string, unknown>[]> {
+  try {
+    const url = `https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=players&stats-section=${section}&round=&team=&split=&language=en`
+    const res = await fetch(url, { headers: KNBSB_HEADERS, cache: 'no-store' })
+    if (!res.ok) return []
+    const d = await res.json()
+    let data = d.data ?? []
+    if (data.length && Array.isArray(data[0]?.data)) data = data.flatMap((c: { data: unknown[] }) => c.data)
+    return (data as Record<string, unknown>[]).filter(p => Number(p.teamid) === teamNum)
+  } catch { return [] }
+}
+
+function inferPos(p: Record<string, unknown>): string {
+  const po  = Number(p.field_po ?? 0)
+  const a   = Number(p.field_a  ?? 0)
+  const pb  = Number(p.field_pb ?? 0)
+  const sba = Number(p.field_sba ?? 0)
+  if (pb > 0 || sba > 0) return 'C'
+  if (po > 30 && a < po * 0.3) return 'C'
+  if (a > po) return 'IF'
+  if (po > 0 && a === 0) return 'OF'
+  if (a > 0) return 'IF'
+  return 'OF'
+}
+
+async function getNewPlayers(teamId: string, knownNames: Set<string>): Promise<{ name: string; pos: string; uniform: string; bt: string; yob: number }[]> {
+  const teamNum = KNBSB_TEAM_IDS[teamId]
+  if (!teamNum) return []
+  const [batters, pitchers, fielding] = await Promise.all([
+    fetchStats('batting', teamNum),
+    fetchStats('pitching', teamNum),
+    fetchStats('fielding', teamNum),
+  ])
+  const pitcherNames = new Set(pitchers.map(p => parseName(String(p.name ?? '')).toLowerCase()))
+  const fieldingByName = new Map(fielding.map(p => [parseName(String(p.name ?? '')).toLowerCase(), p]))
+  const seen = new Set<string>()
+  const result: { name: string; pos: string; uniform: string; bt: string; yob: number }[] = []
+  for (const p of [...batters, ...pitchers]) {
+    const name = parseName(String(p.name ?? ''))
+    const lower = name.toLowerCase()
+    if (!name || knownNames.has(lower) || seen.has(lower)) continue
+    seen.add(lower)
+    let pos: string
+    if (pitcherNames.has(lower)) {
+      pos = 'P'
+    } else {
+      const fd = fieldingByName.get(lower)
+      pos = fd ? inferPos(fd) : 'OF'
+    }
+    result.push({ name, pos, uniform: '?', bt: '?/?', yob: 0 })
+  }
+  return result
+}
 
 const POS_LABELS: Record<string, string> = {
   P: 'Pitcher', C: 'Catcher', IF: 'Infielder', OF: 'Outfielder',
@@ -65,6 +143,12 @@ export default async function TeamRosterPage({
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo  = TEAM_LOGOS[teamId]
 
+  const knownNames = new Set(roster.players.map(p => p.name.toLowerCase()))
+  const newPlayers = await getNewPlayers(teamId, knownNames)
+  const allPlayers = [
+    ...roster.players,
+    ...newPlayers.map(p => ({ ...p, instagram: undefined, bbref_id: undefined })),
+  ]
 
   const sportsTeamSchema = {
     '@context': 'https://schema.org',
@@ -134,7 +218,7 @@ export default async function TeamRosterPage({
 
         {/* Players by position */}
         {sections.map(sec => {
-          const players = roster.players.filter(p => sec.filter(p.pos))
+          const players = allPlayers.filter(p => sec.filter(p.pos))
           if (!players.length) return null
           return (
             <section key={sec.label}>
@@ -145,33 +229,52 @@ export default async function TeamRosterPage({
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {players.map(player => (
-                  <Link
-                    key={player.name}
-                    href={`/rosters/${teamId}/${slugify(player.name)}`}
-                    className="flex items-center gap-4 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 hover:border-[var(--accent)]/60 hover:bg-[var(--card-hover)] transition-all group"
-                  >
-                    <span className="font-display font-800 text-lg w-8 text-center shrink-0"
-                      style={{ color: teamColor === '#121b31' ? '#f59e0b' : teamColor }}>
-                      #{player.uniform}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-display font-800 text-sm uppercase text-white group-hover:text-[var(--accent)] transition-colors truncate">
-                        <strong>{player.name}</strong>
-                      </p>
-                      <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
-                        {POS_LABELS[player.pos] ?? player.pos} · B/T {player.bt} · {new Date().getFullYear() - player.yob} yrs
-                      </p>
-                    </div>
-                    <span className="text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors text-sm shrink-0">→</span>
-                  </Link>
-                ))}
+                {players.map(player => {
+                  const isNew = !knownNames.has(player.name.toLowerCase())
+                  if (isNew) {
+                    return (
+                      <div
+                        key={player.name}
+                        className="flex items-center gap-4 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3"
+                      >
+                        <span className="font-display font-800 text-lg w-8 text-center shrink-0 text-[var(--muted)]">—</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-display font-800 text-sm uppercase text-white truncate">
+                            <strong>{player.name}</strong>
+                          </p>
+                          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                            {POS_LABELS[player.pos] ?? player.pos}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return (
+                    <Link
+                      key={player.name}
+                      href={`/rosters/${teamId}/${slugify(player.name)}`}
+                      className="flex items-center gap-4 bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-3 hover:border-[var(--accent)]/60 hover:bg-[var(--card-hover)] transition-all group"
+                    >
+                      <span className="font-display font-800 text-lg w-8 text-center shrink-0"
+                        style={{ color: teamColor === '#121b31' ? '#f59e0b' : teamColor }}>
+                        #{player.uniform}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display font-800 text-sm uppercase text-white group-hover:text-[var(--accent)] transition-colors truncate">
+                          <strong>{player.name}</strong>
+                        </p>
+                        <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest">
+                          {POS_LABELS[player.pos] ?? player.pos} · B/T {player.bt} · {new Date().getFullYear() - player.yob} yrs
+                        </p>
+                      </div>
+                      <span className="text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors text-sm shrink-0">→</span>
+                    </Link>
+                  )
+                })}
               </div>
             </section>
           )
         })}
-
-        <SupplementalRoster teamId={teamId} teamColor={teamColor} />
 
         {/* Coaching staff */}
         {roster.coaches.length > 0 && (
