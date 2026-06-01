@@ -17,6 +17,18 @@ function outsToIp(outs: number): string {
   return `${Math.floor(outs / 3)}.${outs % 3}`
 }
 
+async function getGamesInMonth(prefix: string): Promise<number> {
+  try {
+    const res = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
+    const json = await res.json()
+    const games: Array<{ start?: string; gamestatus?: number }> = json?.games ?? []
+    const finished = games.filter(g => g.start?.startsWith(prefix) && (g.gamestatus === 2 || g.gamestatus === 3))
+    return Math.round(finished.length * 2 / 7)
+  } catch {
+    return 6
+  }
+}
+
 export async function GET(req: NextRequest) {
   const month = req.nextUrl.searchParams.get('month') // "YYYY-MM"
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
@@ -27,6 +39,9 @@ export async function GET(req: NextRequest) {
   const nextMonth = prefixMonth === 12 ? 1 : prefixMonth + 1
   const nextYear = prefixMonth === 12 ? prefixYear + 1 : prefixYear
   const nextPrefix = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
+  const gamesInMonth = await getGamesInMonth(month)
+  const minAb = Math.max(5, Math.ceil(2.7 * gamesInMonth))
+  const minOuts = Math.max(3, gamesInMonth * 3)
 
   try {
     const [{ data: batRows }, { data: pitRows }] = await Promise.all([
@@ -58,7 +73,7 @@ export async function GET(req: NextRequest) {
       batMap.set(key, e)
     }
     const batters = [...batMap.values()]
-      .filter(p => p.at_bats >= 10)
+      .filter(p => p.at_bats >= minAb)
       .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
       .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))
 
@@ -76,7 +91,7 @@ export async function GET(req: NextRequest) {
       pitMap.set(key, e)
     }
     const pitchers = [...pitMap.values()]
-      .filter(p => p.outs >= 3)
+      .filter(p => p.outs >= minOuts)
       .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
       .sort((a, b) => b.strikeouts - a.strikeouts)
 
