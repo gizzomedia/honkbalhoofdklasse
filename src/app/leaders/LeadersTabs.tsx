@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PlayerStatsModal from '@/components/PlayerStatsModal'
 import { TEAM_COLORS, TEAM_SHORT, KNBSB_TEAM_MAP } from '@/lib/teams'
 
@@ -366,24 +366,51 @@ function TabButton({ active, disabled, onClick, children }: {
   )
 }
 
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
+function formatMonth(ym: string): string {
+  const [year, m] = ym.split('-').map(Number)
+  return `${MONTH_NAMES[m - 1]} ${year}`
+}
+
+function currentMonthPrefix(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 export default function LeadersTabs({
   week,
   season,
   seriesLabel,
   month,
   monthLabel,
+  availableMonths,
 }: {
   week: TabData | null
   season: SeasonLeaders
   seriesLabel: string | null
   month: TabData
   monthLabel: string
+  availableMonths: string[]
 }) {
   const [period, setPeriod] = useState<Period>('season')
   const [category, setCategory] = useState<Category>('hitting')
   const [selectedPlayer, setSelectedPlayer] = useState<{
     name: string; teamId: string; statType: 'batting' | 'pitching'
   } | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthPrefix)
+  const [monthData, setMonthData] = useState<TabData>(month)
+  const [loadingMonth, setLoadingMonth] = useState(false)
+
+  useEffect(() => {
+    const cur = currentMonthPrefix()
+    if (selectedMonth === cur) { setMonthData(month); return }
+    setLoadingMonth(true)
+    fetch(`/api/leaders/month?month=${selectedMonth}`)
+      .then(r => r.json())
+      .then(data => { setMonthData(data); setLoadingMonth(false) })
+      .catch(() => setLoadingMonth(false))
+  }, [selectedMonth, month])
 
   const onSelect: OnSelect = (name, teamId, statType) => {
     setSelectedPlayer({ name, teamId, statType })
@@ -401,13 +428,26 @@ export default function LeadersTabs({
       )}
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
             <TabButton active={period === 'week'} disabled={!week} onClick={() => setPeriod('week')}>
               {seriesLabel ?? 'This Week'}
             </TabButton>
-            <TabButton active={period === 'month'} onClick={() => setPeriod('month')}>
-              This Month
-            </TabButton>
+            <div className="flex items-center gap-1">
+              <TabButton active={period === 'month'} onClick={() => setPeriod('month')}>
+                This Month
+              </TabButton>
+              {period === 'month' && availableMonths.length > 1 && (
+                <select
+                  value={selectedMonth}
+                  onChange={e => setSelectedMonth(e.target.value)}
+                  className="font-display font-700 text-xs uppercase bg-[var(--card)] border border-[var(--border)] text-white rounded-xl px-3 py-2.5 cursor-pointer outline-none hover:border-white/30 transition-colors"
+                >
+                  {availableMonths.map(m => (
+                    <option key={m} value={m}>{formatMonth(m)}</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
               Season 2026
             </TabButton>
@@ -426,18 +466,23 @@ export default function LeadersTabs({
         {period === 'season' && category === 'pitching'  && <SeasonCategoryGrid categories={season.pitching}  statType="pitching" onSelect={onSelect} />}
         {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables  batters={week.batters}   onSelect={onSelect} />}
         {period === 'week'   && week && category === 'pitching' && <WeekPitchingTables pitchers={week.pitchers} onSelect={onSelect} />}
-        {period === 'month'  && category === 'hitting'   && (
-          month.batters.length > 0
-            ? <WeekHittingTables batters={month.batters} onSelect={onSelect} />
+        {period === 'month' && loadingMonth && (
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+            <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">Loading…</p>
+          </div>
+        )}
+        {period === 'month' && !loadingMonth && category === 'hitting' && (
+          monthData.batters.length > 0
+            ? <WeekHittingTables batters={monthData.batters} onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
-                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{monthLabel} — No data yet</p>
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>
         )}
-        {period === 'month'  && category === 'pitching'  && (
-          month.pitchers.length > 0
-            ? <WeekPitchingTables pitchers={month.pitchers} onSelect={onSelect} />
+        {period === 'month' && !loadingMonth && category === 'pitching' && (
+          monthData.pitchers.length > 0
+            ? <WeekPitchingTables pitchers={monthData.pitchers} onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
-                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{monthLabel} — No data yet</p>
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>
         )}
       </div>

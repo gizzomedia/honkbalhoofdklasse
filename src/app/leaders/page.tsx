@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -43,11 +43,11 @@ async function getSeasonLeaders(): Promise<SeasonLeaders> {
     const [batRes, pitRes] = await Promise.all([
       fetch(
         'https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=batting&round=&team=&split=&language=en',
-        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/batting' }, next: { revalidate: 300 } }
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/batting' }, cache: 'no-store' }
       ),
       fetch(
         'https://stats.knbsbstats.nl/api/v1/stats/events/2026-lucky-day-hoofdklasse/index?section=leaders&stats-section=pitching&round=&team=&split=&language=en',
-        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/pitching' }, next: { revalidate: 300 } }
+        { headers: { ...BROWSER_HEADERS, Referer: 'https://stats.knbsbstats.nl/events/2026-lucky-day-hoofdklasse/stats/leaders/pitching' }, cache: 'no-store' }
       ),
     ])
     return {
@@ -70,13 +70,39 @@ async function getLatestSeriesWeek(): Promise<string | null> {
   return data?.[0]?.series_week ?? null
 }
 
-async function getMonthData(): Promise<TabData> {
+async function getAvailableMonths(): Promise<string[]> {
+  try {
+    const { data } = await supabaseAdmin
+      .from('batting_stats')
+      .select('series_week')
+      .eq('season', new Date().getFullYear())
+      .neq('series_week', 'season')
+      .order('series_week', { ascending: true })
+    const months = new Set<string>()
+    for (const r of (data ?? [])) {
+      const sw = String(r.series_week ?? '')
+      if (sw.length >= 7 && sw[4] === '-') months.add(sw.slice(0, 7))
+    }
+    // Always include current month
+    const now = new Date()
+    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    months.add(cur)
+    return [...months].sort()
+  } catch {
+    const now = new Date()
+    return [`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`]
+  }
+}
+
+async function getMonthData(monthPrefix?: string): Promise<TabData> {
+  try {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth() + 1
-  const prefix = `${year}-${String(month).padStart(2, '0')}`
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
+  const prefix = monthPrefix ?? `${year}-${String(month).padStart(2, '0')}`
+  const [prefixYear, prefixMonth] = prefix.split('-').map(Number)
+  const nextMonth = prefixMonth === 12 ? 1 : prefixMonth + 1
+  const nextYear = prefixMonth === 12 ? prefixYear + 1 : prefixYear
   const nextPrefix = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 
   const [{ data: batRows }, { data: pitRows }] = await Promise.all([
@@ -133,6 +159,9 @@ async function getMonthData(): Promise<TabData> {
     .sort((a, b) => b.strikeouts - a.strikeouts) as Record<string, unknown>[]
 
   return { batters, pitchers }
+  } catch {
+    return { batters: [], pitchers: [] }
+  }
 }
 
 async function getSerieData(seriesWeek: string): Promise<TabData> {
@@ -165,10 +194,11 @@ export default async function LeadersPage() {
   const now = new Date()
   const monthLabel = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
 
-  const [season, week, month] = await Promise.all([
+  const [season, week, month, availableMonths] = await Promise.all([
     getSeasonLeaders(),
     seriesWeek ? getSerieData(seriesWeek) : Promise.resolve(null),
     getMonthData(),
+    getAvailableMonths(),
   ])
   const seriesLabel = seriesWeek ? 'This Series' : null
 
@@ -184,7 +214,7 @@ export default async function LeadersPage() {
           Statistical leaders for the Honkbal Hoofdklasse 2026 season. Rankings cover batting average, home runs, RBI, stolen bases, ERA, strikeouts and more — sourced from the KNBSB stats system (stats.knbsbstats.nl).
         </p>
       </div>
-      <LeadersTabs week={week} season={season} seriesLabel={seriesLabel} month={month} monthLabel={monthLabel} />
+      <LeadersTabs week={week} season={season} seriesLabel={seriesLabel} month={month} monthLabel={monthLabel} availableMonths={availableMonths} />
     </div>
   )
 }
