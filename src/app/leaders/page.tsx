@@ -135,7 +135,7 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     batMap.set(key, e)
   }
   const batters = [...batMap.values()]
-    .filter(p => p.at_bats >= 1)
+    .filter(p => p.at_bats >= 10)
     .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
     .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0)) as Record<string, unknown>[]
 
@@ -154,7 +154,7 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     pitMap.set(key, e)
   }
   const pitchers = [...pitMap.values()]
-    .filter(p => p.outs >= 1)
+    .filter(p => p.outs >= 3)
     .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
     .sort((a, b) => b.strikeouts - a.strikeouts) as Record<string, unknown>[]
 
