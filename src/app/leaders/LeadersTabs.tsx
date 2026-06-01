@@ -11,7 +11,7 @@ const LABEL_OVERRIDE: Record<string, string> = {
 }
 
 type Row = Record<string, unknown>
-type Period = 'week' | 'season'
+type Period = 'week' | 'month' | 'season'
 type Category = 'hitting' | 'pitching'
 type OnSelect = (name: string, teamId: string, statType: 'batting' | 'pitching') => void
 
@@ -370,10 +370,14 @@ export default function LeadersTabs({
   week,
   season,
   seriesLabel,
+  month,
+  monthLabel,
 }: {
   week: TabData | null
   season: SeasonLeaders
   seriesLabel: string | null
+  month: TabData
+  monthLabel: string
 }) {
   const [period, setPeriod] = useState<Period>('season')
   const [category, setCategory] = useState<Category>('hitting')
@@ -397,9 +401,12 @@ export default function LeadersTabs({
       )}
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <TabButton active={period === 'week'} disabled={!week} onClick={() => setPeriod('week')}>
               {seriesLabel ?? 'This Week'}
+            </TabButton>
+            <TabButton active={period === 'month'} onClick={() => setPeriod('month')}>
+              This Month
             </TabButton>
             <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
               Season 2026
@@ -415,10 +422,24 @@ export default function LeadersTabs({
           </div>
         </div>
 
-        {period === 'season' && category === 'hitting'  && <SeasonCategoryGrid categories={season.batting}  statType="batting"  onSelect={onSelect} />}
-        {period === 'season' && category === 'pitching' && <SeasonCategoryGrid categories={season.pitching} statType="pitching" onSelect={onSelect} />}
+        {period === 'season' && category === 'hitting'   && <SeasonCategoryGrid categories={season.batting}   statType="batting"  onSelect={onSelect} />}
+        {period === 'season' && category === 'pitching'  && <SeasonCategoryGrid categories={season.pitching}  statType="pitching" onSelect={onSelect} />}
         {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables  batters={week.batters}   onSelect={onSelect} />}
         {period === 'week'   && week && category === 'pitching' && <WeekPitchingTables pitchers={week.pitchers} onSelect={onSelect} />}
+        {period === 'month'  && category === 'hitting'   && (
+          month.batters.length > 0
+            ? <WeekHittingTables batters={month.batters} onSelect={onSelect} />
+            : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{monthLabel} — No data yet</p>
+              </div>
+        )}
+        {period === 'month'  && category === 'pitching'  && (
+          month.pitchers.length > 0
+            ? <WeekPitchingTables pitchers={month.pitchers} onSelect={onSelect} />
+            : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{monthLabel} — No data yet</p>
+              </div>
+        )}
       </div>
     </>
   )
