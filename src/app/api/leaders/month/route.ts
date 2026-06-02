@@ -83,13 +83,15 @@ export async function GET(req: NextRequest) {
       e.stolen_bases += r.stolen_bases ?? 0
       batMap.set(key, e)
     }
-    const batters = [...batMap.values()]
-      .filter(p => {
-        const g = teamGames[p.team_id] ?? 8
-        return p.at_bats >= Math.max(5, Math.ceil(2.7 * g))
-      })
+    const allBatters = [...batMap.values()]
+      .filter(p => p.at_bats >= 1)
       .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
       .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))
+
+    const battingQualified = allBatters.filter(p => {
+      const g = teamGames[p.team_id as string] ?? 8
+      return (p.at_bats as number) >= Math.max(5, Math.ceil(2.7 * g))
+    })
 
     const pitMap = new Map<string, { full_name: string; team_id: string; outs: number; strikeouts: number; wins: number; saves: number; hits_allowed: number; walks: number; earned_runs: number }>()
     for (const r of (pitRows ?? [])) {
@@ -105,14 +107,11 @@ export async function GET(req: NextRequest) {
       pitMap.set(key, e)
     }
     const pitchers = [...pitMap.values()]
-      .filter(p => {
-        const g = teamGames[p.team_id] ?? 8
-        return p.outs >= Math.max(3, g * 3)  // 1 IP per game minimum
-      })
+      .filter(p => p.outs >= 3)  // minimum 1 full inning
       .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
       .sort((a, b) => b.strikeouts - a.strikeouts)
 
-    return NextResponse.json({ batters, pitchers }, {
+    return NextResponse.json({ batters: allBatters, battingQualified, pitchers }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     })
   } catch {

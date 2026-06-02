@@ -27,7 +27,8 @@ export type SeasonLeaders = {
 }
 
 export type TabData = {
-  batters: Row[]
+  batters: Row[]           // all batters with ≥1 AB (for HR/RBI/SB tables)
+  battingQualified?: Row[] // 2.7 PA/G qualified batters (for AVG table only)
   pitchers: Row[]
 }
 
@@ -290,13 +291,14 @@ const fmt     = (v: unknown) => v != null ? String(v) : '-'
 const fmtRate = (v: unknown) => v != null ? Number(v).toFixed(3).replace('0.', '.') : '-'
 const fmtIp   = (v: unknown) => v != null ? String(v) : '-'
 
-function WeekHittingTables({ batters, onSelect }: { batters: Row[]; onSelect: OnSelect }) {
+function WeekHittingTables({ batters, battingQualified, onSelect }: { batters: Row[]; battingQualified?: Row[]; onSelect: OnSelect }) {
   const byHR  = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
   const byRBI = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
   const bySB  = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
+  const avgRows = battingQualified ?? batters
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LeaderTable title="Batting Avg" rows={batters} statType="batting" onSelect={onSelect} columns={[
+      <LeaderTable title="Batting Avg" rows={avgRows} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'H',   value: r => fmt(r.hits) },
         { label: 'AVG', value: r => fmtRate(r.avg) },
@@ -473,7 +475,7 @@ export default function LeadersTabs({
         )}
         {period === 'month' && !loadingMonth && category === 'hitting' && (
           monthData.batters.length > 0
-            ? <WeekHittingTables batters={monthData.batters} onSelect={onSelect} />
+            ? <WeekHittingTables batters={monthData.batters} battingQualified={monthData.battingQualified} onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>
