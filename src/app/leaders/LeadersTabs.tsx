@@ -237,7 +237,12 @@ function LeaderTable<T extends Row>({ title, rows, columns, statType, onSelect }
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
       <div className="grid items-center px-5 pt-4 pb-2 gap-3" style={{ gridTemplateColumns: gridCols }}>
         <span />
-        <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>{title}</strong></h2>
+        <div className="flex items-baseline gap-2">
+          {(() => { const m = title.match(/^(.+?)(?:\s+\((.+?)\))?$/); const stat = m?.[1] ?? title; const qual = m?.[2]; return (<>
+            <h2 className="font-display font-800 italic text-2xl uppercase text-white"><strong>{stat}</strong></h2>
+            {qual && <span className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider">{qual}</span>}
+          </>); })()}
+        </div>
         {columns.map((col, ci) => (
           <p key={ci} className="font-display font-800 text-sm text-[var(--muted)] uppercase tracking-widest text-center">
             {col.label}
@@ -291,14 +296,14 @@ const fmt     = (v: unknown) => v != null ? String(v) : '-'
 const fmtRate = (v: unknown) => v != null ? Number(v).toFixed(3).replace('0.', '.') : '-'
 const fmtIp   = (v: unknown) => v != null ? String(v) : '-'
 
-function WeekHittingTables({ batters, battingQualified, onSelect }: { batters: Row[]; battingQualified?: Row[]; onSelect: OnSelect }) {
+function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; onSelect: OnSelect }) {
   const byHR  = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
   const byRBI = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
   const bySB  = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
   const avgRows = battingQualified ?? batters
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LeaderTable title="Batting Avg" rows={avgRows} statType="batting" onSelect={onSelect} columns={[
+      <LeaderTable title={avgTitle ?? 'Batting Avg'} rows={avgRows} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'H',   value: r => fmt(r.hits) },
         { label: 'AVG', value: r => fmtRate(r.avg) },
@@ -475,7 +480,7 @@ export default function LeadersTabs({
         )}
         {period === 'month' && !loadingMonth && category === 'hitting' && (
           monthData.batters.length > 0
-            ? <WeekHittingTables batters={monthData.batters} battingQualified={monthData.battingQualified} onSelect={onSelect} />
+            ? <WeekHittingTables batters={monthData.batters} battingQualified={monthData.battingQualified} avgTitle="Batting Avg (min 1.5 PA/G)" onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>
