@@ -17,15 +17,28 @@ function outsToIp(outs: number): string {
   return `${Math.floor(outs / 3)}.${outs % 3}`
 }
 
-async function getGamesInMonth(prefix: string): Promise<number> {
+const KNBSB_ID_TO_TEAM: Record<number, string> = {
+  39583: 'pirates', 39587: 'neptunus', 39584: 'hcaw',
+  39586: 'kinheim', 39588: 'twins', 39589: 'uvv', 39585: 'pioniers',
+}
+
+async function getTeamGamesInMonth(prefix: string): Promise<Record<string, number>> {
   try {
     const res = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
     const json = await res.json()
-    const games: Array<{ start?: string; gamestatus?: number }> = json?.games ?? []
-    const finished = games.filter(g => g.start?.startsWith(prefix) && (g.gamestatus === 2 || g.gamestatus === 3))
-    return Math.round(finished.length * 2 / 7)
+    const games: Array<{ start?: string; gamestatus?: number; homeid?: number; awayid?: number }> = json?.games ?? []
+    const counts: Record<string, number> = {}
+    for (const g of games) {
+      if (!g.start?.startsWith(prefix)) continue
+      if (g.gamestatus !== 2 && g.gamestatus !== 3) continue
+      const home = g.homeid ? KNBSB_ID_TO_TEAM[g.homeid] : null
+      const away = g.awayid ? KNBSB_ID_TO_TEAM[g.awayid] : null
+      if (home) counts[home] = (counts[home] ?? 0) + 1
+      if (away) counts[away] = (counts[away] ?? 0) + 1
+    }
+    return counts
   } catch {
-    return 6
+    return Object.fromEntries(Object.values(KNBSB_ID_TO_TEAM).map(t => [t, 8]))
   }
 }
 
@@ -39,9 +52,7 @@ export async function GET(req: NextRequest) {
   const nextMonth = prefixMonth === 12 ? 1 : prefixMonth + 1
   const nextYear = prefixMonth === 12 ? prefixYear + 1 : prefixYear
   const nextPrefix = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
-  const gamesInMonth = await getGamesInMonth(month)
-  const minAb = Math.max(5, Math.ceil(2.7 * gamesInMonth))
-  const minOuts = Math.max(3, gamesInMonth * 3)
+  const teamGames = await getTeamGamesInMonth(month)
 
   try {
     const [{ data: batRows }, { data: pitRows }] = await Promise.all([
@@ -73,7 +84,10 @@ export async function GET(req: NextRequest) {
       batMap.set(key, e)
     }
     const batters = [...batMap.values()]
-      .filter(p => p.at_bats >= minAb)
+      .filter(p => {
+        const g = teamGames[p.team_id] ?? 8
+        return p.at_bats >= Math.max(5, Math.ceil(2.7 * g))
+      })
       .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
       .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0))
 
@@ -91,7 +105,10 @@ export async function GET(req: NextRequest) {
       pitMap.set(key, e)
     }
     const pitchers = [...pitMap.values()]
-      .filter(p => p.outs >= minOuts)
+      .filter(p => {
+        const g = teamGames[p.team_id] ?? 8
+        return p.outs >= Math.max(3, g * 3)  // 1 IP per game minimum
+      })
       .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
       .sort((a, b) => b.strikeouts - a.strikeouts)
 

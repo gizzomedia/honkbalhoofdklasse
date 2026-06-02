@@ -94,16 +94,29 @@ async function getAvailableMonths(): Promise<string[]> {
   }
 }
 
-async function getGamesInMonth(prefix: string): Promise<number> {
+const KNBSB_ID_TO_TEAM: Record<number, string> = {
+  39583: 'pirates', 39587: 'neptunus', 39584: 'hcaw',
+  39586: 'kinheim', 39588: 'twins', 39589: 'uvv', 39585: 'pioniers',
+}
+
+async function getTeamGamesInMonth(prefix: string): Promise<Record<string, number>> {
   try {
     const res = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
     const json = await res.json()
-    const games: Array<{ start?: string; gamestatus?: number }> = json?.games ?? []
-    // Count finished games in this month, divide by 2 (each game involves 2 teams)
-    const finished = games.filter(g => g.start?.startsWith(prefix) && (g.gamestatus === 2 || g.gamestatus === 3))
-    return Math.round(finished.length * 2 / 7) // approx games per team
+    const games: Array<{ start?: string; gamestatus?: number; homeid?: number; awayid?: number }> = json?.games ?? []
+    const counts: Record<string, number> = {}
+    for (const g of games) {
+      if (!g.start?.startsWith(prefix)) continue
+      if (g.gamestatus !== 2 && g.gamestatus !== 3) continue
+      const home = g.homeid ? KNBSB_ID_TO_TEAM[g.homeid] : null
+      const away = g.awayid ? KNBSB_ID_TO_TEAM[g.awayid] : null
+      if (home) counts[home] = (counts[home] ?? 0) + 1
+      if (away) counts[away] = (counts[away] ?? 0) + 1
+    }
+    return counts
   } catch {
-    return 6 // fallback: ~6 games per month
+    const fallback = 8
+    return Object.fromEntries(Object.values(KNBSB_ID_TO_TEAM).map(t => [t, fallback]))
   }
 }
 
@@ -118,7 +131,7 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
   const nextYear = prefixMonth === 12 ? prefixYear + 1 : prefixYear
   const nextPrefix = `${nextYear}-${String(nextMonth).padStart(2, '0')}`
 
-  const [{ data: batRows }, { data: pitRows }, gamesInMonth] = await Promise.all([
+  const [{ data: batRows }, { data: pitRows }, teamGames] = await Promise.all([
     supabaseAdmin
       .from('batting_stats')
       .select('full_name, team_id, at_bats, hits, home_runs, rbi, stolen_bases')
@@ -133,13 +146,8 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
       .neq('series_week', 'season')
       .gte('series_week', `${prefix}-01`)
       .lt('series_week', `${nextPrefix}-01`),
-    getGamesInMonth(prefix),
+    getTeamGamesInMonth(prefix),
   ])
-  // 2.7 PA/G minimum for rate stats (same rule as KNBSB season leaders)
-  // PA ≈ AB for most players; using AB as proxy
-  const minAb = Math.max(5, Math.ceil(2.7 * gamesInMonth))
-  // Pitchers: 1 IP per game minimum
-  const minOuts = Math.max(3, gamesInMonth * 3)
 
   // Aggregate batting by player
   const batMap = new Map<string, { full_name: string; team_id: string; at_bats: number; hits: number; home_runs: number; rbi: number; stolen_bases: number }>()
@@ -154,7 +162,10 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     batMap.set(key, e)
   }
   const batters = [...batMap.values()]
-    .filter(p => p.at_bats >= minAb)
+    .filter(p => {
+      const g = teamGames[p.team_id] ?? 8
+      return p.at_bats >= Math.max(5, Math.ceil(2.7 * g))
+    })
     .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
     .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0)) as Record<string, unknown>[]
 
@@ -173,7 +184,10 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     pitMap.set(key, e)
   }
   const pitchers = [...pitMap.values()]
-    .filter(p => p.outs >= minOuts)
+    .filter(p => {
+      const g = teamGames[p.team_id] ?? 8
+      return p.outs >= Math.max(3, g * 3)  // 1 IP per game minimum
+    })
     .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
     .sort((a, b) => b.strikeouts - a.strikeouts) as Record<string, unknown>[]
 
