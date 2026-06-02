@@ -11,7 +11,8 @@ function ipToOuts(v: unknown): number {
     const [full, frac] = s.split('.').map(n => parseInt(n, 10) || 0)
     return full * 3 + Math.min(frac, 2)
   }
-  return parseInt(s, 10) || 0
+  // Integer from numeric column: treat as full innings (e.g. 7 = 7.0 IP = 21 outs)
+  return (parseInt(s, 10) || 0) * 3
 }
 
 function outsToIp(outs: number): string {

@@ -4,6 +4,46 @@ import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
+// GET: return list of completed series + which are already imported
+export async function GET() {
+  const [schedRes, { data: existing }] = await Promise.all([
+    fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' }),
+    supabaseAdmin.from('batting_stats').select('series_week').eq('season', 2026).neq('series_week', 'season'),
+  ])
+  const allGames: Array<{ id: number; start: string; gamestatus: number }> = (await schedRes.json()).games ?? []
+  const importedWeeks = new Set((existing ?? []).map(r => r.series_week))
+
+  const finished = allGames
+    .filter(g => g.gamestatus === 2 || g.gamestatus === 3)
+    .map(g => ({ id: g.id, date: g.start.slice(0, 10) }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const seriesMap = new Map<string, string[]>()
+  let curKey = '', prevMs = 0
+  for (const g of finished) {
+    const ms = new Date(g.date).getTime()
+    if (!curKey || ms - prevMs > 3 * 86400000) curKey = g.date
+    if (!seriesMap.has(curKey)) seriesMap.set(curKey, [])
+    if (!seriesMap.get(curKey)!.includes(g.date)) seriesMap.get(curKey)!.push(g.date)
+    prevMs = ms
+  }
+
+  const series = [...seriesMap.entries()].map(([seriesDate, gameDates]) => ({
+    seriesDate,
+    gameDates,
+    gameCount: finished.filter(g => {
+      const ms = new Date(g.date).getTime()
+      const t0 = new Date(seriesDate).getTime()
+      return ms >= t0 && ms <= t0 + 3 * 86400000
+    }).length,
+    imported: importedWeeks.has(seriesDate),
+    importing: false,
+    result: null,
+  }))
+
+  return NextResponse.json({ series })
+}
+
 const KNBSB_ID_TO_TEAM: Record<number, string> = {
   39583: 'pirates', 39587: 'neptunus', 39584: 'hcaw',
   39586: 'kinheim', 39588: 'twins', 39589: 'uvv', 39585: 'pioniers',
