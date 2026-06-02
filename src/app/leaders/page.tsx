@@ -70,28 +70,18 @@ async function getLatestSeriesWeek(): Promise<string | null> {
   return data?.[0]?.series_week ?? null
 }
 
-async function getAvailableMonths(): Promise<string[]> {
-  try {
-    const { data } = await supabaseAdmin
-      .from('batting_stats')
-      .select('series_week')
-      .eq('season', new Date().getFullYear())
-      .neq('series_week', 'season')
-      .order('series_week', { ascending: true })
-    const months = new Set<string>()
-    for (const r of (data ?? [])) {
-      const sw = String(r.series_week ?? '')
-      if (sw.length >= 7 && sw[4] === '-') months.add(sw.slice(0, 7))
-    }
-    // Always include current month
-    const now = new Date()
-    const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-    months.add(cur)
-    return [...months].sort()
-  } catch {
-    const now = new Date()
-    return [`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`]
+function getAvailableMonths(): string[] {
+  const now = new Date()
+  const curYear = now.getFullYear()
+  const curMonth = now.getMonth() + 1 // 1-indexed
+  // Season starts April 2026 — include all months up to and including the current one
+  const months: string[] = []
+  const d = new Date(2026, 3, 1) // April 2026
+  while (d.getFullYear() < curYear || (d.getFullYear() === curYear && d.getMonth() + 1 <= curMonth)) {
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    d.setMonth(d.getMonth() + 1)
   }
+  return months
 }
 
 const KNBSB_ID_TO_TEAM: Record<number, string> = {
@@ -227,11 +217,11 @@ export default async function LeadersPage() {
   const now = new Date()
   const monthLabel = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`
 
-  const [season, week, month, availableMonths] = await Promise.all([
+  const availableMonths = getAvailableMonths()
+  const [season, week, month] = await Promise.all([
     getSeasonLeaders(),
     seriesWeek ? getSerieData(seriesWeek) : Promise.resolve(null),
     getMonthData(),
-    getAvailableMonths(),
   ])
   const seriesLabel = seriesWeek ? 'This Series' : null
 
