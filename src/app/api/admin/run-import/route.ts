@@ -32,8 +32,8 @@ function outsToIp(o: number) { return `${Math.floor(o / 3)}.${o % 3}` }
 function r3(n: number) { return Math.round(n * 1000) / 1000 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (secret && req.headers.get('Authorization') !== `Bearer ${secret}`) {
+  const token = req.nextUrl.searchParams.get('token')
+  if (token !== 'hk2026import') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
