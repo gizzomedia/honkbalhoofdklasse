@@ -188,6 +188,16 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
   }
 }
 
+function deduplicateByPlayer<T extends { full_name?: unknown; team_id?: unknown }>(rows: T[]): T[] {
+  const seen = new Set<string>()
+  return rows.filter(r => {
+    const key = `${r.full_name}|${r.team_id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 async function getSerieData(seriesWeek: string): Promise<TabData> {
   const [{ data: batters }, { data: pitchers }] = await Promise.all([
     supabaseAdmin
@@ -197,7 +207,7 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
       .eq('series_week', seriesWeek)
       .gte('at_bats', 1)
       .order('avg', { ascending: false })
-      .limit(30),
+      .limit(60),
     supabaseAdmin
       .from('pitching_stats')
       .select('full_name, team_id, innings_pitched, strikeouts, wins, saves, hits_allowed, walks, earned_runs')
@@ -205,11 +215,11 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
       .eq('series_week', seriesWeek)
       .gte('innings_pitched', 0.1)
       .order('strikeouts', { ascending: false })
-      .limit(30),
+      .limit(60),
   ])
   return {
-    batters: (batters ?? []) as Record<string, unknown>[],
-    pitchers: (pitchers ?? []) as Record<string, unknown>[],
+    batters: deduplicateByPlayer((batters ?? []) as Record<string, unknown>[]),
+    pitchers: deduplicateByPlayer((pitchers ?? []) as Record<string, unknown>[]),
   }
 }
 

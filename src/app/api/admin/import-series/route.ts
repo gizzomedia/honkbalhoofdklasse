@@ -199,14 +199,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Delete existing data for this series, then insert fresh
-  await Promise.all([
+  // 4. Delete existing data for this series (check errors), then insert fresh
+  const [delBat, delPit] = await Promise.all([
     supabaseAdmin.from('batting_stats').delete().eq('season', year).eq('series_week', seriesDate),
     supabaseAdmin.from('pitching_stats').delete().eq('season', year).eq('series_week', seriesDate),
   ])
+  if (delBat.error) return NextResponse.json({ error: `Delete batting failed: ${delBat.error.message}` }, { status: 500 })
+  if (delPit.error) return NextResponse.json({ error: `Delete pitching failed: ${delPit.error.message}` }, { status: 500 })
 
-  if (batRows.length > 0) await supabaseAdmin.from('batting_stats').insert(batRows)
-  if (pitRows.length > 0) await supabaseAdmin.from('pitching_stats').insert(pitRows)
+  if (batRows.length > 0) {
+    const { error } = await supabaseAdmin.from('batting_stats').insert(batRows)
+    if (error) return NextResponse.json({ error: `Insert batting failed: ${error.message}` }, { status: 500 })
+  }
+  if (pitRows.length > 0) {
+    const { error } = await supabaseAdmin.from('pitching_stats').insert(pitRows)
+    if (error) return NextResponse.json({ error: `Insert pitching failed: ${error.message}` }, { status: 500 })
+  }
 
   return NextResponse.json({
     ok: true,
