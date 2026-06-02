@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
     const battingQualified = allBatters.filter(p => {
       const g = teamGames[p.team_id as string] ?? 8
-      return (p.at_bats as number) >= Math.max(5, Math.ceil(2.7 * g))
+      return (p.at_bats as number) >= Math.max(5, Math.ceil(1.5 * g))
     })
 
     const pitMap = new Map<string, { full_name: string; team_id: string; outs: number; strikeouts: number; wins: number; saves: number; hits_allowed: number; walks: number; earned_runs: number }>()
