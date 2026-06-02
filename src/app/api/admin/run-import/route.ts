@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   let prevMs = 0
   for (const g of finished) {
     const ms = new Date(g.date).getTime()
-    if (!curKey || ms - prevMs > 5 * 86400000) curKey = g.date
+    if (!curKey || ms - prevMs > 3 * 86400000) curKey = g.date
     if (!seriesMap.has(curKey)) seriesMap.set(curKey, [])
     seriesMap.get(curKey)!.push(g.id)
     prevMs = ms
