@@ -113,20 +113,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="overflow-hidden">
             <div className="flex animate-marquee gap-16 items-center" style={{ width: 'max-content' }}>
               {[
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',                    w: 'w-[129px]', h: 'h-[41px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png', w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp', w: 'w-28',   h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-[168px]', h: 'h-[54px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604958/nouzoos_v6yfp0.png',                    w: 'w-[129px]', h: 'h-[41px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png', w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp', w: 'w-28',   h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',                  w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621069/LJ_pjtehs.png',                        w: 'w-28',      h: 'h-9' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778621025/GizzoMedia_Logo_jfzhad.png',           w: 'w-[134px]', h: 'h-[43px]' },
-                { src: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778710569/KNBSB_nwbvyw.png',                     w: 'w-[168px]', h: 'h-[54px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png',                       w: 'w-[129px]', h: 'h-[41px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png',    w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp', w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png',                      w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395308/LJ_hpdo4v.png',                            w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395334/GizzoMedia_Logo_nedyfo.png',               w: 'w-[134px]', h: 'h-[43px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395321/KNBSB_etffww.png',                         w: 'w-[168px]', h: 'h-[54px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png',                       w: 'w-[129px]', h: 'h-[41px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png',    w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp', w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png',                      w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395308/LJ_hpdo4v.png',                            w: 'w-28',      h: 'h-9' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395334/GizzoMedia_Logo_nedyfo.png',               w: 'w-[134px]', h: 'h-[43px]' },
+                { src: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395321/KNBSB_etffww.png',                         w: 'w-[168px]', h: 'h-[54px]' },
               ].map(({ src, w, h }, i) => (
                 <div key={i} className={`${w} ${h} flex items-center justify-center shrink-0`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
