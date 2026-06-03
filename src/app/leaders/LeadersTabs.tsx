@@ -305,21 +305,21 @@ function ipToDec(v: unknown): number {
   return (parseInt(s, 10) || 0) * 3  // integer = full innings
 }
 
-function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; onSelect: OnSelect }) {
-  const byHR  = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
-  const byRBI = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
-  const bySB  = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
-  const byH   = [...batters].sort((a, b) => (b.hits as number) - (a.hits as number))
-  const byOBP = [...batters].filter(r => r.obp != null && Number(r.obp) > 0).sort((a, b) => Number(b.obp) - Number(a.obp))
-  const avgRows = battingQualified ?? batters
+function WeekHittingTables({ batters, battingQualified, avgTitle, obpTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; obpTitle?: string; onSelect: OnSelect }) {
+  const byHR   = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
+  const byRBI  = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
+  const bySB   = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
+  const byH    = [...batters].sort((a, b) => (b.hits as number) - (a.hits as number))
+  const qualRows = battingQualified ?? batters
+  const byOBP  = [...qualRows].filter(r => r.obp != null && Number(r.obp) > 0).sort((a, b) => Number(b.obp) - Number(a.obp))
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <LeaderTable title={avgTitle ?? 'Batting Avg'} rows={avgRows} statType="batting" onSelect={onSelect} columns={[
+      <LeaderTable title={avgTitle ?? 'Batting Avg'} rows={qualRows} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'H',   value: r => fmt(r.hits) },
         { label: 'AVG', value: r => fmtRate(r.avg) },
       ]} />
-      <LeaderTable title="OBP" rows={byOBP} statType="batting" onSelect={onSelect} columns={[
+      <LeaderTable title={obpTitle ?? 'OBP'} rows={byOBP} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'OBP', value: r => fmtRate(r.obp) },
       ]} />
@@ -342,7 +342,7 @@ function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { 
   )
 }
 
-function WeekPitchingTables({ pitchers, onSelect }: { pitchers: Row[]; onSelect: OnSelect }) {
+function WeekPitchingTables({ pitchers, eraTitle, whipTitle, onSelect }: { pitchers: Row[]; eraTitle?: string; whipTitle?: string; onSelect: OnSelect }) {
   const byK   = [...pitchers].sort((a, b) => (b.strikeouts as number) - (a.strikeouts as number))
   const byW   = [...pitchers].sort((a, b) => (b.wins as number) - (a.wins as number))
   const bySV  = [...pitchers].sort((a, b) => (b.saves as number) - (a.saves as number))
@@ -371,11 +371,11 @@ function WeekPitchingTables({ pitchers, onSelect }: { pitchers: Row[]; onSelect:
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'K',  value: r => fmt(r.strikeouts) },
       ]} />
-      <LeaderTable title="ERA" rows={byERA} statType="pitching" onSelect={onSelect} columns={[
+      <LeaderTable title={eraTitle ?? 'ERA'} rows={byERA} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP',  value: r => fmtIp(r.innings_pitched) },
         { label: 'ERA', value: r => fmtERA(r) },
       ]} />
-      <LeaderTable title="WHIP" rows={byWHIP} statType="pitching" onSelect={onSelect} columns={[
+      <LeaderTable title={whipTitle ?? 'WHIP'} rows={byWHIP} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP',  value: r => fmtIp(r.innings_pitched) },
         { label: 'WHIP', value: r => fmtWHIP(r) },
       ]} />
@@ -525,14 +525,14 @@ export default function LeadersTabs({
         )}
         {period === 'month' && !loadingMonth && category === 'hitting' && (
           monthData.batters.length > 0
-            ? <WeekHittingTables batters={monthData.batters} battingQualified={monthData.battingQualified} avgTitle="Batting Avg (min 1.5 PA/G)" onSelect={onSelect} />
+            ? <WeekHittingTables batters={monthData.batters} battingQualified={monthData.battingQualified} avgTitle="Batting Avg (min 2.7 PA/G)" obpTitle="OBP (min 2.7 PA/G)" onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>
         )}
         {period === 'month' && !loadingMonth && category === 'pitching' && (
           monthData.pitchers.length > 0
-            ? <WeekPitchingTables pitchers={monthData.pitchers} onSelect={onSelect} />
+            ? <WeekPitchingTables pitchers={monthData.pitchers} eraTitle="ERA (min 1 IP/G)" whipTitle="WHIP (min 1 IP/G)" onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
               </div>

@@ -142,10 +142,16 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     getTeamGamesInMonth(prefix),
   ])
 
+  // Normalize name key: first+last word (catches middle-name variants like "Wyatt Lankford" vs "Wyatt Paul Lankford")
+  const normKey = (name: string, team: string) => {
+    const w = String(name ?? '').toLowerCase().trim().split(/\s+/)
+    return `${w[0]}|${w[w.length - 1]}|${String(team ?? '').toLowerCase()}`
+  }
+
   // Aggregate batting by player
   const batMap = new Map<string, { full_name: string; team_id: string; at_bats: number; hits: number; home_runs: number; rbi: number; stolen_bases: number; obpSum: number; obpWeight: number }>()
   for (const r of (batRows ?? [])) {
-    const key = `${r.full_name}|${r.team_id}`
+    const key = normKey(r.full_name, r.team_id)
     const e = batMap.get(key) ?? { full_name: r.full_name, team_id: r.team_id, at_bats: 0, hits: 0, home_runs: 0, rbi: 0, stolen_bases: 0, obpSum: 0, obpWeight: 0 }
     e.at_bats += r.at_bats ?? 0
     e.hits += r.hits ?? 0
@@ -166,16 +172,16 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     }))
     .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0)) as Record<string, unknown>[]
 
-  // 2.7 PA/G per team — only used for AVG table, not HR/RBI/SB
+  // 2.7 PA/G per team (same as Season 2026) — for rate stats AVG and OBP
   const battingQualified = allBatters.filter(p => {
     const g = teamGames[p.team_id as string] ?? 8
-    return (p.at_bats as number) >= Math.max(5, Math.ceil(1.5 * g))
+    return (p.at_bats as number) >= Math.max(5, Math.ceil(2.7 * g))
   }) as Record<string, unknown>[]
 
   // Aggregate pitching by player
   const pitMap = new Map<string, { full_name: string; team_id: string; outs: number; strikeouts: number; wins: number; saves: number; hits_allowed: number; walks: number; earned_runs: number }>()
   for (const r of (pitRows ?? [])) {
-    const key = `${r.full_name}|${r.team_id}`
+    const key = normKey(r.full_name, r.team_id)
     const e = pitMap.get(key) ?? { full_name: r.full_name, team_id: r.team_id, outs: 0, strikeouts: 0, wins: 0, saves: 0, hits_allowed: 0, walks: 0, earned_runs: 0 }
     e.outs += ipToOuts(r.innings_pitched)
     e.strikeouts += r.strikeouts ?? 0
