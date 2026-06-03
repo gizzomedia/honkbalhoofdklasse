@@ -177,7 +177,6 @@ export default async function PlayerProfilePage({
                   <span className="font-display font-800 text-lg text-white/60">#{player.uniform}</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{posLabel}</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">B/T: {player.bt}</span>
-                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{age} yrs</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">Born {player.yob}</span>
                 </div>
               </div>
@@ -225,7 +224,6 @@ export default async function PlayerProfilePage({
                   <span className="font-display font-800 text-lg text-white/60">#{player.uniform}</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{posLabel}</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">B/T: {player.bt}</span>
-                  <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">{age} yrs</span>
                   <span className="font-display font-700 text-sm text-[var(--muted)] uppercase tracking-wider">Born {player.yob}</span>
                 </div>
               </div>
