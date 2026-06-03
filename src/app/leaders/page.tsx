@@ -191,7 +191,7 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
 function deduplicateByPlayer<T extends { full_name?: unknown; team_id?: unknown }>(rows: T[]): T[] {
   const seen = new Set<string>()
   return rows.filter(r => {
-    const key = `${r.full_name}|${r.team_id}`
+    const key = `${String(r.full_name ?? '').toLowerCase().trim()}|${String(r.team_id ?? '').toLowerCase().trim()}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
