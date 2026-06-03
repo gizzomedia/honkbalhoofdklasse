@@ -3,6 +3,8 @@ import { KNBSB_NUMERIC_ID_MAP } from '@/lib/teams'
 
 export const runtime = 'nodejs'
 
+const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
 const FRIENDLY_TO_KNBSB: Record<string, number> = Object.fromEntries(
   Object.entries(KNBSB_NUMERIC_ID_MAP).map(([k, v]) => [v, Number(k)])
 )
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (!knbsbId || !playerName) return NextResponse.json({ games: [], splits: [] })
 
   try {
-    const schedRes = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
+    const schedRes = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store', headers: { 'User-Agent': UA } })
     const schedJson = await schedRes.json()
     const allGames: Array<{ id: number; start: string; gamestatus: number; homeid: number; awayid: number; homeioc: string; awayioc: string }> = schedJson.games ?? []
 
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     await Promise.all(teamGames.map(async g => {
       try {
-        const r = await fetch(`https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game=${g.id}`, { cache: 'no-store' })
+        const r = await fetch(`https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game=${g.id}`, { cache: 'no-store', headers: { 'User-Agent': UA } })
         if (!r.ok) return
         const gd = await r.json()
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
