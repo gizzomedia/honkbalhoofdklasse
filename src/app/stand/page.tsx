@@ -27,6 +27,14 @@ type StandingRow = {
   runs_allowed: number
 }
 
+type GameRow = {
+  home_team_id: string
+  away_team_id: string
+  home_score: number | null
+  away_score: number | null
+  game_date: string
+}
+
 async function getStandings(): Promise<StandingRow[]> {
   const { data, error } = await supabase
     .from('standings')
@@ -39,8 +47,33 @@ async function getStandings(): Promise<StandingRow[]> {
   return data
 }
 
+async function getRecentGames(): Promise<GameRow[]> {
+  const { data } = await supabase
+    .from('games')
+    .select('home_team_id, away_team_id, home_score, away_score, game_date')
+    .eq('season', new Date().getFullYear())
+    .eq('status', 'final')
+    .order('game_date', { ascending: false })
+    .limit(150)
+  return (data ?? []) as GameRow[]
+}
+
+function getForm(games: GameRow[], teamId: string): ('W' | 'L' | 'T')[] {
+  return games
+    .filter(g => g.home_team_id === teamId || g.away_team_id === teamId)
+    .slice(0, 5)
+    .map(g => {
+      const isHome = g.home_team_id === teamId
+      const mine = isHome ? g.home_score : g.away_score
+      const opp  = isHome ? g.away_score : g.home_score
+      if (mine == null || opp == null) return 'T'
+      return mine > opp ? 'W' : mine < opp ? 'L' : 'T'
+    })
+    .reverse() // oldest left → newest right
+}
+
 export default async function StandPage() {
-  const standings = await getStandings()
+  const [standings, recentGames] = await Promise.all([getStandings(), getRecentGames()])
   const leader = standings[0]
 
   const schema = {
@@ -73,12 +106,13 @@ export default async function StandPage() {
       {/* Tabel */}
       <div className="rounded-2xl overflow-hidden border border-[var(--border)]">
         {/* Kolomkoppen */}
-        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
+        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_auto] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_auto_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
           <span>#</span>
           <span>Team</span>
           <span className="text-center">W</span>
           <span className="text-center">L</span>
           <span className="text-center">PCT</span>
+          <span className="text-center">Last 5</span>
           <span className="text-center hidden md:block">G</span>
         </div>
 
@@ -91,12 +125,13 @@ export default async function StandPage() {
           const color = TEAM_COLORS[s.team_id] ?? '#1e335a'
           const name = TEAM_NAMES[s.team_id] ?? s.team_id
           const pct = s.win_pct ? s.win_pct.toFixed(3).replace('0.', '.') : '.000'
+          const form = getForm(recentGames, s.team_id)
 
           return (
             <div
               key={s.team_id}
               className={`
-                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_4rem] gap-2 px-4 md:px-5 py-4
+                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_auto] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_auto_4rem] gap-2 px-4 md:px-5 py-4
                 items-center border-b border-[var(--border)] last:border-0
                 transition-colors
                 ${isLeader
@@ -157,6 +192,22 @@ export default async function StandPage() {
               <span className={`text-center font-display font-700 text-base ${isLeader ? 'text-white' : 'text-[var(--accent)]'}`}>
                 {pct}
               </span>
+
+              {/* Last 5 form dots */}
+              <div className="flex items-center justify-center gap-1">
+                {form.map((result, fi) => (
+                  <span
+                    key={fi}
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded font-display font-800 text-[10px] text-white ${
+                      result === 'W' ? 'bg-green-500' : result === 'L' ? 'bg-red-500' : 'bg-white/20'
+                    }`}
+                  >
+                    {result}
+                  </span>
+                ))}
+                {form.length === 0 && <span className="text-white/20 text-xs">—</span>}
+              </div>
+
               <span className={`text-center font-display font-600 text-base hidden md:block ${isLeader ? 'text-white' : 'text-white'}`}>
                 {s.games_played}
               </span>
