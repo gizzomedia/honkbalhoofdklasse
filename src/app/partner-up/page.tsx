@@ -259,10 +259,6 @@ function InstagramCarousel() {
           ))}
         </div>
 
-        {/* Caption */}
-        <div className="px-4 py-4">
-          <p className="text-white/70 text-sm leading-relaxed line-clamp-3">{post.caption}</p>
-        </div>
       </div>
 
       {/* Navigation */}
