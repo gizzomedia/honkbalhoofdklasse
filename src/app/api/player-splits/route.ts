@@ -50,10 +50,16 @@ export async function GET(req: NextRequest) {
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
         const spots = bs[String(knbsbId)] ?? {}
 
-        // Search all batting spots (1–9), skip spot 90 (pitching summary)
+        // Check batting spots 1-9 first, then spot 90 (pitchers who only appear there)
+        // Sort so spots 1-9 come before 90
+        const sortedSpots = Object.entries(spots).sort(([a], [b]) => {
+          const na = parseInt(a) || 999
+          const nb = parseInt(b) || 999
+          return na - nb
+        })
         let found = false
-        outer: for (const [spot, playerList] of Object.entries(spots)) {
-          if (spot === '90' || spot === 'totals') continue // pitching-only rows
+        outer: for (const [spot, playerList] of sortedSpots) {
+          if (spot === 'totals') continue
           if (!Array.isArray(playerList)) continue
           for (const raw of playerList) {
             if (!raw || typeof raw !== 'object') continue
