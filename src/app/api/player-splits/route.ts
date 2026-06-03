@@ -17,9 +17,6 @@ function fmtAvg(h: number, ab: number) {
   return (h / ab).toFixed(3).replace('0.', '.')
 }
 
-function sum(games: Record<string, number>[], keys: string[]) {
-  return Object.fromEntries(keys.map(k => [k, games.reduce((a, g) => a + (g[k] ?? 0), 0)]))
-}
 
 export async function GET(req: NextRequest) {
   const playerName = req.nextUrl.searchParams.get('player') ?? ''
@@ -76,10 +73,11 @@ export async function GET(req: NextRequest) {
 
     gameSplits.sort((a, b) => b.date.localeCompare(a.date))
 
-    const statKeys = ['ab','r','h','hr','rbi','bb','so','sb']
+    type StatKey = 'ab'|'r'|'h'|'hr'|'rbi'|'bb'|'so'|'sb'
+    const statKeys: StatKey[] = ['ab','r','h','hr','rbi','bb','so','sb']
     const makeSplit = (label: string, n: number) => {
       const g = gameSplits.slice(0, n)
-      const t = sum(g, statKeys) as Record<string, number>
+      const t = statKeys.reduce((acc, k) => { acc[k] = g.reduce((s, x) => s + x[k], 0); return acc }, {} as Record<StatKey, number>)
       return { label, ...t, avg: fmtAvg(t.h, t.ab) }
     }
 
