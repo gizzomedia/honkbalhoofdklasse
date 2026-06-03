@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { TEAM_COLORS, TEAM_SHORT, TEAM_NAMES } from '@/lib/teams'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import NetherlandsClubMap from '@/components/NetherlandsClubMap'
 
 // ── Animated counter ──────────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 1800, active = false) {
@@ -278,127 +279,7 @@ function InstagramCarousel() {
   )
 }
 
-// ── Netherlands Map ───────────────────────────────────────────────────────────
-// Coordinate projection for the Netherlands
-// Viewport: 400×520, bounds: lon 3.3–7.4, lat 50.7–53.65
-function proj(lat: number, lon: number) {
-  return {
-    x: Math.round((lon - 3.3) / (7.4 - 3.3) * 400),
-    y: Math.round((1 - (lat - 50.7) / (53.65 - 50.7)) * 520),
-  }
-}
-
-const CLUBS = [
-  { teamId: 'neptunus',  city: 'Rotterdam',  lat: 51.9225, lon: 4.4792 },
-  { teamId: 'pirates',   city: 'Amsterdam',  lat: 52.3676, lon: 4.9041 },
-  { teamId: 'kinheim',   city: 'Haarlem',    lat: 52.3874, lon: 4.6462 },
-  { teamId: 'hcaw',      city: 'Bussum',     lat: 52.2758, lon: 5.1681 },
-  { teamId: 'twins',     city: 'Oosterhout', lat: 51.6400, lon: 4.8600 },
-  { teamId: 'pioniers',  city: 'Hoofddorp',  lat: 52.3014, lon: 4.6939 },
-  { teamId: 'uvv',       city: 'Utrecht',    lat: 52.0907, lon: 5.1214 },
-]
-
-// Simplified Netherlands mainland outline (clockwise from NW tip of Noord-Holland)
-const NL = 'M 134 108 L 160 18 L 340 18 C 360 40 375 58 380 75 L 358 190 L 340 262 L 264 320 L 252 363 L 268 403 L 228 490 C 195 490 155 470 84 402 C 50 390 25 387 5 384 C 32 342 58 313 72 290 L 100 115 Z'
-
-function NetherlandsMap() {
-  const [hovered, setHovered] = useState<string | null>(null)
-  const clubs = CLUBS.map(c => ({ ...c, ...proj(c.lat, c.lon) }))
-
-  // Center point for connection lines (roughly West-NL center)
-  const cx = 140, cy = 245
-
-  return (
-    <div className="relative w-full max-w-xs mx-auto select-none">
-      <svg viewBox="0 0 400 520" className="w-full" style={{ maxHeight: 360 }}>
-        <defs>
-          {/* Dot-grid pattern clipped to Netherlands shape */}
-          <pattern id="nl-dots" width="12" height="12" patternUnits="userSpaceOnUse">
-            <circle cx="6" cy="6" r="0.9" fill="rgba(255,255,255,0.18)" />
-          </pattern>
-          <clipPath id="nl-clip">
-            <path d={NL} />
-          </clipPath>
-          {/* Edge fade */}
-          <radialGradient id="fade" cx="35%" cy="45%" r="65%">
-            <stop offset="0%" stopColor="white" stopOpacity="1" />
-            <stop offset="100%" stopColor="white" stopOpacity="0.2" />
-          </radialGradient>
-          <mask id="fade-mask">
-            <rect width="400" height="520" fill="url(#fade)" />
-          </mask>
-        </defs>
-
-        {/* Dot-fill clipped to Netherlands */}
-        <rect width="400" height="520" fill="url(#nl-dots)" clipPath="url(#nl-clip)" mask="url(#fade-mask)" />
-        {/* Outline */}
-        <path d={NL} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinejoin="round" />
-
-        {/* Connection lines from center to each club */}
-        {clubs.map(c => (
-          <line key={`ln-${c.teamId}`}
-            x1={cx} y1={cy} x2={c.x} y2={c.y}
-            stroke={TEAM_COLORS[c.teamId] ?? '#ff6b00'}
-            strokeWidth="0.8" strokeDasharray="3 4" opacity="0.35"
-          />
-        ))}
-
-        {/* Team dots */}
-        {clubs.map((c, i) => {
-          const color = TEAM_COLORS[c.teamId] ?? '#ff6b00'
-          const isH = hovered === c.teamId
-          return (
-            <g key={c.teamId}
-              onMouseEnter={() => setHovered(c.teamId)}
-              onMouseLeave={() => setHovered(null)}
-              style={{ cursor: 'pointer' }}
-            >
-              {/* Pulse ring */}
-              <circle cx={c.x} cy={c.y} fill={color} r="3" opacity="0">
-                <animate attributeName="r" values="4;18;4" dur={`${2.2 + i * 0.4}s`} repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.45;0;0.45" dur={`${2.2 + i * 0.4}s`} repeatCount="indefinite" />
-              </circle>
-              {/* Dot */}
-              <circle cx={c.x} cy={c.y} r={isH ? 7 : 5} fill={color}
-                style={{ transition: 'r 0.15s ease' }}
-              />
-              {/* Team abbr */}
-              <text x={c.x + 9} y={c.y + 4}
-                fill="white" fontSize="9" fontFamily="system-ui, sans-serif"
-                fontWeight="bold" opacity={isH ? 1 : 0.75}
-                style={{ transition: 'opacity 0.15s' }}
-              >
-                {TEAM_SHORT[c.teamId] ?? ''}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Hover tooltip */}
-        {hovered && (() => {
-          const c = clubs.find(cl => cl.teamId === hovered)!
-          const color = TEAM_COLORS[hovered] ?? '#ff6b00'
-          const tx = Math.min(c.x + 14, 260)
-          const ty = Math.max(c.y - 28, 16)
-          return (
-            <g pointerEvents="none">
-              <rect x={tx} y={ty} width={120} height={34} rx={6}
-                fill="#0a1220" stroke={color} strokeWidth="1" opacity="0.97" />
-              <text x={tx + 8} y={ty + 13} fill="white" fontSize="10"
-                fontFamily="system-ui, sans-serif" fontWeight="bold">
-                {TEAM_NAMES[hovered] ?? hovered}
-              </text>
-              <text x={tx + 8} y={ty + 26} fill="rgba(255,255,255,0.5)" fontSize="9"
-                fontFamily="system-ui, sans-serif">
-                {c.city}
-              </text>
-            </g>
-          )
-        })()}
-      </svg>
-    </div>
-  )
-}
+// NetherlandsClubMap is imported from @/components/NetherlandsClubMap
 
 // ── Partners ──────────────────────────────────────────────────────────────────
 const PARTNERS = [
@@ -459,11 +340,11 @@ export default function PartnerUpPage() {
 
       {/* ── MAP ── */}
       <section className="py-12 px-4">
-        <div className="max-w-5xl mx-auto">
-          <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] text-center mb-8">
-            7 clubs · van Rotterdam tot Bussum
+        <div className="max-w-3xl mx-auto">
+          <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] text-center mb-6">
+            7 clubs · van Rotterdam tot Groningen
           </p>
-          <NetherlandsMap />
+          <NetherlandsClubMap />
         </div>
       </section>
 
