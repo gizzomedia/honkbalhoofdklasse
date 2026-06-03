@@ -48,26 +48,31 @@ export async function GET(req: NextRequest) {
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
         const spots = bs[String(knbsbId)] ?? {}
 
-        for (const players of Object.values(spots)) {
-          if (!Array.isArray(players) || !players[0]) continue
-          const p = players[0] as Record<string, unknown>
-          const last = String(p.lastname ?? '').toLowerCase()
-          const full = `${String(p.firstname ?? '')} ${String(p.lastname ?? '')}`.toLowerCase()
+        // Search ALL players in ALL spots (catches starters AND substitutes)
+        let found = false
+        outer: for (const playerList of Object.values(spots)) {
+          if (!Array.isArray(playerList)) continue
+          for (const raw of playerList) {
+            if (!raw || typeof raw !== 'object') continue
+            const p = raw as Record<string, unknown>
+            const last = String(p.lastname ?? '').toLowerCase()
+            if (!last || last === 'totals') continue
+            if (!last.includes(playerLast) && !playerNorm.includes(last)) continue
 
-          if (!last.includes(playerLast) && !playerNorm.includes(last)) continue
-
-          const isHome = g.homeid === knbsbId
-          const oppIoc = isHome ? g.awayioc : g.homeioc
-          gameSplits.push({
-            date:     g.start.slice(0, 10),
-            opponent: IOC_SHORT[oppIoc] ?? oppIoc,
-            ab:  Number(p.ab  ?? 0), r:   Number(p.r   ?? 0), h:   Number(p.h   ?? 0),
-            hr:  Number(p.hr  ?? 0), rbi: Number(p.rbi ?? 0), bb:  Number(p.bb  ?? 0),
-            so:  Number(p.so  ?? 0), sb:  Number(p.sb  ?? 0),
-          })
-          void full
-          break
+            const isHome = g.homeid === knbsbId
+            const oppIoc = isHome ? g.awayioc : g.homeioc
+            gameSplits.push({
+              date:     g.start.slice(0, 10),
+              opponent: IOC_SHORT[oppIoc] ?? oppIoc,
+              ab:  Number(p.ab  ?? 0), r:   Number(p.r   ?? 0), h:   Number(p.h   ?? 0),
+              hr:  Number(p.hr  ?? 0), rbi: Number(p.rbi ?? 0), bb:  Number(p.bb  ?? 0),
+              so:  Number(p.so  ?? 0), sb:  Number(p.sb  ?? 0),
+            })
+            found = true
+            break outer
+          }
         }
+        void found
       } catch { /* skip */ }
     }))
 
