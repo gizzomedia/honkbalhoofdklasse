@@ -48,9 +48,10 @@ export async function GET(req: NextRequest) {
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
         const spots = bs[String(knbsbId)] ?? {}
 
-        // Search ALL players in ALL spots (catches starters AND substitutes)
+        // Search all batting spots (1–9), skip spot 90 (pitching summary)
         let found = false
-        outer: for (const playerList of Object.values(spots)) {
+        outer: for (const [spot, playerList] of Object.entries(spots)) {
+          if (spot === '90' || spot === 'totals') continue // pitching-only rows
           if (!Array.isArray(playerList)) continue
           for (const raw of playerList) {
             if (!raw || typeof raw !== 'object') continue
@@ -86,11 +87,14 @@ export async function GET(req: NextRequest) {
       return { label, ...t, avg: fmtAvg(t.h, t.ab) }
     }
 
-    const splits = [
-      makeSplit('Last 3 Games',  3),
-      makeSplit('Last 7 Games',  7),
-      makeSplit('Last 15 Games', 15),
-    ].filter(s => s.ab > 0)
+    // Show split if games were actually found — even if AB=0 (shows .---)
+    const splits = (
+      [3, 7, 15] as const
+    ).map((n, i) => ({
+      label: `Last ${n} Games`,
+      found: gameSplits.slice(0, n).length,
+      ...makeSplit(`Last ${n} Games`, n),
+    })).filter(s => s.found > 0)
 
     return NextResponse.json({ games: gameSplits.slice(0, 5), splits }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
