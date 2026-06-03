@@ -200,7 +200,9 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
 function deduplicateByPlayer<T extends { full_name?: unknown; team_id?: unknown }>(rows: T[]): T[] {
   const seen = new Set<string>()
   return rows.filter(r => {
-    const key = `${String(r.full_name ?? '').toLowerCase().trim()}|${String(r.team_id ?? '').toLowerCase().trim()}`
+    const words = String(r.full_name ?? '').toLowerCase().trim().split(/\s+/)
+    // Key = first word + last word + team — catches "Wyatt Lankford" vs "Wyatt Paul Lankford"
+    const key = `${words[0]}|${words[words.length - 1]}|${String(r.team_id ?? '').toLowerCase()}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
