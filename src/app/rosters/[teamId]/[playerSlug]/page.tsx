@@ -5,6 +5,7 @@ import { computeSeasonStats } from '@/lib/player-stats-lib'
 import type { SeasonStats } from '@/lib/player-stats-lib'
 import Image from 'next/image'
 import Link from 'next/link'
+import BackButton from '@/components/BackButton'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
@@ -128,12 +129,7 @@ export default async function PlayerProfilePage({
 
       {/* Terug knop + acties */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <Link
-          href="/rosters"
-          className="inline-flex items-center gap-2 font-display font-700 text-xs text-[var(--muted)] hover:text-white uppercase tracking-widest transition-colors"
-        >
-          ← Rosters
-        </Link>
+        <BackButton fallback="/rosters" label="Back" />
         <Link
           href={`/compare?a=${encodeURIComponent(player.name)}`}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-display font-800 text-sm uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] text-white transition-colors"
