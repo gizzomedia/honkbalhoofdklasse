@@ -73,13 +73,8 @@ function RotatingWord() {
 function PartnerForm() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const [form, setForm] = useState({ company: '', name: '', email: '', phone: '', message: '', interests: [] as string[] })
+  const [form, setForm] = useState({ company: '', name: '', email: '', phone: '', message: '' })
 
-  const interests = ['Logo op de website', 'Social media vermeldingen', 'Push notificaties', 'Maandelijkse stats posts', 'Livestream sponsoring', 'Prijsuitreikingen']
-
-  function toggleInterest(v: string) {
-    setForm(f => ({ ...f, interests: f.interests.includes(v) ? f.interests.filter(x => x !== v) : [...f.interests, v] }))
-  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -123,22 +118,6 @@ function PartnerForm() {
           <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-display font-700 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
             placeholder="+31 6 00 00 00 00" />
-        </div>
-      </div>
-
-      <div>
-        <label className="block font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Interesse in</label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {interests.map(v => (
-            <button key={v} type="button" onClick={() => toggleInterest(v)}
-              className={`px-3 py-2 rounded-xl font-display font-700 text-xs uppercase tracking-wider text-left transition-all ${
-                form.interests.includes(v)
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-white/5 border border-white/10 text-white/60 hover:border-white/30'
-              }`}>
-              {v}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -319,7 +298,7 @@ export default function PartnerUpPage() {
           </h1>
 
           <p className="text-[var(--muted)] text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10">
-            Honkbal Hoofdklasse is het digitale thuisfront van het Nederlandse topbaseball. Verbind jouw merk met de meest betrokken baseballfans van Nederland.
+            Bereik een betrokken doelgroep van spelers, fans, coaches en clubs. Samen bouwen we aan de groei en zichtbaarheid van het Nederlandse honkbal.
           </p>
 
           <a href="#contact"
@@ -425,23 +404,40 @@ export default function PartnerUpPage() {
       {/* ── WHY ── */}
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-2">Waarom partneren?</p>
-            <h2 className="font-display font-800 italic text-5xl uppercase text-white"><strong>Jouw merk. Ons podium.</strong></h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { title: 'Multi-channel exposure', body: 'Van push notificaties tot social posts, jouw logo is zichtbaar op elk touchpoint waar fans hun team volgen.' },
-              { title: 'Seizoen-lang zichtbaar', body: 'Geen losse campagnes maar structurele aanwezigheid. Wekelijks bereik jij onze community van toegewijde baseballfans.' },
-              { title: 'Doelgroep op maat', body: 'Actieve sportconsumenten, 16 tot 45 jaar, hogere betrokkenheid dan gemiddeld. Elke partner krijgt een pakket dat bij zijn merk past.' },
-            ].map(({ title, body }) => (
-              <div key={title} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--accent)]/40 transition-colors">
-                <div className="w-8 h-1 bg-[var(--accent)] rounded-full mb-5" />
-                <h3 className="font-display font-800 uppercase text-white text-lg mb-2"><strong>{title}</strong></h3>
-                <p className="text-[var(--muted)] text-sm leading-relaxed">{body}</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-3">Waarom Honkbal Hoofdklasse?</p>
+              <h2 className="font-display font-800 italic text-5xl uppercase text-white mb-8"><strong>Dedicated platform voor Nederlands topbaseball</strong></h2>
+              <ul className="space-y-4">
+                {[
+                  'Dedicated platform voor Nederlands topbaseball',
+                  'Dagelijkse content',
+                  'Groeiend social bereik',
+                  'Focus op de complete competitie',
+                  'Directe toegang tot een niche maar zeer betrokken doelgroep',
+                ].map(item => (
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                    </span>
+                    <span className="font-display font-700 text-white/80 text-sm leading-relaxed">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 space-y-6">
+              {[
+                { n: '2.25M+', l: 'Weergaven · 90 dagen' },
+                { n: '68K+',   l: 'Interacties · 90 dagen' },
+                { n: '52%',    l: 'Bereik buiten eigen volgers' },
+                { n: '7',      l: 'Clubs · 1 platform' },
+              ].map(({ n, l }) => (
+                <div key={l} className="flex items-center gap-4 border-b border-[var(--border)] last:border-0 pb-5 last:pb-0">
+                  <p className="font-display font-800 italic text-3xl text-[var(--accent)] shrink-0 w-24 leading-none"><strong>{n}</strong></p>
+                  <p className="font-display font-700 text-sm uppercase tracking-wider text-white/60">{l}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -473,7 +469,7 @@ export default function PartnerUpPage() {
               <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-3">Bewezen bereik</p>
               <h2 className="font-display font-800 italic text-4xl uppercase text-white mb-4"><strong>Zo presteren onze posts</strong></h2>
               <p className="text-[var(--muted)] text-sm leading-relaxed">
-                Elk stuk content dat wij plaatsen trekt duizenden geëngageerde fans. Jouw merk staat op het middelpunt van die aandacht.
+                Elk stuk content dat wij plaatsen trekt duizenden fans. Jouw merk staat op het middelpunt van die aandacht.
               </p>
             </div>
             <InstagramCarousel />
@@ -481,50 +477,41 @@ export default function PartnerUpPage() {
         </div>
       </section>
 
-      {/* ── PACKAGES ── */}
+      {/* ── CASES ── */}
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-2">Pakketten</p>
-            <h2 className="font-display font-800 italic text-5xl uppercase text-white"><strong>Kies je aanpak</strong></h2>
+            <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-sm mb-2">Mogelijkheden</p>
+            <h2 className="font-display font-800 italic text-5xl uppercase text-white"><strong>Waar kun je aan denken?</strong></h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                name: 'Starter', price: 'Op aanvraag',
-                perks: ['Logo op de website', 'Vermelding in seizoensoverzicht', '2 social posts per maand'],
-                accent: false,
-              },
-              {
-                name: 'Partner', price: 'Op aanvraag',
-                perks: ['Alles van Starter', 'Award sponsoring (Player of Month)', 'Push notificatie vermeldingen', 'Logo op alle team-pagina\'s'],
-                accent: true,
-              },
-              {
-                name: 'Presenting', price: 'Op aanvraag',
-                perks: ['Alles van Partner', 'Exclusief presenting sponsorship', 'Branded statistieken sectie', 'Maandelijkse reach rapportage'],
-                accent: false,
-              },
-            ].map(pkg => (
-              <div key={pkg.name} className={`rounded-2xl p-6 flex flex-col gap-5 border transition-all ${pkg.accent ? 'bg-[var(--accent)] border-[var(--accent)]' : 'bg-[var(--card)] border-[var(--border)] hover:border-[var(--accent)]/40'}`}>
-                <div>
-                  <p className={`font-display font-700 text-xs uppercase tracking-widest mb-1 ${pkg.accent ? 'text-white/60' : 'text-[var(--muted)]'}`}>{pkg.price}</p>
-                  <h3 className="font-display font-800 italic text-3xl uppercase text-white"><strong>{pkg.name}</strong></h3>
-                </div>
-                <ul className="space-y-2 flex-1">
-                  {pkg.perks.map(p => (
-                    <li key={p} className={`flex items-start gap-2 text-sm font-display font-700 ${pkg.accent ? 'text-white' : 'text-white/80'}`}>
-                      <span className={`shrink-0 mt-0.5 ${pkg.accent ? 'text-white' : 'text-[var(--accent)]'}`}>✓</span>
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-                <a href="#contact" className={`text-center font-display font-800 uppercase tracking-wider text-sm py-3 rounded-xl transition-opacity hover:opacity-90 ${pkg.accent ? 'bg-white text-[var(--accent)]' : 'bg-[var(--accent)] text-white'}`}>
-                  Aanvragen →
-                </a>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4 hover:border-[var(--accent)]/40 transition-colors">
+              <span className="font-display font-800 italic text-5xl text-[var(--accent)]/30 leading-none"><strong>01</strong></span>
+              <div>
+                <h3 className="font-display font-800 uppercase text-white text-lg mb-2"><strong>Logo bij Hoofdklasse Pickle</strong></h3>
+                <p className="text-[var(--muted)] text-sm leading-relaxed">Terugkerende bezoekers met 1.000+ unieke bezoekers in de eerste 2 weken. Hoge zichtbaarheid bij een vaste, betrokken groep fans.</p>
               </div>
-            ))}
+              <a href="#contact" className="mt-auto font-display font-800 text-xs uppercase tracking-wider text-[var(--accent)] hover:underline">Meer weten →</a>
+            </div>
+
+            <div className="bg-[var(--accent)] border border-[var(--accent)] rounded-2xl p-6 flex flex-col gap-4">
+              <span className="font-display font-800 italic text-5xl text-white/20 leading-none"><strong>02</strong></span>
+              <div>
+                <h3 className="font-display font-800 uppercase text-white text-lg mb-2"><strong>Rankings, awards en content-series</strong></h3>
+                <p className="text-white/70 text-sm leading-relaxed">Jouw naam koppelen aan wekelijkse awards, statistiekoverzichten of vaste content-rubrieken. Structurele zichtbaarheid gedurende het hele seizoen.</p>
+              </div>
+              <a href="#contact" className="mt-auto font-display font-800 text-xs uppercase tracking-wider text-white hover:underline">Meer weten →</a>
+            </div>
+
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col gap-4 hover:border-[var(--accent)]/40 transition-colors">
+              <span className="font-display font-800 italic text-5xl text-[var(--accent)]/30 leading-none"><strong>03</strong></span>
+              <div>
+                <h3 className="font-display font-800 uppercase text-white text-lg mb-2"><strong>Custom campagne</strong></h3>
+                <p className="text-[var(--muted)] text-sm leading-relaxed">Maatwerk is altijd mogelijk. Denk aan branded posts, exclusieve vermeldingen of een campagne die volledig aansluit op jouw merk en doelen.</p>
+              </div>
+              <a href="#contact" className="mt-auto font-display font-800 text-xs uppercase tracking-wider text-[var(--accent)] hover:underline">Meer weten →</a>
+            </div>
           </div>
         </div>
       </section>
