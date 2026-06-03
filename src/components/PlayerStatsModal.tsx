@@ -6,6 +6,7 @@ import { getAwardsByPlayer, AWARD_CATEGORIES } from '@/lib/awards-data'
 import { ROSTERS } from '@/lib/rosters-data'
 import { headshotFaceUrl } from '@/lib/cloudinary'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
+import PlayerSplits from './PlayerSplits'
 
 type SeasonStats = Record<string, unknown>
 type Photos = { banner_url: string | null; headshot_url: string | null; banner_focal_x?: number | null; banner_focal_y?: number | null } | null
@@ -374,6 +375,12 @@ export default function PlayerStatsModal({
                   )}
                 </div>
               )}
+
+              {/* ── SPLITS ── */}
+              <div className="px-5 pb-5 border-t border-[var(--border)] pt-4">
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">Splits</p>
+                <PlayerSplits playerName={playerName} teamId={teamId} accentColor={teamColor} />
+              </div>
 
               {/* ── AWARDS ── */}
               {awards.length > 0 && (
