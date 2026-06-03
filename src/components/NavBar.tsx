@@ -42,8 +42,9 @@ function useNavEntries(): NavEntry[] {
       type: 'dropdown', label: 'Media',
       items: [
         { href: 'https://honkbalsoftbal.nl/?cat=544', label: 'News', external: true },
-        { href: '/livestream', label: 'Livestream' },
-        { href: '/social',     label: 'Social' },
+        { href: '/livestream',  label: 'Livestream' },
+        { href: '/social',      label: 'Social' },
+        { href: '/partner-up',  label: 'Partner Up' },
       ],
     },
   ]
