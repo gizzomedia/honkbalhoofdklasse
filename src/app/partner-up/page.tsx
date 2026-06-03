@@ -79,9 +79,15 @@ function PartnerForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setSending(true)
-    await new Promise(r => setTimeout(r, 1200))
+    try {
+      const res = await fetch('/api/partner-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (res.ok) setSent(true)
+    } catch { /* ignore */ }
     setSending(false)
-    setSent(true)
   }
 
   if (sent) return (
