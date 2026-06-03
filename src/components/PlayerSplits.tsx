@@ -49,7 +49,7 @@ export default function PlayerSplits({ playerName, teamId, accentColor }: { play
                   {([s.ab, s.r, s.h, s.hr, s.rbi, s.bb, s.so, s.sb] as number[]).map((v, i) => (
                     <td key={i} className="px-3 py-3 text-center font-display font-700 text-sm text-white/80">{v}</td>
                   ))}
-                  <td className="px-3 py-3 text-center font-display font-800 text-sm" style={{ color: accentColor }}>{s.avg}</td>
+                  <td className="px-3 py-3 text-center font-display font-800 text-sm text-white">{s.avg}</td>
                 </tr>
               ))}
             </tbody>
