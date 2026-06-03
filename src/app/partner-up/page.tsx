@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import 'maplibre-gl/dist/maplibre-gl.css'
 import NetherlandsClubMap from '@/components/NetherlandsClubMap'
 
 // ── Animated counter ──────────────────────────────────────────────────────────
@@ -334,7 +333,7 @@ export default function PartnerUpPage() {
       <section className="py-12 px-4">
         <div className="max-w-3xl mx-auto">
           <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] text-center mb-6">
-            7 clubs · van Rotterdam tot Groningen
+            7 clubs · van Oosterhout tot Amsterdam
           </p>
           <NetherlandsClubMap />
         </div>
