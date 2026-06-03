@@ -161,36 +161,40 @@ function PartnerForm() {
 // ── Instagram Posts carousel ─────────────────────────────────────────────────
 const IG_POSTS = [
   {
-    partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png',
-    caption: 'Nando Mostaert pakt de Player of the Week award met een fenomenale prestatie — 5 hits, een homerun en 4 RBI in één serie.',
-    reach: 8420,
-    likes: 724,
-    shares: 91,
-    date: 'Week 7 · Player of the Week',
-  },
-  {
-    partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp',
-    caption: 'Neptunus vs Pirates, de grote klassieker van de Hoofdklasse. Bekijk alle stats en de samenvatting op honkbalhoofdklasse.com.',
-    reach: 11240,
-    likes: 1103,
-    shares: 148,
-    date: 'Gameday',
-  },
-  {
+    image: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780499545/SSK_-_Post_v60xuh.jpg',
     partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png',
-    caption: 'Lars Huijer gooit een complete game shutout voor Pirates. 7 innings, 9 strikeouts, 0 earned runs. SSK Pitcher of the Month Award welverdiend.',
-    reach: 9650,
-    likes: 918,
-    shares: 107,
-    date: 'Pitcher of the Month',
+    partner: 'SSK',
+    reach: 30700,
+    likes: 706,
+    shares: 29,
+    isVideo: false,
   },
   {
+    image: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780499545/Batking_-_Post_bmo7kv.jpg',
+    partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp',
+    partner: 'Bat King Europe',
+    reach: 24100,
+    likes: 635,
+    shares: 19,
+    isVideo: false,
+  },
+  {
+    image: 'https://res.cloudinary.com/dn8c5398m/video/upload/Nouzoos_-_Post_ydzuto.jpg',
+    partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png',
+    partner: 'Nouzoos',
+    reach: 17800,
+    likes: 446,
+    shares: 20,
+    isVideo: true,
+  },
+  {
+    image: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780499545/Totaalwarmte_-_Post_grqazo.jpg',
     partnerLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png',
-    caption: 'De stand na 9 weken Hoofdklasse. Neptunus aan de leiding, maar de top 3 zit gevaarlijk dicht bij elkaar. Wie pakt de titel?',
-    reach: 6890,
-    likes: 589,
-    shares: 73,
-    date: 'Standings update',
+    partner: 'Totaalwarmte',
+    reach: 13900,
+    likes: 353,
+    shares: 14,
+    isVideo: false,
   },
 ]
 
@@ -211,17 +215,32 @@ function InstagramCarousel() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display font-800 text-xs text-white uppercase tracking-wider">honkbalhoofdklasse</p>
-            <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider">{post.date}</p>
+            <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider">Gesponsord door {post.partner}</p>
           </div>
           <svg viewBox="0 0 24 24" className="w-5 h-5 text-white/30 shrink-0" fill="currentColor">
             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
           </svg>
         </div>
 
-        {/* Partner logo image block */}
-        <div className="bg-[#0a1220] h-44 flex items-center justify-center px-8 border-b border-[var(--border)]">
+        {/* Post image */}
+        <div className="relative bg-black border-b border-[var(--border)]" style={{ aspectRatio: '1/1' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.partnerLogo} alt="partner" className="max-h-20 max-w-[180px] object-contain opacity-90" />
+          <img src={post.image} alt={post.partner} className="w-full h-full object-cover" />
+          {/* Partner logo badge bottom-right */}
+          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm rounded-xl px-2.5 py-1.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={post.partnerLogo} alt={post.partner} className="h-5 max-w-[80px] object-contain" />
+          </div>
+          {/* Video indicator */}
+          {post.isVideo && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-7 h-7 text-white ml-1" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Big stats row */}
