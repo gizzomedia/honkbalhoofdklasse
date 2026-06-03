@@ -211,7 +211,7 @@ function InstagramCarousel() {
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
           <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--accent)]/20 flex items-center justify-center shrink-0 p-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png" alt="HK" className="w-full h-full object-contain" />
+            <img src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1780500111/573820232_17862847515514579_6349657726355167801_n_vs87hx.jpg" alt="HK" className="w-full h-full object-cover rounded-full" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display font-800 text-xs text-white uppercase tracking-wider">honkbalhoofdklasse</p>
@@ -223,7 +223,7 @@ function InstagramCarousel() {
         </div>
 
         {/* Post image */}
-        <div className="relative bg-black border-b border-[var(--border)]" style={{ aspectRatio: '1/1' }}>
+        <div className="relative bg-black border-b border-[var(--border)]" style={{ aspectRatio: '3/4' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={post.image} alt={post.partner} className="w-full h-full object-cover" />
           {/* Partner logo badge bottom-right */}
