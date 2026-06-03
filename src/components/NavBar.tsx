@@ -227,7 +227,7 @@ export default function NavBar() {
             Honkbalsoftbal.tv
           </a>
 
-          {/* Bell + Search — far right on desktop */}
+          {/* Bell + Search + Partner — far right on desktop */}
           <div className="flex items-center gap-2 ml-2 pl-4 border-l border-white/10">
             <PushNotifications />
             <button
@@ -241,6 +241,12 @@ export default function NavBar() {
               <span className="font-display font-700 text-xs text-white/40 uppercase tracking-wider">Zoeken</span>
               <kbd className="font-display font-700 text-[10px] text-white/30 border border-white/10 rounded px-1.5 py-0.5">⌘K</kbd>
             </button>
+            <Link
+              href="/partner-up"
+              className="font-display font-800 text-xs uppercase tracking-wider bg-[var(--accent)] text-white px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
+              Word partner
+            </Link>
           </div>
 
         </div>
