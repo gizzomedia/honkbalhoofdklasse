@@ -19,6 +19,8 @@ function outsToIp(outs: number): string {
   return `${Math.floor(outs / 3)}.${outs % 3}`
 }
 
+function r3(n: number): number { return Math.round(n * 1000) / 1000 }
+
 export const metadata: Metadata = {
   title: 'Honkbal Hoofdklasse Statistieken 2026 | League Leaders',
   description: 'Statistieken van de KNBSB Honkbal Hoofdklasse 2026. Batting average, home runs, RBI, ERA en meer per speler. Top batters en pitchers van Nederland.',
@@ -125,7 +127,7 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
   const [{ data: batRows }, { data: pitRows }, teamGames] = await Promise.all([
     supabaseAdmin
       .from('batting_stats')
-      .select('full_name, team_id, at_bats, hits, home_runs, rbi, stolen_bases')
+      .select('full_name, team_id, at_bats, hits, home_runs, rbi, stolen_bases, obp')
       .eq('season', year)
       .neq('series_week', 'season')
       .gte('series_week', `${prefix}-01`)
@@ -141,20 +143,27 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
   ])
 
   // Aggregate batting by player
-  const batMap = new Map<string, { full_name: string; team_id: string; at_bats: number; hits: number; home_runs: number; rbi: number; stolen_bases: number }>()
+  const batMap = new Map<string, { full_name: string; team_id: string; at_bats: number; hits: number; home_runs: number; rbi: number; stolen_bases: number; obpSum: number; obpWeight: number }>()
   for (const r of (batRows ?? [])) {
     const key = `${r.full_name}|${r.team_id}`
-    const e = batMap.get(key) ?? { full_name: r.full_name, team_id: r.team_id, at_bats: 0, hits: 0, home_runs: 0, rbi: 0, stolen_bases: 0 }
+    const e = batMap.get(key) ?? { full_name: r.full_name, team_id: r.team_id, at_bats: 0, hits: 0, home_runs: 0, rbi: 0, stolen_bases: 0, obpSum: 0, obpWeight: 0 }
     e.at_bats += r.at_bats ?? 0
     e.hits += r.hits ?? 0
     e.home_runs += r.home_runs ?? 0
     e.rbi += r.rbi ?? 0
     e.stolen_bases += r.stolen_bases ?? 0
+    // Weighted average of OBP (weight by AB for approximation)
+    if (r.obp && r.at_bats) { e.obpSum += Number(r.obp) * r.at_bats; e.obpWeight += r.at_bats }
     batMap.set(key, e)
   }
   const allBatters = [...batMap.values()]
     .filter(p => p.at_bats >= 1)
-    .map(p => ({ ...p, avg: p.at_bats > 0 ? p.hits / p.at_bats : null, obp: null, slg: null, ops: null }))
+    .map(p => ({
+      ...p,
+      avg: p.at_bats > 0 ? p.hits / p.at_bats : null,
+      obp: p.obpWeight > 0 ? r3(p.obpSum / p.obpWeight) : null,
+      slg: null, ops: null,
+    }))
     .sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0)) as Record<string, unknown>[]
 
   // 2.7 PA/G per team — only used for AVG table, not HR/RBI/SB

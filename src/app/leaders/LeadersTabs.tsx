@@ -296,10 +296,21 @@ const fmt     = (v: unknown) => v != null ? String(v) : '-'
 const fmtRate = (v: unknown) => v != null ? Number(v).toFixed(3).replace('0.', '.') : '-'
 const fmtIp   = (v: unknown) => v != null ? String(v) : '-'
 
+function ipToDec(v: unknown): number {
+  const s = String(v ?? '0')
+  if (s.includes('.')) {
+    const [f, o] = s.split('.').map(n => parseInt(n, 10) || 0)
+    return f + o / 3
+  }
+  return (parseInt(s, 10) || 0) * 3  // integer = full innings
+}
+
 function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; onSelect: OnSelect }) {
   const byHR  = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
   const byRBI = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
   const bySB  = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
+  const byH   = [...batters].sort((a, b) => (b.hits as number) - (a.hits as number))
+  const byOBP = [...batters].filter(r => r.obp != null && Number(r.obp) > 0).sort((a, b) => Number(b.obp) - Number(a.obp))
   const avgRows = battingQualified ?? batters
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -307,6 +318,10 @@ function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { 
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'H',   value: r => fmt(r.hits) },
         { label: 'AVG', value: r => fmtRate(r.avg) },
+      ]} />
+      <LeaderTable title="OBP" rows={byOBP} statType="batting" onSelect={onSelect} columns={[
+        { label: 'AB',  value: r => fmt(r.at_bats) },
+        { label: 'OBP', value: r => fmtRate(r.obp) },
       ]} />
       <LeaderTable title="Home Runs" rows={byHR} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB', value: r => fmt(r.at_bats) },
@@ -316,6 +331,10 @@ function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { 
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'RBI', value: r => fmt(r.rbi) },
       ]} />
+      <LeaderTable title="Hits" rows={byH} statType="batting" onSelect={onSelect} columns={[
+        { label: 'AB', value: r => fmt(r.at_bats) },
+        { label: 'H',  value: r => fmt(r.hits) },
+      ]} />
       <LeaderTable title="Stolen Bases" rows={bySB} statType="batting" onSelect={onSelect} columns={[
         { label: 'SB', value: r => fmt(r.stolen_bases) },
       ]} />
@@ -324,15 +343,41 @@ function WeekHittingTables({ batters, battingQualified, avgTitle, onSelect }: { 
 }
 
 function WeekPitchingTables({ pitchers, onSelect }: { pitchers: Row[]; onSelect: OnSelect }) {
-  const byK  = [...pitchers].sort((a, b) => (b.strikeouts as number) - (a.strikeouts as number))
-  const byW  = [...pitchers].sort((a, b) => (b.wins as number) - (a.wins as number))
-  const bySV = [...pitchers].sort((a, b) => (b.saves as number) - (a.saves as number))
-  const byIP = [...pitchers].sort((a, b) => (b.innings_pitched as number) - (a.innings_pitched as number))
+  const byK   = [...pitchers].sort((a, b) => (b.strikeouts as number) - (a.strikeouts as number))
+  const byW   = [...pitchers].sort((a, b) => (b.wins as number) - (a.wins as number))
+  const bySV  = [...pitchers].sort((a, b) => (b.saves as number) - (a.saves as number))
+  const byIP  = [...pitchers].sort((a, b) => ipToDec(b.innings_pitched) - ipToDec(a.innings_pitched))
+  const byERA = [...pitchers]
+    .filter(p => ipToDec(p.innings_pitched) >= 1)
+    .sort((a, b) => {
+      const eraA = Number(a.earned_runs ?? 0) / ipToDec(a.innings_pitched) * 9
+      const eraB = Number(b.earned_runs ?? 0) / ipToDec(b.innings_pitched) * 9
+      return eraA - eraB // ascending: lower ERA is better
+    })
+  const byWHIP = [...pitchers]
+    .filter(p => ipToDec(p.innings_pitched) >= 1)
+    .sort((a, b) => {
+      const whipA = (Number(a.walks ?? 0) + Number(a.hits_allowed ?? 0)) / ipToDec(a.innings_pitched)
+      const whipB = (Number(b.walks ?? 0) + Number(b.hits_allowed ?? 0)) / ipToDec(b.innings_pitched)
+      return whipA - whipB // ascending: lower WHIP is better
+    })
+
+  const fmtERA  = (r: Row) => ipToDec(r.innings_pitched) > 0 ? (Number(r.earned_runs ?? 0) / ipToDec(r.innings_pitched) * 9).toFixed(2) : '-'
+  const fmtWHIP = (r: Row) => ipToDec(r.innings_pitched) > 0 ? ((Number(r.walks ?? 0) + Number(r.hits_allowed ?? 0)) / ipToDec(r.innings_pitched)).toFixed(2) : '-'
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <LeaderTable title="Strikeouts" rows={byK} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
         { label: 'K',  value: r => fmt(r.strikeouts) },
+      ]} />
+      <LeaderTable title="ERA" rows={byERA} statType="pitching" onSelect={onSelect} columns={[
+        { label: 'IP',  value: r => fmtIp(r.innings_pitched) },
+        { label: 'ERA', value: r => fmtERA(r) },
+      ]} />
+      <LeaderTable title="WHIP" rows={byWHIP} statType="pitching" onSelect={onSelect} columns={[
+        { label: 'IP',  value: r => fmtIp(r.innings_pitched) },
+        { label: 'WHIP', value: r => fmtWHIP(r) },
       ]} />
       <LeaderTable title="Wins" rows={byW} statType="pitching" onSelect={onSelect} columns={[
         { label: 'IP', value: r => fmtIp(r.innings_pitched) },
