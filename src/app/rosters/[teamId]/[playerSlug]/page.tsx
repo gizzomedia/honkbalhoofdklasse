@@ -8,7 +8,7 @@ import Link from 'next/link'
 import BackButton from '@/components/BackButton'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT } from '@/lib/teams'
+import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT, KNBSB_NUMERIC_ID_MAP } from '@/lib/teams'
 
 export const revalidate = 86400
 
@@ -53,6 +53,113 @@ type BattingRow  = { year:string; age:string; lg:string; team:string; g:string; 
 type PitchingRow = { year:string; age:string; lg:string; team:string; w:string; l:string; era:string; g:string; gs:string; sv:string; ip:string; h:string; bb:string; so:string; whip:string }
 
 
+export type GameSplit = {
+  date: string    // "2026-06-04"
+  opponent: string // "NEP"
+  ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number; sb: number
+}
+
+export type SplitTotals = {
+  label: string
+  ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number; sb: number
+  avg: string
+}
+
+function sumGames(games: GameSplit[]): Omit<SplitTotals, 'label' | 'avg'> {
+  return games.reduce((acc, g) => ({
+    ab: acc.ab + g.ab, r: acc.r + g.r, h: acc.h + g.h,
+    hr: acc.hr + g.hr, rbi: acc.rbi + g.rbi, bb: acc.bb + g.bb,
+    so: acc.so + g.so, sb: acc.sb + g.sb,
+  }), { ab: 0, r: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0 })
+}
+
+function fmtAvg(h: number, ab: number): string {
+  if (ab === 0) return '.---'
+  return (h / ab).toFixed(3).replace('0.', '.')
+}
+
+const FRIENDLY_TO_KNBSB: Record<string, number> = Object.fromEntries(
+  Object.entries(KNBSB_NUMERIC_ID_MAP).map(([k, v]) => [v, Number(k)])
+)
+
+const IOC_SHORT: Record<string, string> = {
+  'NEP': 'NEP', 'HCA': 'HCA', 'KIN': 'KIN', 'PIO': 'PIO',
+  'PIR': 'PIR', 'TWI': 'TWI', 'UVV': 'UVV', 'AMS': 'PIR',
+}
+
+async function getPlayerSplits(playerName: string, teamId: string): Promise<{ games: GameSplit[]; splits: SplitTotals[] }> {
+  try {
+    const knbsbId = FRIENDLY_TO_KNBSB[teamId]
+    if (!knbsbId) return { games: [], splits: [] }
+
+    const schedRes = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
+    const schedJson = await schedRes.json()
+    const allGames: Array<{ id: number; start: string; gamestatus: number; homeid: number; awayid: number; homeioc: string; awayioc: string }> = schedJson.games ?? []
+
+    // Get last 15 finished games for this team
+    const teamGames = allGames
+      .filter(g => (g.homeid === knbsbId || g.awayid === knbsbId) && (g.gamestatus === 2 || g.gamestatus === 3))
+      .sort((a, b) => b.start.localeCompare(a.start))
+      .slice(0, 15)
+
+    const normName = (s: string) => s.toLowerCase().trim()
+    const playerNorm = normName(playerName)
+
+    const gameSplits: GameSplit[] = []
+
+    await Promise.all(teamGames.map(async g => {
+      try {
+        const r = await fetch(`https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game=${g.id}`, { cache: 'no-store' })
+        if (!r.ok) return
+        const gd = await r.json()
+        const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
+        const teamKey = String(knbsbId)
+        const spots = bs[teamKey] ?? {}
+
+        for (const players of Object.values(spots)) {
+          if (!Array.isArray(players) || !players[0]) continue
+          const p = players[0] as Record<string, unknown>
+          const pName = `${String(p.firstname ?? '')} ${String(p.lastname ?? '')}`.trim()
+          if (!normName(pName).includes(playerNorm.split(' ').pop() ?? '') && !playerNorm.includes(normName(String(p.lastname ?? '')))) continue
+
+          const isHome = g.homeid === knbsbId
+          const oppIoc = isHome ? g.awayioc : g.homeioc
+          gameSplits.push({
+            date: g.start.slice(0, 10),
+            opponent: IOC_SHORT[oppIoc] ?? oppIoc,
+            ab:  Number(p.ab  ?? 0),
+            r:   Number(p.r   ?? 0),
+            h:   Number(p.h   ?? 0),
+            hr:  Number(p.hr  ?? 0),
+            rbi: Number(p.rbi ?? 0),
+            bb:  Number(p.bb  ?? 0),
+            so:  Number(p.so  ?? 0),
+            sb:  Number(p.sb  ?? 0),
+          })
+          break
+        }
+      } catch { /* skip */ }
+    }))
+
+    // Sort by date descending
+    gameSplits.sort((a, b) => b.date.localeCompare(a.date))
+
+    const make = (label: string, n: number): SplitTotals => {
+      const g = gameSplits.slice(0, n)
+      const t = sumGames(g)
+      return { label, ...t, avg: fmtAvg(t.h, t.ab) }
+    }
+
+    const splits: SplitTotals[] = [
+      make(`Last 3 Games`,  3),
+      make(`Last 7 Games`,  7),
+      make(`Last 15 Games`, 15),
+    ].filter(s => s.ab > 0)
+
+    return { games: gameSplits.slice(0, 5), splits }
+  } catch { return { games: [], splits: [] } }
+}
+
 async function getCareerStats(bbrefId: string): Promise<{ batting: BattingRow[]; pitching: PitchingRow[] }> {
   try {
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://honkbalhoofdklasse.com'
@@ -86,11 +193,12 @@ export default async function PlayerProfilePage({
   const player = roster.players.find(p => slugify(p.name) === playerSlug)
   if (!player) notFound()
 
-  const [awards, photos, career, season] = await Promise.all([
+  const [awards, photos, career, season, { games: recentGames, splits }] = await Promise.all([
     Promise.resolve(getAwardsByPlayer(player.name)),
     getPlayerPhotos(player.name),
     player.bbref_id ? getCareerStats(player.bbref_id) : Promise.resolve({ batting: [], pitching: [] }),
     computeSeasonStats(player.name),
+    getPlayerSplits(player.name, teamId),
   ])
   const teamColor = TEAM_COLORS[teamId] ?? '#1e335a'
   const teamLogo = TEAM_LOGOS[teamId]
@@ -248,6 +356,78 @@ export default async function PlayerProfilePage({
           </>
         )}
       </div>
+
+      {/* Splits */}
+      {(splits.length > 0 || recentGames.length > 0) && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-6 bg-[var(--accent)] shrink-0" />
+            <h2 className="font-display font-800 italic text-2xl uppercase text-white tracking-tight">
+              <strong>Splits</strong>
+            </h2>
+          </div>
+
+          {/* Duration splits */}
+          {splits.length > 0 && (
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-x-auto mb-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="text-left px-4 py-3 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">Period</th>
+                    {['AB','R','H','HR','RBI','BB','SO','SB','AVG'].map(col => (
+                      <th key={col} className="text-center px-3 py-3 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {splits.map(s => (
+                    <tr key={s.label} className="hover:bg-[var(--card-hover)] transition-colors">
+                      <td className="px-4 py-3 font-display font-700 text-sm text-white whitespace-nowrap">{s.label}</td>
+                      {[s.ab, s.r, s.h, s.hr, s.rbi, s.bb, s.so, s.sb].map((v, i) => (
+                        <td key={i} className="px-3 py-3 text-center font-display font-700 text-sm text-white/80">{v}</td>
+                      ))}
+                      <td className="px-3 py-3 text-center font-display font-800 text-sm text-[var(--accent)]">{s.avg}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Last 5 games */}
+          {recentGames.length > 0 && (
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-x-auto">
+              <div className="px-4 pt-3 pb-1">
+                <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">Last {recentGames.length} Games</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="text-left px-4 py-2 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">Date</th>
+                    <th className="text-left px-3 py-2 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">OPP</th>
+                    {['AB','R','H','HR','RBI','BB','SO','SB'].map(col => (
+                      <th key={col} className="text-center px-2 py-2 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)]">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {recentGames.map((g, i) => (
+                    <tr key={i} className="hover:bg-[var(--card-hover)] transition-colors">
+                      <td className="px-4 py-2.5 font-display font-700 text-xs text-white/70 whitespace-nowrap">
+                        {new Date(g.date + 'T12:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}
+                      </td>
+                      <td className="px-3 py-2.5 font-display font-700 text-xs text-[var(--muted)] uppercase">{g.opponent}</td>
+                      {[g.ab, g.r, g.h, g.hr, g.rbi, g.bb, g.so, g.sb].map((v, j) => (
+                        <td key={j} className={`px-2 py-2.5 text-center font-display font-700 text-sm ${v > 0 ? 'text-white' : 'text-white/25'}`}>{v}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Career Stats */}
       {(career.batting.length > 0 || career.pitching.length > 0) && (
