@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { BatterStat, PitcherStat } from '@/app/api/boxscore/[gameId]/route'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
+import { slugify } from '@/lib/rosters-data'
 
 type Situation = {
   inning: number
@@ -128,7 +130,7 @@ function SituationBar({ sit }: { sit: Situation }) {
   )
 }
 
-function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor: string }) {
+function BattingTable({ batters, teamColor, teamId }: { batters: BatterStat[]; teamColor: string; teamId: string }) {
   if (!batters.length) return <p className="font-display font-700 text-xs text-[var(--muted)] uppercase py-4 text-center">No data</p>
   const cols = ['AB', 'H', 'R', 'RBI', 'BB', 'SO', 'HR']
   return (
@@ -155,7 +157,7 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
                       {b.pos}
                     </span>
                   )}
-                  <span className="font-display font-700 text-xs uppercase text-white">{b.name}</span>
+                  <Link href={`/rosters/${teamId}/${slugify(b.name)}`} className="font-display font-700 text-xs uppercase text-white hover:text-[var(--accent)] transition-colors">{b.name}</Link>
                 </div>
               </td>
               {[b.ab, b.h, b.r, b.rbi, b.bb, b.so, b.hr].map((v, j) => (
@@ -172,7 +174,7 @@ function BattingTable({ batters, teamColor }: { batters: BatterStat[]; teamColor
   )
 }
 
-function PitchingTable({ pitchers, teamColor }: { pitchers: PitcherStat[]; teamColor: string }) {
+function PitchingTable({ pitchers, teamColor, teamId }: { pitchers: PitcherStat[]; teamColor: string; teamId: string }) {
   if (!pitchers.length) return <p className="font-display font-700 text-xs text-[var(--muted)] uppercase py-4 text-center">No data</p>
   const cols = ['IP', 'H', 'R', 'ER', 'BB', 'SO']
   return (
@@ -193,7 +195,7 @@ function PitchingTable({ pitchers, teamColor }: { pitchers: PitcherStat[]; teamC
               <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                 <td className="py-2 pr-3">
                   <div className="flex items-center gap-2">
-                    <span className="font-display font-700 text-xs uppercase text-white">{p.name}</span>
+                    <Link href={`/rosters/${teamId}/${slugify(p.name)}`} className="font-display font-700 text-xs uppercase text-white hover:text-[var(--accent)] transition-colors">{p.name}</Link>
                     {decision && (
                       <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: teamColor + '33', color: teamColor }}>
@@ -410,13 +412,13 @@ export default function BoxscoreModal({
             {/* Batting */}
             <div className="px-4 pt-4 pb-2">
               <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Batting</p>
-              <BattingTable batters={batters} teamColor={teamColor} />
+              <BattingTable batters={batters} teamColor={teamColor} teamId={activeId} />
             </div>
 
             {/* Pitching */}
             <div className="px-4 pt-3 pb-5">
               <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Pitching</p>
-              <PitchingTable pitchers={pitchers} teamColor={teamColor} />
+              <PitchingTable pitchers={pitchers} teamColor={teamColor} teamId={activeId} />
             </div>
           </div>
         )}
