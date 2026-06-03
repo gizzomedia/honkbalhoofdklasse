@@ -379,7 +379,7 @@ export default function PlayerStatsModal({
               {/* ── SPLITS ── */}
               <div className="px-5 pb-5 border-t border-[var(--border)] pt-4">
                 <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-3">Splits</p>
-                <PlayerSplits playerName={playerName} teamId={teamId} accentColor={teamColor} />
+                <PlayerSplits playerName={playerName} teamId={teamId} />
               </div>
 
               {/* ── AWARDS ── */}

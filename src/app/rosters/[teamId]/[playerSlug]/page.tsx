@@ -258,7 +258,7 @@ export default async function PlayerProfilePage({
             <strong>Splits</strong>
           </h2>
         </div>
-        <PlayerSplits playerName={player.name} teamId={teamId} accentColor={teamColor} />
+        <PlayerSplits playerName={player.name} teamId={teamId} />
       </section>
 
       {/* Career Stats */}

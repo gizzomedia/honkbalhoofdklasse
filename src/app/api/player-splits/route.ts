@@ -40,7 +40,24 @@ export async function GET(req: NextRequest) {
     const playerLast = playerName.split(' ').pop()?.toLowerCase() ?? ''
     const playerNorm = playerName.toLowerCase()
 
-    const gameSplits: Array<{ date: string; opponent: string; ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number; sb: number }> = []
+    // Convert "5.1" IP notation to total outs
+    const ipToOuts = (v: unknown) => {
+      const s = String(v ?? '0')
+      if (!s || s === '0' || s === '0.0') return 0
+      if (s.includes('.')) {
+        const [f, o] = s.split('.').map(n => parseInt(n, 10) || 0)
+        return f * 3 + Math.min(o, 2)
+      }
+      return (parseInt(s, 10) || 0) * 3
+    }
+    const outsToIp = (o: number) => `${Math.floor(o / 3)}.${o % 3}`
+
+    type BatGame = { date: string; opponent: string; ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number; sb: number }
+    type PitGame = { date: string; opponent: string; outs: number; k: number; bb: number; er: number; h: number; w: number; l: number }
+
+    const batGames: BatGame[] = []
+    const pitGames: PitGame[] = []
+    let isPitcher = false
 
     await Promise.all(teamGames.map(async g => {
       try {
@@ -50,15 +67,16 @@ export async function GET(req: NextRequest) {
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
         const spots = bs[String(knbsbId)] ?? {}
 
-        // Check batting spots 1-9 first, then spot 90 (pitchers who only appear there)
-        // Sort so spots 1-9 come before 90
-        const sortedSpots = Object.entries(spots).sort(([a], [b]) => {
-          const na = parseInt(a) || 999
-          const nb = parseInt(b) || 999
-          return na - nb
-        })
+        const isHome = g.homeid === knbsbId
+        const oppIoc = isHome ? g.awayioc : g.homeioc
+        const opp = IOC_SHORT[oppIoc] ?? oppIoc
+        const date = g.start.slice(0, 10)
+
+        // Try batting spots 1-9 first
+        const sortedSpots = Object.entries(spots).sort(([a], [b]) => (parseInt(a) || 999) - (parseInt(b) || 999))
         let found = false
-        outer: for (const [spot, playerList] of sortedSpots) {
+
+        for (const [spot, playerList] of sortedSpots) {
           if (spot === 'totals') continue
           if (!Array.isArray(playerList)) continue
           for (const raw of playerList) {
@@ -68,37 +86,74 @@ export async function GET(req: NextRequest) {
             if (!last || last === 'totals') continue
             if (!last.includes(playerLast) && !playerNorm.includes(last)) continue
 
-            const isHome = g.homeid === knbsbId
-            const oppIoc = isHome ? g.awayioc : g.homeioc
-            gameSplits.push({
-              date:     g.start.slice(0, 10),
-              opponent: IOC_SHORT[oppIoc] ?? oppIoc,
-              ab:  Number(p.ab  ?? 0), r:   Number(p.r   ?? 0), h:   Number(p.h   ?? 0),
-              hr:  Number(p.hr  ?? 0), rbi: Number(p.rbi ?? 0), bb:  Number(p.bb  ?? 0),
-              so:  Number(p.so  ?? 0), sb:  Number(p.sb  ?? 0),
-            })
+            if (spot === '90') {
+              // Pitcher — collect pitching stats
+              isPitcher = true
+              pitGames.push({
+                date, opponent: opp,
+                outs: ipToOuts(p.pitch_ip),
+                k:    Number(p.pitch_so ?? 0),
+                bb:   Number(p.pitch_bb ?? 0),
+                er:   Number(p.pitch_er ?? 0),
+                h:    Number(p.pitch_h  ?? 0),
+                w:    Number(p.pitch_win  ?? 0),
+                l:    Number(p.pitch_loss ?? 0),
+              })
+            } else {
+              // Batter — collect batting stats
+              batGames.push({
+                date, opponent: opp,
+                ab:  Number(p.ab  ?? 0), r:   Number(p.r   ?? 0), h:   Number(p.h   ?? 0),
+                hr:  Number(p.hr  ?? 0), rbi: Number(p.rbi ?? 0), bb:  Number(p.bb  ?? 0),
+                so:  Number(p.so  ?? 0), sb:  Number(p.sb  ?? 0),
+              })
+            }
             found = true
-            break outer
+            break
           }
+          if (found) break
         }
-        void found
       } catch { /* skip */ }
     }))
 
-    gameSplits.sort((a, b) => b.date.localeCompare(a.date))
+    if (isPitcher) {
+      pitGames.sort((a, b) => b.date.localeCompare(a.date))
+      const fmtEra = (er: number, outs: number) => outs === 0 ? '-.--' : (er / outs * 27).toFixed(2)
 
-    type StatKey = 'ab'|'r'|'h'|'hr'|'rbi'|'bb'|'so'|'sb'
-    const statKeys: StatKey[] = ['ab','r','h','hr','rbi','bb','so','sb']
-// Show split if games were actually found — even if AB=0 (shows .---)
-    const splits = ([3, 7, 15] as const)
-      .map(n => {
-        const g = gameSplits.slice(0, n)
-        const t = statKeys.reduce((acc, k) => { acc[k] = g.reduce((s, x) => s + x[k], 0); return acc }, {} as Record<StatKey, number>)
-        return { label: `Last ${n} Games`, found: g.length, ...t, avg: fmtAvg(t.h, t.ab) }
+      const splits = ([3, 7, 15] as const).map(n => {
+        const g = pitGames.slice(0, n)
+        if (!g.length) return null
+        const outs = g.reduce((s, x) => s + x.outs, 0)
+        const k    = g.reduce((s, x) => s + x.k, 0)
+        const bb   = g.reduce((s, x) => s + x.bb, 0)
+        const er   = g.reduce((s, x) => s + x.er, 0)
+        const h    = g.reduce((s, x) => s + x.h, 0)
+        const w    = g.reduce((s, x) => s + x.w, 0)
+        const l    = g.reduce((s, x) => s + x.l, 0)
+        return { label: `Last ${n} Games`, found: g.length, ip: outsToIp(outs), k, bb, er, h, w, l, era: fmtEra(er, outs) }
+      }).filter(Boolean)
+
+      const games = pitGames.slice(0, 5).map(g => ({
+        ...g, ip: outsToIp(g.outs), era: fmtEra(g.er, g.outs)
+      }))
+
+      return NextResponse.json({ type: 'pitching', games, splits }, {
+        headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
       })
-      .filter(s => s.found > 0)
+    }
 
-    return NextResponse.json({ games: gameSplits.slice(0, 5), splits }, {
+    // Batting
+    batGames.sort((a, b) => b.date.localeCompare(a.date))
+    type BatKey = 'ab'|'r'|'h'|'hr'|'rbi'|'bb'|'so'|'sb'
+    const batKeys: BatKey[] = ['ab','r','h','hr','rbi','bb','so','sb']
+    const splits = ([3, 7, 15] as const).map(n => {
+      const g = batGames.slice(0, n)
+      if (!g.length) return null
+      const t = batKeys.reduce((acc, k) => { acc[k] = g.reduce((s, x) => s + x[k], 0); return acc }, {} as Record<BatKey, number>)
+      return { label: `Last ${n} Games`, found: g.length, ...t, avg: fmtAvg(t.h, t.ab) }
+    }).filter(Boolean)
+
+    return NextResponse.json({ type: 'batting', games: batGames.slice(0, 5), splits }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     })
   } catch {
