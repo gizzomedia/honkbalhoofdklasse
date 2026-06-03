@@ -159,12 +159,11 @@ function PartnerForm() {
 
 // ── Partners ──────────────────────────────────────────────────────────────────
 const PARTNERS = [
-  { name: 'Bat King Europe', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp', type: 'Equipment Partner' },
-  { name: 'SSK', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png', type: 'Award Sponsor' },
-  { name: 'Louie Jay', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395308/LJ_hpdo4v.png', type: 'Media Partner' },
-  { name: 'GizzoMedia', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395334/GizzoMedia_Logo_nedyfo.png', type: 'Tech Partner' },
-  { name: 'Totaalwarmte', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png', type: 'Award Sponsor' },
-  { name: 'Nouzoos', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png', type: 'Media Partner' },
+  { name: 'Bat King Europe', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp' },
+  { name: 'SSK', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png' },
+  { name: 'KNBSB', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395321/KNBSB_etffww.png' },
+  { name: 'Totaalwarmte', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png' },
+  { name: 'Nouzoos', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png' },
 ]
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -226,12 +225,12 @@ export default function PartnerUpPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: '📱', title: 'Multi-channel exposure', body: 'Van push notificaties tot social posts — jouw logo is zichtbaar op elk touchpoint waar fans hun team volgen.' },
-              { icon: '⚾', title: 'Seizoen-lang zichtbaar', body: 'Geen losse campagnes maar structurele aanwezigheid. Wekelijks bereik jij onze community van toegewijde baseballfans.' },
-              { icon: '🎯', title: 'Doelgroep op maat', body: 'Actieve sportconsumenten, 16–45 jaar, hogere betrokkenheid dan gemiddeld. Elke partner krijgt een pakket dat bij zijn merk past.' },
-            ].map(({ icon, title, body }) => (
+              { title: 'Multi-channel exposure', body: 'Van push notificaties tot social posts, jouw logo is zichtbaar op elk touchpoint waar fans hun team volgen.' },
+              { title: 'Seizoen-lang zichtbaar', body: 'Geen losse campagnes maar structurele aanwezigheid. Wekelijks bereik jij onze community van toegewijde baseballfans.' },
+              { title: 'Doelgroep op maat', body: 'Actieve sportconsumenten, 16 tot 45 jaar, hogere betrokkenheid dan gemiddeld. Elke partner krijgt een pakket dat bij zijn merk past.' },
+            ].map(({ title, body }) => (
               <div key={title} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 hover:border-[var(--accent)]/40 transition-colors">
-                <div className="text-4xl mb-4">{icon}</div>
+                <div className="w-8 h-1 bg-[var(--accent)] rounded-full mb-5" />
                 <h3 className="font-display font-800 uppercase text-white text-lg mb-2"><strong>{title}</strong></h3>
                 <p className="text-[var(--muted)] text-sm leading-relaxed">{body}</p>
               </div>
@@ -250,12 +249,9 @@ export default function PartnerUpPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {PARTNERS.map(p => (
-              <div key={p.name} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 flex flex-col items-center gap-4 hover:border-[var(--accent)]/40 transition-colors group">
-                <div className="h-12 flex items-center justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.logo} alt={p.name} className="max-h-full max-w-[140px] object-contain opacity-70 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <span className="font-display font-700 text-[10px] uppercase tracking-widest text-[var(--muted)] border border-[var(--border)] rounded-full px-3 py-1">{p.type}</span>
+              <div key={p.name} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 flex items-center justify-center hover:border-[var(--accent)]/40 transition-colors group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.logo} alt={p.name} className="max-h-10 max-w-[140px] object-contain opacity-60 group-hover:opacity-100 transition-opacity" />
               </div>
             ))}
           </div>
