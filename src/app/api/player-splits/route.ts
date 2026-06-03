@@ -81,20 +81,14 @@ export async function GET(req: NextRequest) {
 
     type StatKey = 'ab'|'r'|'h'|'hr'|'rbi'|'bb'|'so'|'sb'
     const statKeys: StatKey[] = ['ab','r','h','hr','rbi','bb','so','sb']
-    const makeSplit = (label: string, n: number) => {
-      const g = gameSplits.slice(0, n)
-      const t = statKeys.reduce((acc, k) => { acc[k] = g.reduce((s, x) => s + x[k], 0); return acc }, {} as Record<StatKey, number>)
-      return { label, ...t, avg: fmtAvg(t.h, t.ab) }
-    }
-
-    // Show split if games were actually found — even if AB=0 (shows .---)
-    const splits = (
-      [3, 7, 15] as const
-    ).map((n, i) => ({
-      label: `Last ${n} Games`,
-      found: gameSplits.slice(0, n).length,
-      ...makeSplit(`Last ${n} Games`, n),
-    })).filter(s => s.found > 0)
+// Show split if games were actually found — even if AB=0 (shows .---)
+    const splits = ([3, 7, 15] as const)
+      .map(n => {
+        const g = gameSplits.slice(0, n)
+        const t = statKeys.reduce((acc, k) => { acc[k] = g.reduce((s, x) => s + x[k], 0); return acc }, {} as Record<StatKey, number>)
+        return { label: `Last ${n} Games`, found: g.length, ...t, avg: fmtAvg(t.h, t.ab) }
+      })
+      .filter(s => s.found > 0)
 
     return NextResponse.json({ games: gameSplits.slice(0, 5), splits }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
