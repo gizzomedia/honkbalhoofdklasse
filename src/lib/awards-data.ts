@@ -23,7 +23,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     en: 'SSK Pitcher of the Month',
     icon: '⚾',
     description: 'Best pitching performance of the month',
-    sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778604074/SSK_LOGO_hiu1wg.png',
+    sponsorLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png',
   },
   {
     key: 'hitter-of-month',
@@ -31,7 +31,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     en: 'Bat King Europe Hitter of the Month',
     icon: '🏏',
     description: 'Best hitting performance of the month',
-    sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603854/BatKingEurope_Logo_rgb_white_pzj3vw.webp',
+    sponsorLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp',
   },
   {
     key: 'hottest-player-week',
@@ -39,7 +39,7 @@ export const AWARD_CATEGORIES: AwardCategory[] = [
     en: 'Totaalwarmte Hottest Player of the Week',
     icon: '🔥',
     description: 'Most impressive performance of the week',
-    sponsorLogo: 'https://res.cloudinary.com/dqld625sq/image/upload/v1778603874/Logo_Diap_RGB_Totaalwarmte_nf7ecr.png',
+    sponsorLogo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png',
   },
 ]
 
@@ -53,9 +53,11 @@ export const AWARDS: Award[] = [
   { season: 2026, category: 'hottest-player-week', playerName: 'Jeandro Tromp',       teamId: 'pirates',  label: 'Week 6', note: '9-for-12 (.750), 17 TB, 3 2B, 3B, HR, 4 RBI, 4 R, 2.186 OPS' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Nando Mostaert',      teamId: 'twins',    label: 'Week 7', note: '5-for-9 (.556), 2 2B, HR, 10 TB, 5 RBI, 4 R, 1.778 OPS' },
   // SSK Pitcher of the Month 2026
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis',  teamId: 'neptunus', label: 'Month 1' },
-  // Batking Hitter of the Month 2026
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'Month 1' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Month 2' },
+  // Bat King Europe Hitter of the Month 2026
   { season: 2026, category: 'hitter-of-month',  playerName: 'Darryl Collins',  teamId: 'neptunus', label: 'Month 1' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Jeandro Tromp',   teamId: 'pirates',  label: 'Month 2' },
 ]
 
 export function getAwardsByPlayer(playerName: string): Award[] {
