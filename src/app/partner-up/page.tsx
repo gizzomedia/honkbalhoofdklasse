@@ -161,7 +161,6 @@ function PartnerForm() {
 const PARTNERS = [
   { name: 'Bat King Europe', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394738/BatKingEurope_Logo_rgb_white_w30lxp.webp' },
   { name: 'SSK', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395350/SSK_LOGO_nnm9t2.png' },
-  { name: 'KNBSB', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780395321/KNBSB_etffww.png' },
   { name: 'Totaalwarmte', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394730/Logo_Diap_RGB_Totaalwarmte_ybdfbz.png' },
   { name: 'Nouzoos', logo: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780394708/nouzoos_bnqatr.png' },
 ]
@@ -247,7 +246,7 @@ export default function PartnerUpPage() {
             <h2 className="font-display font-800 italic text-4xl uppercase text-white"><strong>Ze gingen je voor</strong></h2>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {PARTNERS.map(p => (
               <div key={p.name} className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 flex items-center justify-center hover:border-[var(--accent)]/40 transition-colors group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
