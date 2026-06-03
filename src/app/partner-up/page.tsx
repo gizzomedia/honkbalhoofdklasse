@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import NetherlandsClubMap from '@/components/NetherlandsClubMap'
 
 // ── Animated counter ──────────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 1800, active = false) {
@@ -285,7 +284,6 @@ function InstagramCarousel() {
   )
 }
 
-// NetherlandsClubMap is imported from @/components/NetherlandsClubMap
 
 // ── Partners ──────────────────────────────────────────────────────────────────
 const PARTNERS = [
@@ -344,15 +342,7 @@ export default function PartnerUpPage() {
         </div>
       </section>
 
-      {/* ── MAP ── */}
-      <section className="py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <p className="font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] text-center mb-6">
-            7 clubs · van Oosterhout tot Amsterdam
-          </p>
-          <NetherlandsClubMap />
-        </div>
-      </section>
+
 
       {/* ── WHY ── */}
       <section className="py-20 px-4">
