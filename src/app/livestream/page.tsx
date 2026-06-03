@@ -75,8 +75,15 @@ function formatDate(dateStr: string) {
 export default async function LivestreamPage() {
   const { streams, upcoming } = await getData()
 
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
   const liveNow = streams.filter(s => s.is_live)
-  const scheduled = streams.filter(s => !s.is_live)
+  const scheduled = streams.filter(s => {
+    if (s.is_live) return false
+    if (!s.scheduled_at) return true // no date set — always show
+    return new Date(s.scheduled_at) >= startOfToday // hide once the day has passed
+  })
 
   const gamesWithoutStream = upcoming.filter(g => !streams.find(s => s.game_id === g.id))
 
