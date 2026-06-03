@@ -300,9 +300,9 @@ function ipToDec(v: unknown): number {
   const s = String(v ?? '0')
   if (s.includes('.')) {
     const [f, o] = s.split('.').map(n => parseInt(n, 10) || 0)
-    return f + o / 3
+    return f + o / 3  // baseball: .1 = 1 out = 1/3 inning
   }
-  return (parseInt(s, 10) || 0) * 3  // integer = full innings
+  return parseInt(s, 10) || 0  // integer = full innings (e.g. 19 = 19.0 IP)
 }
 
 function WeekHittingTables({ batters, battingQualified, avgTitle, obpTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; obpTitle?: string; onSelect: OnSelect }) {

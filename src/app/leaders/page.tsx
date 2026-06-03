@@ -192,8 +192,12 @@ async function getMonthData(monthPrefix?: string): Promise<TabData> {
     e.earned_runs += r.earned_runs ?? 0
     pitMap.set(key, e)
   }
+  // 1 IP per game minimum — same rule as Season 2026
   const pitchers = [...pitMap.values()]
-    .filter(p => p.outs >= 3)  // minimum 1 full inning
+    .filter(p => {
+      const g = teamGames[p.team_id] ?? 8
+      return p.outs >= Math.max(3, g * 3)
+    })
     .map(({ outs, ...rest }) => ({ ...rest, innings_pitched: outsToIp(outs) }))
     .sort((a, b) => b.strikeouts - a.strikeouts) as Record<string, unknown>[]
 
