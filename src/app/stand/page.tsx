@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
+import Link from 'next/link'
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
 
 export const metadata: Metadata = {
@@ -128,14 +129,15 @@ export default async function StandPage() {
           const form = getForm(recentGames, s.team_id)
 
           return (
-            <div
+            <Link
               key={s.team_id}
+              href={`/rosters/${s.team_id}`}
               className={`
                 grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_auto] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_auto_4rem] gap-2 px-4 md:px-5 py-4
                 items-center border-b border-[var(--border)] last:border-0
-                transition-colors
+                transition-colors cursor-pointer
                 ${isLeader
-                  ? 'bg-[var(--accent)]'
+                  ? 'bg-[var(--accent)] hover:opacity-95'
                   : 'bg-[var(--card)] hover:bg-[var(--card-hover)]'
                 }
               `}
@@ -211,7 +213,7 @@ export default async function StandPage() {
               <span className={`text-center font-display font-600 text-base hidden md:block ${isLeader ? 'text-white' : 'text-white'}`}>
                 {s.games_played}
               </span>
-            </div>
+            </Link>
           )
         })}
       </div>
