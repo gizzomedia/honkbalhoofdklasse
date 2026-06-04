@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   <tr>
     <td style="background:#fe3d00;border-radius:12px 12px 0 0;padding:16px 32px" align="center">
       <p style="margin:0;font-size:12px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#fff">
-        ⚾ HONKBAL HOOFDKLASSE
+        HONKBAL HOOFDKLASSE
       </p>
     </td>
   </tr>
@@ -115,7 +115,6 @@ export async function POST(req: NextRequest) {
   <!-- Contact persons -->
   <tr>
     <td style="background:#fff;padding:28px 40px 32px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
-      <p style="margin:0 0 20px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:2px">Jouw contactpersonen</p>
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <!-- Gijs -->
