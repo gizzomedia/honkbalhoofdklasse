@@ -1,8 +1,21 @@
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Image from 'next/image'
 import Link from 'next/link'
 import HeroSlideshow from '@/components/HeroSlideshow'
 import HomeRecentResults from '@/components/HomeRecentResults'
+
+export const metadata: Metadata = {
+  title: 'Honkbal Hoofdklasse 2026 | Live Scores, Standen & Stats',
+  description: 'Alles over de KNBSB Honkbal Hoofdklasse 2026: live scores, standen, statistieken, rosters en nieuws van Neptunus, Pirates, Kinheim, HCAW, Twins, Pioniers en UVV.',
+  alternates: { canonical: 'https://honkbalhoofdklasse.com' },
+  openGraph: {
+    title: 'Honkbal Hoofdklasse 2026 | Live Scores, Standen & Stats',
+    description: 'Alles over de KNBSB Honkbal Hoofdklasse: live scores, standen, statistieken en nieuws.',
+    url: 'https://honkbalhoofdklasse.com',
+    images: ['https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png'],
+  },
+}
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT, KNBSB_TEAM_MAP } from '@/lib/teams'
 
 export const revalidate = 120

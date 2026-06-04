@@ -3,11 +3,11 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: '',
   description: '',
-  alternates: { canonical: 'https://honkbalhoofdklasse.com/livescores' },
+  alternates: { canonical: 'https://honkbalhoofdklasse.com/partner-up' },
   openGraph: {
     title: '',
     description: '',
-    url: 'https://honkbalhoofdklasse.com/livescores',
+    url: 'https://honkbalhoofdklasse.com/partner-up',
     images: ['https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png'],
   },
 }
