@@ -209,7 +209,7 @@ export default async function HomePage() {
                 const pct = s.win_pct ? s.win_pct.toFixed(3).replace('0.', '.') : '.000'
                 const isFirst = i === 0
                 return (
-                  <div key={s.team_id}
+                  <Link key={s.team_id} href={`/rosters/${s.team_id}`}
                     className={`grid grid-cols-[1.5rem_1fr_4rem_3.5rem] md:grid-cols-[2rem_1fr_4rem_3.5rem_2.5rem] gap-2 items-center px-4 py-3.5 transition-colors ${
                       isFirst ? 'bg-[var(--accent)]/10 border-l-[3px] border-[var(--accent)]' : 'hover:bg-[#0a1620]'
                     }`}>
@@ -228,7 +228,7 @@ export default async function HomePage() {
                     <span className="font-display font-800 text-sm text-white text-center">{s.wins}-{s.losses}</span>
                     <span className={`font-display font-800 text-sm text-center ${isFirst ? 'text-[var(--accent)]' : 'text-white'}`}>{pct}</span>
                     <span className="font-display font-700 text-sm text-white text-center hidden md:block">{s.games_played}</span>
-                  </div>
+                  </Link>
                 )
               })}
             </div>
