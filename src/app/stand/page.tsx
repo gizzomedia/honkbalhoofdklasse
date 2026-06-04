@@ -107,7 +107,7 @@ export default async function StandPage() {
       {/* Tabel */}
       <div className="rounded-2xl overflow-hidden border border-[var(--border)]">
         {/* Kolomkoppen */}
-        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_auto] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_auto_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
+        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_6rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
           <span>#</span>
           <span>Team</span>
           <span className="text-center">W</span>
@@ -133,7 +133,7 @@ export default async function StandPage() {
               key={s.team_id}
               href={`/rosters/${s.team_id}`}
               className={`
-                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_auto] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_auto_4rem] gap-2 px-4 md:px-5 py-4
+                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_6rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 px-4 md:px-5 py-4
                 items-center border-b border-[var(--border)] last:border-0
                 transition-colors cursor-pointer
                 ${isLeader
