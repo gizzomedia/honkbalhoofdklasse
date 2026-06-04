@@ -116,7 +116,8 @@ export async function GET(req: NextRequest) {
       } catch { /* skip */ }
     }))
 
-    if (isPitcher) {
+    // Two-way players: if they batted in ANY game, show batting splits
+    if (isPitcher && batGames.length === 0) {
       pitGames.sort((a, b) => b.date.localeCompare(a.date))
       const fmtEra = (er: number, outs: number) => outs === 0 ? '-.--' : (er / outs * 27).toFixed(2)
 
