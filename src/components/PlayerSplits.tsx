@@ -10,8 +10,8 @@ type PitGame  = { date: string; opponent: string; ip: string; k: number; bb: num
 const BAT_COLS = ['AB','R','H','HR','RBI','BB','SO','SB'] as const
 const PIT_COLS = ['IP','W','L','K','BB','H','ER'] as const
 
-export default function PlayerSplits({ playerName, teamId }: { playerName: string; teamId: string }) {
-  const [type,    setType]    = useState<'batting'|'pitching'|null>(null)
+export default function PlayerSplits({ playerName, teamId, statType }: { playerName: string; teamId: string; statType?: 'batting' | 'pitching' }) {
+  const [apiType,   setApiType]   = useState<'batting'|'pitching'|null>(null)
   const [batSplits, setBatSplits] = useState<BatSplit[]>([])
   const [pitSplits, setPitSplits] = useState<PitSplit[]>([])
   const [batGames,  setBatGames]  = useState<BatGame[]>([])
@@ -22,13 +22,26 @@ export default function PlayerSplits({ playerName, teamId }: { playerName: strin
     fetch(`/api/player-splits?player=${encodeURIComponent(playerName)}&team=${encodeURIComponent(teamId)}`)
       .then(r => r.json())
       .then(d => {
-        setType(d.type ?? null)
-        if (d.type === 'pitching') { setPitSplits(d.splits ?? []); setPitGames(d.games ?? []) }
-        else { setBatSplits(d.splits ?? []); setBatGames(d.games ?? []) }
+        setApiType(d.type ?? null)
+        if (d.type === 'pitching') {
+          setPitSplits(d.splits ?? [])
+          setPitGames(d.games ?? [])
+        } else {
+          setBatSplits(d.splits ?? [])
+          setBatGames(d.games ?? [])
+          // Two-way player: also store pitching data
+          if (d.pitching) {
+            setPitSplits(d.pitching.splits ?? [])
+            setPitGames(d.pitching.games ?? [])
+          }
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [playerName, teamId])
+
+  // Determine what to show based on statType prop
+  const showPitching = statType === 'pitching' || (apiType === 'pitching' && statType !== 'batting')
 
   if (loading) return (
     <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 text-center">
@@ -44,7 +57,7 @@ export default function PlayerSplits({ playerName, teamId }: { playerName: strin
     <div className="space-y-4">
 
       {/* ── BATTING SPLITS ── */}
-      {hasBat && (
+      {hasBat && !showPitching && (
         <>
           {batSplits.length > 0 && (
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-x-auto">
@@ -104,7 +117,7 @@ export default function PlayerSplits({ playerName, teamId }: { playerName: strin
       )}
 
       {/* ── PITCHING SPLITS ── */}
-      {hasPit && (
+      {hasPit && showPitching && (
         <>
           {pitSplits.length > 0 && (
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-x-auto">

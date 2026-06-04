@@ -116,34 +116,31 @@ export async function GET(req: NextRequest) {
       } catch { /* skip */ }
     }))
 
-    // Two-way players: if they batted in ANY game, show batting splits
-    if (isPitcher && batGames.length === 0) {
-      pitGames.sort((a, b) => b.date.localeCompare(a.date))
-      const fmtEra = (er: number, outs: number) => outs === 0 ? '-.--' : (er / outs * 27).toFixed(2)
+    const fmtEra = (er: number, outs: number) => outs === 0 ? '-.--' : (er / outs * 27).toFixed(2)
 
-      const splits = ([3, 7, 15] as const).map(n => {
+    // Build pitching splits
+    let pitchingSplits = null
+    if (pitGames.length > 0) {
+      pitGames.sort((a, b) => b.date.localeCompare(a.date))
+      const pitSplits = ([3, 7, 15] as const).map(n => {
         const g = pitGames.slice(0, n)
         if (!g.length) return null
         const outs = g.reduce((s, x) => s + x.outs, 0)
-        const k    = g.reduce((s, x) => s + x.k, 0)
-        const bb   = g.reduce((s, x) => s + x.bb, 0)
-        const er   = g.reduce((s, x) => s + x.er, 0)
-        const h    = g.reduce((s, x) => s + x.h, 0)
-        const w    = g.reduce((s, x) => s + x.w, 0)
-        const l    = g.reduce((s, x) => s + x.l, 0)
+        const k = g.reduce((s, x) => s + x.k, 0)
+        const bb = g.reduce((s, x) => s + x.bb, 0)
+        const er = g.reduce((s, x) => s + x.er, 0)
+        const h  = g.reduce((s, x) => s + x.h, 0)
+        const w  = g.reduce((s, x) => s + x.w, 0)
+        const l  = g.reduce((s, x) => s + x.l, 0)
         return { label: `Last ${n} Games`, found: g.length, ip: outsToIp(outs), k, bb, er, h, w, l, era: fmtEra(er, outs) }
       }).filter(Boolean)
-
-      const games = pitGames.slice(0, 5).map(g => ({
-        ...g, ip: outsToIp(g.outs), era: fmtEra(g.er, g.outs)
-      }))
-
-      return NextResponse.json({ type: 'pitching', games, splits }, {
-        headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
-      })
+      pitchingSplits = {
+        splits: pitSplits,
+        games: pitGames.slice(0, 5).map(g => ({ ...g, ip: outsToIp(g.outs), era: fmtEra(g.er, g.outs) })),
+      }
     }
 
-    // Batting
+    // Build batting splits
     batGames.sort((a, b) => b.date.localeCompare(a.date))
     type BatKey = 'ab'|'r'|'h'|'hr'|'rbi'|'bb'|'so'|'sb'
     const batKeys: BatKey[] = ['ab','r','h','hr','rbi','bb','so','sb']
@@ -154,7 +151,20 @@ export async function GET(req: NextRequest) {
       return { label: `Last ${n} Games`, found: g.length, ...t, avg: fmtAvg(t.h, t.ab) }
     }).filter(Boolean)
 
-    return NextResponse.json({ type: 'batting', games: batGames.slice(0, 5), splits }, {
+    // Pure pitcher: only show pitching
+    if (batGames.length === 0 && pitchingSplits) {
+      return NextResponse.json({ type: 'pitching', ...pitchingSplits }, {
+        headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+      })
+    }
+
+    // Batter or two-way: return batting + pitching (if available)
+    return NextResponse.json({
+      type: 'batting',
+      games: batGames.slice(0, 5),
+      splits,
+      pitching: pitchingSplits ?? undefined,
+    }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     })
   } catch {
