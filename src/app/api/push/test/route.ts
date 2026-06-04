@@ -18,10 +18,10 @@ export async function GET(req: Request) {
   if (!subs?.length) return NextResponse.json({ ok: true, sent: 0, msg: 'No subscribers' })
 
   const payload = JSON.stringify({
-    title: 'Twins @ Pioniers — 5th inning',
-    body: 'Gijs van Zalingen hits a grand slam! TWI 7 – PIO 2',
+    title: 'Twins @ Neptunus — 5th inning',
+    body: 'Gijs van Zalingen hits a grand slam! TWI 7 – NEP 2',
     icon: 'https://honkbalhoofdklasse.com/api/notification-icon/twins',
-    tag: 'test-notif-2',
+    tag: 'test-notif-3',
     data: { url: '/livescores' },
   })
 
