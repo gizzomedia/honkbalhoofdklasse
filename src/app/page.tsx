@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import HeroSlideshow from '@/components/HeroSlideshow'
 import HomeRecentResults from '@/components/HomeRecentResults'
+import NotificationShowcase from '@/components/NotificationShowcase'
 
 export const metadata: Metadata = {
   title: 'Honkbal Hoofdklasse 2026 | Live Scores, Standen & Stats',
@@ -182,6 +183,30 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ── NOTIFICATIONS PROMO ── */}
+      <section className="py-14 px-6 md:px-12 border-t border-[#0f1e2e]">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-xs mb-3">Live updates</p>
+              <h2 className="font-display font-800 italic text-4xl uppercase text-white mb-4 leading-tight">
+                <strong>Nooit een homerun missen</strong>
+              </h2>
+              <p className="text-[var(--muted)] text-sm leading-relaxed mb-6">
+                Zet pushmeldingen aan en ontvang direct een melding bij homeruns, scores en game-updates van jouw favoriete team — rechtstreeks op je telefoon.
+              </p>
+              <Link
+                href="/notificaties"
+                className="inline-flex items-center gap-2 bg-[var(--accent)] text-white font-display font-800 uppercase tracking-wider text-xs px-5 py-3 rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Zo zet je het in →
+              </Link>
+            </div>
+            <NotificationShowcase />
+          </div>
+        </div>
+      </section>
 
       {/* ── STAND + NEXT MATCH + LEADERS ── */}
       <section className="py-14 px-6 md:px-12 border-t border-[#0f1e2e]">
