@@ -31,6 +31,8 @@ type GameState = {
   playerHR: Record<string, number>
   notifiedStart: boolean
   notifiedFinal: boolean
+  noHitterHome: boolean   // home pitcher no-hit alert sent
+  noHitterAway: boolean   // away pitcher no-hit alert sent
 }
 
 function ordinal(n: number): string {
@@ -105,6 +107,7 @@ export async function GET(req: Request) {
     const prevState: GameState = stateRow?.state_json ?? {
       status: 0, homeruns: 0, awayruns: 0,
       innings: {}, playerHR: {}, notifiedStart: false, notifiedFinal: false,
+      noHitterHome: false, noHitterAway: false,
     }
 
     // 3. Fetch full game data
@@ -125,6 +128,8 @@ export async function GET(req: Request) {
       playerHR: { ...prevState.playerHR },
       notifiedStart: prevState.notifiedStart,
       notifiedFinal: prevState.notifiedFinal,
+      noHitterHome: prevState.noHitterHome ?? false,
+      noHitterAway: prevState.noHitterAway ?? false,
     }
 
     // Build inning state
@@ -184,7 +189,82 @@ export async function GET(req: Request) {
       }
     }
 
-    // 6. Inning score change (batched per half-inning)
+    // 6. No-hitter alerts (after 6+ innings with 0 hits allowed)
+    const currentInning = Number(gameData.innings ?? 0)
+    if (currentInning >= 6 && prevState.notifiedStart) {
+      const homeHits = Number(gameData.homehits ?? -1)
+      const awayHits = Number(gameData.awayhits ?? -1)
+
+      // Away team has 0 hits → home pitcher throwing no-hitter
+      if (awayHits === 0 && !newState.noHitterHome) {
+        const pitcherSpot = (boxScore[String(gameData.homeid)] as Record<string, unknown[]> | undefined)?.['90']
+        const pitcher = Array.isArray(pitcherSpot) ? pitcherSpot[0] as Record<string, unknown> : null
+        const pitcherName = pitcher
+          ? `${String(pitcher.firstname ?? '')} ${String(pitcher.lastname ?? '').charAt(0) + String(pitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
+          : homeName + ' pitcher'
+        await sendToTeams(teams, {
+          title: `${awayName} @ ${homeName} — ${ordinal(currentInning)} inning`,
+          body: `${pitcherName} is throwing a no-hitter! ${awayName} 0 hits through ${currentInning} innings`,
+          icon: `${BASE}/api/notification-icon/${homeTeamId}`,
+          url: gameUrl,
+          tag: `nohitter-home-${gameId}`,
+        })
+        newState.noHitterHome = true
+        notifications.push(`no-hitter:${homeName}`)
+      }
+
+      // Home team has 0 hits → away pitcher throwing no-hitter
+      if (homeHits === 0 && !newState.noHitterAway) {
+        const pitcherSpot = (boxScore[String(gameData.awayid)] as Record<string, unknown[]> | undefined)?.['90']
+        const pitcher = Array.isArray(pitcherSpot) ? pitcherSpot[0] as Record<string, unknown> : null
+        const pitcherName = pitcher
+          ? `${String(pitcher.firstname ?? '')} ${String(pitcher.lastname ?? '').charAt(0) + String(pitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
+          : awayName + ' pitcher'
+        await sendToTeams(teams, {
+          title: `${awayName} @ ${homeName} — ${ordinal(currentInning)} inning`,
+          body: `${pitcherName} is throwing a no-hitter! ${homeName} 0 hits through ${currentInning} innings`,
+          icon: `${BASE}/api/notification-icon/${awayTeamId}`,
+          url: gameUrl,
+          tag: `nohitter-away-${gameId}`,
+        })
+        newState.noHitterAway = true
+        notifications.push(`no-hitter:${awayName}`)
+      }
+    }
+
+    // 6b. 4-hit game alert (per batter, once)
+    for (const [, teamPlayers] of Object.entries(boxScore)) {
+      if (typeof teamPlayers !== 'object') continue
+      for (const [, spots] of Object.entries(teamPlayers as Record<string, unknown>)) {
+        const arr = spots as Array<Record<string, unknown>>
+        if (!Array.isArray(arr) || !arr[0]) continue
+        const player = arr[0]
+        const pid = String(player.playerid ?? player.id ?? '')
+        const currentH = Number(player.h ?? 0)
+        const prevH = prevState.playerHR[`h_${pid}`] ?? 0
+
+        if (currentH >= 4 && prevH < 4) {
+          const firstName = String(player.firstname ?? '')
+          const lastName = String(player.lastname ?? '')
+          const name = `${firstName} ${lastName.charAt(0) + lastName.slice(1).toLowerCase()}`.trim()
+          const isHomePlayer = Number(player.home) === 1 || Number(player.teamid) === Number(gameData.homeid)
+          const playerTeam = isHomePlayer ? homeTeamId : awayTeamId
+          const inning = gameData.innings ?? '?'
+          const score = `${awayName} ${gameData.awayruns ?? 0} – ${homeName} ${gameData.homeruns ?? 0}`
+          await sendToTeams(teams, {
+            title: `${awayName} @ ${homeName} — ${ordinal(Number(inning))} inning`,
+            body: `${name} has 4 hits today! ${score}`,
+            icon: `${BASE}/api/notification-icon/${playerTeam}`,
+            url: gameUrl,
+            tag: `4hits-${gameId}-${pid}`,
+          })
+          notifications.push(`4hits:${name}`)
+        }
+        if (currentH > 0) newState.playerHR[`h_${pid}`] = currentH
+      }
+    }
+
+    // 8. Inning score change (batched per half-inning)
     for (let i = 1; i <= 15; i++) {
       const cur = newState.innings[i]
       const prev = prevState.innings[i]
@@ -219,7 +299,7 @@ export async function GET(req: Request) {
       }
     }
 
-    // 7. Final
+    // 9. Final
     if (gameData.gamestatus === 2 && !prevState.notifiedFinal && prevState.notifiedStart) {
       const winner = (gameData.homeruns ?? 0) > (gameData.awayruns ?? 0) ? homeName : awayName
       const loser  = winner === homeName ? awayName : homeName
@@ -241,7 +321,7 @@ export async function GET(req: Request) {
       notifications.push(`final:${gameId}`)
     }
 
-    // 8. Save new state
+    // 10. Save new state
     await supabaseAdmin
       .from('push_game_state')
       .upsert({ game_id: gameId, state_json: newState, updated_at: new Date().toISOString() }, { onConflict: 'game_id' })
