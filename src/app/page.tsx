@@ -191,16 +191,16 @@ export default async function HomePage() {
             <div>
               <p className="font-display font-700 text-[var(--accent)] uppercase tracking-widest text-xs mb-3">Live updates</p>
               <h2 className="font-display font-800 italic text-4xl uppercase text-white mb-4 leading-tight">
-                <strong>Nooit een homerun missen</strong>
+                <strong>Never miss a home run</strong>
               </h2>
               <p className="text-[var(--muted)] text-sm leading-relaxed mb-6">
-                Zet pushmeldingen aan en ontvang direct een melding bij homeruns, scores en game-updates van jouw favoriete team — rechtstreeks op je telefoon.
+                Turn on push notifications and get instant alerts for home runs, scores and game updates from your favorite team, straight to your phone.
               </p>
               <Link
                 href="/notificaties"
                 className="inline-flex items-center gap-2 bg-[var(--accent)] text-white font-display font-800 uppercase tracking-wider text-xs px-5 py-3 rounded-xl hover:opacity-90 transition-opacity"
               >
-                Zo zet je het in →
+                How to set it up
               </Link>
             </div>
             <NotificationShowcase />
