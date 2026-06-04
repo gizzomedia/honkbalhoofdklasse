@@ -4,6 +4,7 @@ import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES } from '@/lib/teams'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import BackButton from '@/components/BackButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,12 +116,7 @@ export default async function TeamRosterPage({
       />
       <div className="max-w-4xl mx-auto px-4 md:px-8 py-8 space-y-8">
 
-        <Link
-          href="/rosters"
-          className="inline-flex items-center gap-2 font-display font-700 text-xs text-[var(--muted)] hover:text-white uppercase tracking-widest transition-colors"
-        >
-          ← All Teams
-        </Link>
+        <BackButton fallback="/rosters" label="Back" />
 
         {/* Team header */}
         <div className="relative rounded-2xl overflow-hidden border border-[var(--border)] p-6 md:p-8">
