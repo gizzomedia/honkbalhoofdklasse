@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendLiveNotification } from '@/lib/email'
+import { sendLiveNotification, sendNoHitterNotification } from '@/lib/email'
 import { IOC_TO_TEAM } from '@/lib/teams'
 
 const BASE_URL   = 'https://boxscore.stenwessel.nl/api'
@@ -9,14 +9,24 @@ const COMPETITION = 'hb2026'
 type SteGame = {
   id: number
   gamestatus: number
-  start: string          // "2026-04-09 19:30:00"
+  start: string          // "2026-04-09 19:30:00" (Amsterdam local time)
   location: string | null
   homeruns: number
   awayruns: number
   homeioc: string
   awayioc: string
+  gamestatustext?: string // "T4" = top 4th, "B7" = bottom 7th, etc.
   home_team?: { groupwins: number; grouplosses: number; groupties: number; groupgb: number }
   away_team?: { groupwins: number; grouplosses: number; groupties: number; groupgb: number }
+}
+
+// sg.start is Amsterdam local time. Convert to UTC for comparison.
+// Season runs Apr-Oct → CEST (UTC+2). Off-season → CET (UTC+1).
+function scheduledStartUtcMs(start: string): number {
+  if (!start) return 0
+  const month = parseInt(start.slice(5, 7), 10)
+  const offsetHours = (month >= 4 && month <= 10) ? 2 : 1
+  return Date.parse(start.replace(' ', 'T') + 'Z') - offsetHours * 3_600_000
 }
 
 function gameStatus(s: number): 'scheduled' | 'live' | 'final' {
@@ -81,8 +91,11 @@ export async function GET(req: Request) {
         if (newStatus === 'final' && sb.status !== 'final') newFinals++
       }
 
-      // Track games that just went live and haven't been notified yet
-      if (newStatus === 'live' && sb.status !== 'live' && !sb.live_notified) {
+      // Track games that just went live and haven't been notified yet.
+      // Guard: only notify once the scheduled start time has actually passed (±5 min),
+      // so stenwessel marking a game "live" prematurely doesn't fire early notifications.
+      if (newStatus === 'live' && sb.status !== 'live' && !sb.live_notified &&
+          Date.now() >= scheduledStartUtcMs(String(sg.start ?? '')) - 5 * 60_000) {
         newlyLive.push({ homeTeamId: sb.home_team_id, awayTeamId: sb.away_team_id, dbId: sb.id })
       }
     }
@@ -199,6 +212,81 @@ export async function GET(req: Request) {
       }
     }
 
+    // ── 8. No-hitter alert: fire once a pitcher has 0 hits through 6+ innings ──
+    // Collect live games where gamestatustext indicates inning ≥ 7.
+    type NoHitterAlert = {
+      gameId: string
+      homeTeamId: string
+      awayTeamId: string
+      pitchingTeamId: string
+      inning: number
+    }
+
+    const candidateGames = steGames.filter(sg => {
+      if (gameStatus(sg.gamestatus) !== 'live') return false
+      const stMatch = String(sg.gamestatustext ?? '').match(/^([TB])(\d+)$/)
+      return stMatch ? parseInt(stMatch[2]) >= 7 : false
+    })
+
+    let noHitterAlertsSent = 0
+
+    if (candidateGames.length > 0) {
+      // Batch-check which games already have a no-hitter notification logged
+      const alreadyNotified = new Set<string>()
+      await Promise.all(candidateGames.map(async sg => {
+        const { data } = await supabaseAdmin
+          .from('notification_log')
+          .select('id')
+          .eq('type', 'nohitter')
+          .eq('date_key', String(sg.id))
+          .maybeSingle()
+        if (data) alreadyNotified.add(String(sg.id))
+      }))
+
+      const unchecked = candidateGames.filter(sg => !alreadyNotified.has(String(sg.id)))
+
+      // Fetch boxscores in parallel to check hit counts
+      const alerts: NoHitterAlert[] = []
+      await Promise.all(unchecked.map(async sg => {
+        const sb = sbByExtId.get(String(sg.id))
+        if (!sb) return
+        const stMatch = String(sg.gamestatustext ?? '').match(/^([TB])(\d+)$/)
+        const inning  = stMatch ? parseInt(stMatch[2]) : 0
+        try {
+          const r  = await fetch(`${BASE_URL}/fetchgamedata.php?competition=${COMPETITION}&game=${sg.id}`, { cache: 'no-store' })
+          const bs = await r.json()
+          const gd = bs.gameData as Record<string, unknown>
+          const awayHits = gd.awayhits == null ? -1 : Number(gd.awayhits)
+          const homeHits = gd.homehits == null ? -1 : Number(gd.homehits)
+          if (awayHits === 0) {
+            alerts.push({ gameId: String(sg.id), homeTeamId: sb.home_team_id, awayTeamId: sb.away_team_id, pitchingTeamId: sb.home_team_id, inning })
+          } else if (homeHits === 0) {
+            alerts.push({ gameId: String(sg.id), homeTeamId: sb.home_team_id, awayTeamId: sb.away_team_id, pitchingTeamId: sb.away_team_id, inning })
+          }
+        } catch { /* skip */ }
+      }))
+
+      if (alerts.length > 0) {
+        const { data: nhSubscribers } = await supabaseAdmin.from('subscribers').select('email, token')
+
+        for (const alert of alerts) {
+          // Insert log first; skip if duplicate (another cron run beat us to it)
+          const { error: logErr } = await supabaseAdmin
+            .from('notification_log')
+            .insert({ type: 'nohitter', date_key: alert.gameId })
+          if (logErr) continue
+
+          if (nhSubscribers && nhSubscribers.length > 0) {
+            await sendNoHitterNotification(
+              nhSubscribers as { email: string; token: string }[],
+              [alert],
+            )
+            noHitterAlertsSent++
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       ok:               true,
       gamesChecked:     steGames.length,
@@ -208,6 +296,7 @@ export async function GET(req: Request) {
       standingsUpdated,
       streamsToggled,
       notificationsSent,
+      noHitterAlertsSent,
       timestamp:        new Date().toISOString(),
     })
   } catch (err) {

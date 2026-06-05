@@ -58,6 +58,52 @@ export async function sendLiveNotification(
   )
 }
 
+export async function sendNoHitterNotification(
+  emails: { email: string; token: string }[],
+  alerts: { homeTeamId: string; awayTeamId: string; pitchingTeamId: string; inning: number }[]
+) {
+  if (!process.env.RESEND_API_KEY || emails.length === 0 || alerts.length === 0) return
+  const resend = new Resend(process.env.RESEND_API_KEY)
+
+  for (const alert of alerts) {
+    const pitchingTeam = TEAM_NAMES[alert.pitchingTeamId] ?? alert.pitchingTeamId
+    const battingTeam  = alert.pitchingTeamId === alert.homeTeamId
+      ? (TEAM_NAMES[alert.awayTeamId]  ?? alert.awayTeamId)
+      : (TEAM_NAMES[alert.homeTeamId] ?? alert.homeTeamId)
+
+    const subject = `⚾ No-hitter alert: ${pitchingTeam} through ${alert.inning} innings`
+
+    await Promise.allSettled(
+      emails.map(({ email, token }) => {
+        const unsubUrl = `${SITE}/api/subscribe?email=${encodeURIComponent(email)}&token=${token}`
+        return resend.emails.send({
+          from: FROM,
+          to:   email,
+          subject,
+          html: baseTemplate(`
+            <div style="background:#1e335a;padding:20px 28px">
+              <p style="margin:0;font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.8">Honkbal Hoofdklasse</p>
+              <h1 style="margin:6px 0 0;font-size:26px;font-weight:900;text-transform:uppercase">⚾ No-Hitter Alert</h1>
+            </div>
+            <div style="padding:28px">
+              <p style="margin:0 0 12px;font-size:22px;font-weight:800;line-height:1.3">
+                ${pitchingTeam} is throwing a no-hitter vs ${battingTeam}!
+              </p>
+              <p style="margin:0 0 24px;color:#8ba0b8;font-size:15px">
+                Through ${alert.inning} innings with no hits allowed. Watch the action live.
+              </p>
+              <a href="${SITE}/livescores"
+                style="display:inline-block;background:#fe3d00;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:1px">
+                Watch live →
+              </a>
+            </div>
+          `, unsubUrl),
+        })
+      })
+    )
+  }
+}
+
 export async function sendGameNotification(
   emails: { email: string; token: string }[],
   type: 'pickle' | 'immaculate'

@@ -197,6 +197,8 @@ export default function LivescoresPage() {
     }
   }, [])
 
+  const hasLive = (data?.live?.length ?? 0) > 0
+
   // Poll faster when games are live, slower otherwise.
   useEffect(() => {
     fetchData()
@@ -204,8 +206,6 @@ export default function LivescoresPage() {
     const t = setInterval(fetchData, interval)
     return () => clearInterval(t)
   }, [fetchData, hasLive])
-
-  const hasLive = (data?.live?.length ?? 0) > 0
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-10">
