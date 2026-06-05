@@ -166,10 +166,10 @@ export async function GET(req: Request) {
     // Re-fetch current game statuses (after updates were applied)
     const { data: currentGames } = await supabaseAdmin
       .from('games')
-      .select('id, status')
+      .select('id, status, game_date, game_time')
       .eq('season', 2026)
 
-    const gameStatusMap = new Map((currentGames ?? []).map(g => [g.id as number, g.status as string]))
+    const gameMap = new Map((currentGames ?? []).map(g => [g.id as number, g]))
 
     const { data: linkedStreams } = await supabaseAdmin
       .from('streams')
@@ -178,9 +178,17 @@ export async function GET(req: Request) {
 
     let streamsToggled = 0
     for (const s of (linkedStreams ?? [])) {
-      const status = gameStatusMap.get(s.game_id as number)
-      const shouldLive = status === 'live'
-      const shouldOff  = status === 'final'
+      const game = gameMap.get(s.game_id as number)
+      if (!game) continue
+
+      const shouldOff = game.status === 'final'
+
+      // Go live when the game is live, or 15 minutes before scheduled start.
+      let shouldLive = game.status === 'live'
+      if (!shouldLive && game.status === 'scheduled' && game.game_date && game.game_time) {
+        const startUtcMs = scheduledStartUtcMs(`${game.game_date} ${game.game_time}`)
+        shouldLive = startUtcMs > 0 && Date.now() >= startUtcMs - 15 * 60_000
+      }
 
       if (shouldLive && !s.is_live) {
         await supabaseAdmin.from('streams').update({ is_live: true }).eq('id', s.id)
