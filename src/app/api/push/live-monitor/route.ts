@@ -141,9 +141,11 @@ export async function GET(req: Request) {
 
     // 4. Game start notification
     if (!prevState.notifiedStart && gameData.gamestatus === 1) {
+      const startTime = game.start ? game.start.slice(11, 16) : '' // "19:30"
+      const startBody = startTime ? `First pitch at ${startTime}. Follow along live.` : `Game is live!`
       await sendToTeams(teams, {
         title: `${awayName} @ ${homeName}`,
-        body: `Game is now live! ⚾`,
+        body: startBody,
         icon,
         url: gameUrl,
         tag: `game-start-${gameId}`,
@@ -189,22 +191,31 @@ export async function GET(req: Request) {
       }
     }
 
-    // 6. No-hitter alerts (after 6+ innings with 0 hits allowed)
-    const currentInning = Number(gameData.innings ?? 0)
-    if (currentInning >= 6 && prevState.notifiedStart) {
+    // 6. No-hitter alerts — use pitcher's actual IP (not gameData.innings which is total innings scheduled)
+    if (prevState.notifiedStart) {
       const homeHits = Number(gameData.homehits ?? -1)
       const awayHits = Number(gameData.awayhits ?? -1)
 
+      const ipToDecimal = (v: unknown) => {
+        const s = String(v ?? '0')
+        if (!s.includes('.')) return parseInt(s, 10) || 0
+        const [f, o] = s.split('.').map(n => parseInt(n, 10) || 0)
+        return f + o / 3
+      }
+
       // Away team has 0 hits → home pitcher throwing no-hitter
-      if (awayHits === 0 && !newState.noHitterHome) {
-        const pitcherSpot = (boxScore[String(gameData.homeid)] as Record<string, unknown[]> | undefined)?.['90']
-        const pitcher = Array.isArray(pitcherSpot) ? pitcherSpot[0] as Record<string, unknown> : null
-        const pitcherName = pitcher
-          ? `${String(pitcher.firstname ?? '')} ${String(pitcher.lastname ?? '').charAt(0) + String(pitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
+      const homePitcherSpot = (boxScore[String(gameData.homeid)] as Record<string, unknown[]> | undefined)?.['90']
+      const homePitcher = Array.isArray(homePitcherSpot) ? homePitcherSpot[0] as Record<string, unknown> : null
+      const homePitcherIP = homePitcher ? ipToDecimal(homePitcher.pitch_ip) : 0
+
+      if (awayHits >= 0 && awayHits === 0 && homePitcherIP >= 6 && !newState.noHitterHome) {
+        const pitcherName = homePitcher
+          ? `${String(homePitcher.firstname ?? '')} ${String(homePitcher.lastname ?? '').charAt(0) + String(homePitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
           : homeName + ' pitcher'
+        const inningsStr = Math.floor(homePitcherIP)
         await sendToTeams(teams, {
-          title: `${awayName} @ ${homeName} — ${ordinal(currentInning)} inning`,
-          body: `${pitcherName} is throwing a no-hitter! ${awayName} 0 hits through ${currentInning} innings`,
+          title: `${awayName} @ ${homeName}`,
+          body: `${pitcherName} is throwing a no-hitter! ${awayName} 0 hits through ${inningsStr} innings`,
           icon: `${BASE}/api/notification-icon/${homeTeamId}`,
           url: gameUrl,
           tag: `nohitter-home-${gameId}`,
@@ -214,15 +225,18 @@ export async function GET(req: Request) {
       }
 
       // Home team has 0 hits → away pitcher throwing no-hitter
-      if (homeHits === 0 && !newState.noHitterAway) {
-        const pitcherSpot = (boxScore[String(gameData.awayid)] as Record<string, unknown[]> | undefined)?.['90']
-        const pitcher = Array.isArray(pitcherSpot) ? pitcherSpot[0] as Record<string, unknown> : null
-        const pitcherName = pitcher
-          ? `${String(pitcher.firstname ?? '')} ${String(pitcher.lastname ?? '').charAt(0) + String(pitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
+      const awayPitcherSpot = (boxScore[String(gameData.awayid)] as Record<string, unknown[]> | undefined)?.['90']
+      const awayPitcher = Array.isArray(awayPitcherSpot) ? awayPitcherSpot[0] as Record<string, unknown> : null
+      const awayPitcherIP = awayPitcher ? ipToDecimal(awayPitcher.pitch_ip) : 0
+
+      if (homeHits >= 0 && homeHits === 0 && awayPitcherIP >= 6 && !newState.noHitterAway) {
+        const pitcherName = awayPitcher
+          ? `${String(awayPitcher.firstname ?? '')} ${String(awayPitcher.lastname ?? '').charAt(0) + String(awayPitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
           : awayName + ' pitcher'
+        const inningsStr = Math.floor(awayPitcherIP)
         await sendToTeams(teams, {
-          title: `${awayName} @ ${homeName} — ${ordinal(currentInning)} inning`,
-          body: `${pitcherName} is throwing a no-hitter! ${homeName} 0 hits through ${currentInning} innings`,
+          title: `${awayName} @ ${homeName}`,
+          body: `${pitcherName} is throwing a no-hitter! ${homeName} 0 hits through ${inningsStr} innings`,
           icon: `${BASE}/api/notification-icon/${awayTeamId}`,
           url: gameUrl,
           tag: `nohitter-away-${gameId}`,
