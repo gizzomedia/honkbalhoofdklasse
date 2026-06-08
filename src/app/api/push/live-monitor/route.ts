@@ -41,6 +41,10 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
+function pick<T>(items: T[]): T {
+  return items[Math.floor(Math.random() * items.length)]
+}
+
 async function sendToTeams(
   teamIds: string[],
   payload: { title: string; body: string; icon: string; url: string; tag: string }
@@ -142,7 +146,17 @@ export async function GET(req: Request) {
     // 4. Game start notification
     if (!prevState.notifiedStart && gameData.gamestatus === 1) {
       const startTime = game.start ? game.start.slice(11, 16) : '' // "19:30"
-      const startBody = startTime ? `First pitch at ${startTime}. Follow along live.` : `Game is live!`
+      const startBody = startTime
+        ? pick([
+            `First pitch at ${startTime}. Follow along live.`,
+            `Game on at ${startTime}. Let's go!`,
+            `⚾ Starting at ${startTime}.`,
+          ])
+        : pick([
+            `Game is live.`,
+            `Ball game underway.`,
+            `Play ball!`,
+          ])
       await sendToTeams(teams, {
         title: `${awayName} @ ${homeName}`,
         body: startBody,
@@ -176,9 +190,14 @@ export async function GET(req: Request) {
           const isHomePlayer = Number(player.home) === 1 || Number(player.teamid) === Number(gameData.homeid)
           const playerTeam = isHomePlayer ? homeTeamId : awayTeamId
 
+          const hrBody = pick([
+            `${name} hits a ${rbiStr} home run. ${score}`,
+            `Home run by ${name}. ${rbiStr.charAt(0).toUpperCase() + rbiStr.slice(1)}. ${score}`,
+            `🔥 ${name} with a ${rbiStr} home run. ${score}`,
+          ])
           await sendToTeams(teams, {
             title: `${awayName} @ ${homeName} — ${ordinal(Number(inning))} inning`,
-            body: `${name} hits a ${rbiStr} home run! ${score}`,
+            body: hrBody,
             icon: `${BASE}/api/notification-icon/${playerTeam}`,
             url: gameUrl,
             tag: `hr-${gameId}-${pid}-${currentHR}`,
@@ -213,9 +232,14 @@ export async function GET(req: Request) {
           ? `${String(homePitcher.firstname ?? '')} ${String(homePitcher.lastname ?? '').charAt(0) + String(homePitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
           : homeName + ' pitcher'
         const inningsStr = Math.floor(homePitcherIP)
+        const noHitterBody = pick([
+          `${pitcherName} throwing a no-hitter. ${awayName} 0 hits through ${inningsStr} innings.`,
+          `Watch out! ${pitcherName} has no-hit ${awayName} through ${inningsStr}.`,
+          `🚫 ${pitcherName} and ${homeName} in no-hit territory. ${inningsStr} innings, 0 hits for ${awayName}.`,
+        ])
         await sendToTeams(teams, {
           title: `${awayName} @ ${homeName}`,
-          body: `${pitcherName} is throwing a no-hitter! ${awayName} 0 hits through ${inningsStr} innings`,
+          body: noHitterBody,
           icon: `${BASE}/api/notification-icon/${homeTeamId}`,
           url: gameUrl,
           tag: `nohitter-home-${gameId}`,
@@ -234,9 +258,14 @@ export async function GET(req: Request) {
           ? `${String(awayPitcher.firstname ?? '')} ${String(awayPitcher.lastname ?? '').charAt(0) + String(awayPitcher.lastname ?? '').slice(1).toLowerCase()}`.trim()
           : awayName + ' pitcher'
         const inningsStr = Math.floor(awayPitcherIP)
+        const noHitterBody = pick([
+          `${pitcherName} throwing a no-hitter. ${homeName} 0 hits through ${inningsStr} innings.`,
+          `Watch out! ${pitcherName} has no-hit ${homeName} through ${inningsStr}.`,
+          `🚫 ${pitcherName} and ${awayName} in no-hit territory. ${inningsStr} innings, 0 hits for ${homeName}.`,
+        ])
         await sendToTeams(teams, {
           title: `${awayName} @ ${homeName}`,
-          body: `${pitcherName} is throwing a no-hitter! ${homeName} 0 hits through ${inningsStr} innings`,
+          body: noHitterBody,
           icon: `${BASE}/api/notification-icon/${awayTeamId}`,
           url: gameUrl,
           tag: `nohitter-away-${gameId}`,
@@ -265,9 +294,14 @@ export async function GET(req: Request) {
           const playerTeam = isHomePlayer ? homeTeamId : awayTeamId
           const inning = gameData.innings ?? '?'
           const score = `${awayName} ${gameData.awayruns ?? 0} – ${homeName} ${gameData.homeruns ?? 0}`
+          const hitsBody = pick([
+            `${name} now has 4 hits. ${score}`,
+            `Hot bat alert: ${name} with 4 hits. ${score}`,
+            `🔥 ${name} is on fire — 4 hits. ${score}`,
+          ])
           await sendToTeams(teams, {
             title: `${awayName} @ ${homeName} — ${ordinal(Number(inning))} inning`,
-            body: `${name} has 4 hits today! ${score}`,
+            body: hitsBody,
             icon: `${BASE}/api/notification-icon/${playerTeam}`,
             url: gameUrl,
             tag: `4hits-${gameId}-${pid}`,
@@ -288,9 +322,15 @@ export async function GET(req: Request) {
       if (cur.home > (prev?.home ?? 0) && prevState.notifiedStart) {
         const runs = cur.home - (prev?.home ?? 0)
         const score = `${awayName} ${gameData.awayruns} – ${homeName} ${gameData.homeruns}`
+        const runText = runs === 1 ? '1 run' : `${runs} runs`
+        const scoreBody = pick([
+          `${homeName} score${runs > 1 ? 's' : 's'} ${runText}. ${score}`,
+          `${runText} for ${homeName}. ${score}`,
+          `⚾ ${homeName} adds ${runText}. ${score}`,
+        ])
         await sendToTeams(teams, {
           title: `${awayName} @ ${homeName} — ${ordinal(i)} inning`,
-          body: `${homeName} score${runs > 1 ? 's' : 's'} ${runs === 1 ? '1 run' : `${runs} runs`}! ${score}`,
+          body: scoreBody,
           icon: `${BASE}/api/notification-icon/${homeTeamId}`,
           url: gameUrl,
           tag: `score-home-${gameId}-${i}-${cur.home}`,
@@ -302,9 +342,15 @@ export async function GET(req: Request) {
       if (cur.away > (prev?.away ?? 0) && prevState.notifiedStart) {
         const runs = cur.away - (prev?.away ?? 0)
         const score = `${awayName} ${gameData.awayruns} – ${homeName} ${gameData.homeruns}`
+        const runText = runs === 1 ? '1 run' : `${runs} runs`
+        const scoreBody = pick([
+          `${awayName} score${runs > 1 ? 's' : 's'} ${runText}. ${score}`,
+          `${runText} for ${awayName}. ${score}`,
+          `⚾ ${awayName} adds ${runText}. ${score}`,
+        ])
         await sendToTeams(teams, {
           title: `${awayName} @ ${homeName} — ${ordinal(i)} inning`,
-          body: `${awayName} score${runs > 1 ? 's' : 's'} ${runs === 1 ? '1 run' : `${runs} runs`}! ${score}`,
+          body: scoreBody,
           icon: `${BASE}/api/notification-icon/${awayTeamId}`,
           url: gameUrl,
           tag: `score-away-${gameId}-${i}-${cur.away}`,
