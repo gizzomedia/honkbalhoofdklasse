@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { GoogleAnalytics } from '@next/third-parties/google'
 import NavBar from '@/components/NavBar'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 import { LanguageProvider } from '@/lib/language'
@@ -98,6 +97,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
         />
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-T743EVXTYR"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-T743EVXTYR');
+          `
+        }} />
       </head>
       <body>
         <LanguageProvider>
@@ -226,7 +235,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </footer>
         <Analytics />
         <ServiceWorkerRegistrar />
-        <GoogleAnalytics gaId="G-T743EVXTYR" />
       </body>
     </html>
   )
