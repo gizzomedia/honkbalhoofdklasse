@@ -11,40 +11,59 @@ function checkAuth(req: NextRequest) {
 
 async function va(path: string, params: Record<string, string>) {
   const qs = new URLSearchParams({ projectId: PROJECT_ID, teamId: TEAM_ID, ...params })
-  const res = await fetch(`${BASE}/${path}?${qs}`, {
-    headers: { Authorization: `Bearer ${VERCEL_TOKEN}` },
-    next: { revalidate: 300 },
-  })
-  return res.json()
+  const url = `${BASE}/${path}?${qs}`
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${VERCEL_TOKEN}` },
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) {
+      const text = await res.text()
+      console.error(`[${path}] ${res.status}: ${text}`)
+      throw new Error(`API error: ${res.status}`)
+    }
+    return res.json()
+  } catch (err) {
+    console.error(`[va] Failed to fetch ${path}:`, err)
+    throw err
+  }
 }
 
 export async function GET(req: NextRequest) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { searchParams } = new URL(req.url)
-  const range = searchParams.get('range') ?? '30d'
+  try {
+    const { searchParams } = new URL(req.url)
+    const range = searchParams.get('range') ?? '30d'
 
-  const now  = new Date()
-  const to   = now.toISOString()
-  const days = range === '7d' ? 7 : range === '90d' ? 90 : 30
-  const from = new Date(Date.now() - days * 86400000).toISOString()
-  const granularity = days <= 7 ? 'hour' : 'day'
+    const now  = new Date()
+    const to   = now.toISOString()
+    const days = range === '7d' ? 7 : range === '90d' ? 90 : 30
+    const from = new Date(Date.now() - days * 86400000).toISOString()
+    const granularity = days <= 7 ? 'hour' : 'day'
 
-  const [overview, timeseries, byPath, byCountry, byDevice, byReferrer] = await Promise.all([
-    va('overview',   { from, to }),
-    va('timeseries', { from, to, granularity }),
-    va('stats',      { from, to, type: 'path' }),
-    va('stats',      { from, to, type: 'country' }),
-    va('stats',      { from, to, type: 'device_type' }),
-    va('stats',      { from, to, type: 'referrer_hostname' }),
-  ])
+    const [overview, timeseries, byPath, byCountry, byDevice, byReferrer] = await Promise.all([
+      va('overview',   { from, to }),
+      va('timeseries', { from, to, granularity }),
+      va('stats',      { from, to, type: 'path' }),
+      va('stats',      { from, to, type: 'country' }),
+      va('stats',      { from, to, type: 'device_type' }),
+      va('stats',      { from, to, type: 'referrer_hostname' }),
+    ])
 
-  return NextResponse.json({
-    overview,
-    timeseries: timeseries?.data?.groups?.all ?? [],
-    byPath:     byPath?.data    ?? [],
-    byCountry:  byCountry?.data ?? [],
-    byDevice:   byDevice?.data  ?? [],
-    byReferrer: byReferrer?.data ?? [],
-  }, { headers: { 'Cache-Control': 'no-store' } })
+    return NextResponse.json({
+      overview,
+      timeseries: timeseries?.data?.groups?.all ?? [],
+      byPath:     byPath?.data    ?? [],
+      byCountry:  byCountry?.data ?? [],
+      byDevice:   byDevice?.data  ?? [],
+      byReferrer: byReferrer?.data ?? [],
+    }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (err) {
+    console.error('[analytics API]', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Failed to fetch analytics' },
+      { status: 500 }
+    )
+  }
 }
