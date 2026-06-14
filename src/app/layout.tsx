@@ -99,14 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* Google Analytics */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-T743EVXTYR"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-T743EVXTYR');
-          `
-        }} />
+        <script async src="/gtag.js"></script>
       </head>
       <body>
         <LanguageProvider>
