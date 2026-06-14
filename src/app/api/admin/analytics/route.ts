@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const VERCEL_TOKEN  = process.env.VERCEL_TOKEN
 const PROJECT_ID    = 'prj_JFxtFPvctpQIhyHsI7OMdQKDLext'
 const TEAM_ID       = 'team_LrgwNqCG4WaabElxqV7tQTIN'
-const BASE          = 'https://api.vercel.com/v1/web-analytics'
+const BASE          = 'https://vercel.com/api/web-analytics'
 
 function checkAuth(req: NextRequest) {
   return req.headers.get('x-admin-password') === process.env.ADMIN_PASSWORD
