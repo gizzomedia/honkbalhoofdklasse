@@ -53,6 +53,7 @@ export const AWARDS: Award[] = [
   { season: 2026, category: 'hottest-player-week', playerName: 'Jeandro Tromp',       teamId: 'pirates',  label: 'Week 6', note: '9-for-12 (.750), 17 TB, 3 2B, 3B, HR, 4 RBI, 4 R, 2.186 OPS' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Nando Mostaert',      teamId: 'twins',    label: 'Week 7', note: '5-for-9 (.556), 2 2B, HR, 10 TB, 5 RBI, 4 R, 1.778 OPS' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Jorrit Patist',       teamId: 'uvv',      label: 'Week 8', note: '.455 avg, 1.500 OPS, 2 HR' },
+  { season: 2026, category: 'hottest-player-week', playerName: 'Christian Diaz',      teamId: 'neptunus', label: 'Week 9', note: '1 HR, .800 AVG, 2.275 OPS' },
   // SSK Pitcher of the Month 2026
   { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'Month 1' },
   { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Month 2' },
