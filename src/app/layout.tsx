@@ -98,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaOrg) }}
         />
         {/* Google Analytics */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-4F3J53E6HF"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-85LWJHPVS1"></script>
         <script async src="/gtag.js"></script>
       </head>
       <body>
