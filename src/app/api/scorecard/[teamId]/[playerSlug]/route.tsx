@@ -129,7 +129,7 @@ export async function GET(
           }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png"
+              src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png"
               alt="" style={{ width: 24, height: 24, objectFit: 'contain' }}
             />
             <span style={{ color: '#080f1c', fontSize: 13, fontWeight: 800, letterSpacing: 2 }}>

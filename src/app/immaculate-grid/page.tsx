@@ -446,7 +446,7 @@ export default function ImmaculateGridPage() {
       >
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl flex items-center justify-center" style={{ minHeight: 110 }}>
           <Image
-            src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png"
+            src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png"
             alt="HK" width={56} height={56} className="object-contain opacity-60"
           />
         </div>

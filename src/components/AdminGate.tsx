@@ -92,7 +92,7 @@ export default function AdminGate({ checkAuth, onAuth, children }: Props) {
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center gap-8 px-12">
           <Image
-            src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png"
+            src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png"
             alt="Honkbal Hoofdklasse"
             width={90}
             height={90}
@@ -124,7 +124,7 @@ export default function AdminGate({ checkAuth, onAuth, children }: Props) {
         {/* Mobile logo */}
         <div className="lg:hidden flex flex-col items-center gap-3 mb-10 animate-fade-slide-up" style={{ animationDelay: '0ms' }}>
           <Image
-            src="https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png"
+            src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png"
             alt="Honkbal Hoofdklasse"
             width={60}
             height={60}

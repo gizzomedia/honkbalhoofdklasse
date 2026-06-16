@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: 'Honkbal Hoofdklasse 2026 | Live Scores, Standen & Stats',
     description: 'Alles over de KNBSB Honkbal Hoofdklasse: live scores, standen, statistieken en nieuws.',
     url: 'https://honkbalhoofdklasse.com',
-    images: ['https://res.cloudinary.com/dqld625sq/image/upload/v1778542430/logo_hk_abi5hm.png'],
+    images: ['https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png'],
   },
 }
 import { TEAM_COLORS, TEAM_LOGOS, TEAM_NAMES, TEAM_SHORT, KNBSB_TEAM_MAP } from '@/lib/teams'
