@@ -189,8 +189,8 @@ export default function NavBar() {
           <Image
             src="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png"
             alt="Honkbal Hoofdklasse"
-            width={120}
-            height={120}
+            width={64}
+            height={64}
             className="object-contain"
           />
         </Link>
