@@ -89,7 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${barlowCondensed.variable} ${inter.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="https://res.cloudinary.com/dn8c5398m/image/upload/q_auto,w_180,h_180,c_fill/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Hoofdklasse" />

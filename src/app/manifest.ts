@@ -13,13 +13,13 @@ export default function manifest(): MetadataRoute.Manifest {
     categories:       ['sports', 'news'],
     icons: [
       {
-        src:     '/icons/icon-192.png',
+        src:     'https://res.cloudinary.com/dn8c5398m/image/upload/q_auto,w_192,h_192,c_fill/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png',
         sizes:   '192x192',
         type:    'image/png',
         purpose: 'any',
       },
       {
-        src:     '/icons/icon-512.png',
+        src:     'https://res.cloudinary.com/dn8c5398m/image/upload/q_auto,w_512,h_512,c_fill/f_auto/v1781607525/hk_logo_iets_groter_tumykq.png',
         sizes:   '512x512',
         type:    'image/png',
         purpose: 'maskable',
