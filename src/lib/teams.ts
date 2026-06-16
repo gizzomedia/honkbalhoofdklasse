@@ -7,13 +7,13 @@ export const TEAM_COLORS: Record<string, string> = {
 }
 
 export const TEAM_LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
+  neptunus: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780156951/Neptunus_logo_wit_fngf7e.png',
+  pirates:  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780156947/pirates_logo_gajwir.png',
+  kinheim:  'https://res.cloudinary.com/dn8c5398m/image/upload/v1780157135/Kinheim_logo_d4zw2t_nmiokn.png',
+  hcaw:     'https://res.cloudinary.com/dn8c5398m/image/upload/v1780156939/HCAW_logo_wit_u1l9uf.png',
+  twins:    'https://res.cloudinary.com/dn8c5398m/image/upload/v1780156976/Twins_wit_ildguz.png',
+  pioniers: 'https://res.cloudinary.com/dn8c5398m/image/upload/v1780157246/PIoniers_logo_pyfnxv.png',
+  uvv:      'https://res.cloudinary.com/dn8c5398m/image/upload/v1780156986/UVV_logo_qgmaz9.png',
 }
 
 export const TEAM_NAMES: Record<string, string> = {
