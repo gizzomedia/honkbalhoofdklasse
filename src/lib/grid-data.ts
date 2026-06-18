@@ -1,4 +1,5 @@
 import { ROSTERS, type Player } from './rosters-data'
+import { TEAM_LOGOS } from './teams'
 
 // ── Criterion types ────────────────────────────────────────────────────────────
 
@@ -10,18 +11,8 @@ export type Criterion =
   | { type: 'yob_max';  year: number;     label: string; icon: string }
   | { type: 'yob_min';  year: number;     label: string; icon: string }
 
-const LOGOS: Record<string, string> = {
-  neptunus: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654466/Neptunus_logo_wit_afyyae.png',
-  pirates:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/pirates_logo_ic4rk8.png',
-  kinheim:  'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/Kinheim_logo_d4zw2t.png',
-  hcaw:     'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/HCAW_logo_wit_rijssy.png',
-  twins:    'https://res.cloudinary.com/dqld625sq/image/upload/v1770654463/Twins_wit_c7dumy.png',
-  pioniers: 'https://res.cloudinary.com/dqld625sq/image/upload/v1770654445/Pioniers_logo_mqj4tb.png',
-  uvv:      'https://res.cloudinary.com/dqld625sq/image/upload/v1770654446/UVV_logo_xcaa5d.png',
-}
-
 function team(id: string, label: string): Criterion {
-  return { type: 'team', teamId: id, label, logo: LOGOS[id] }
+  return { type: 'team', teamId: id, label, logo: TEAM_LOGOS[id] }
 }
 
 // Pre-built criteria

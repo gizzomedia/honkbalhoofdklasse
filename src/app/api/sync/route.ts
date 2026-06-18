@@ -9,7 +9,7 @@ const COMPETITION = 'hb2026'
 type SteGame = {
   id: number
   gamestatus: number
-  start: string          // "2026-04-09 19:30:00"
+  start: string          // "2026-04-09 19:30:00" (Amsterdam local time)
   location: string | null
   homeruns: number
   awayruns: number
@@ -17,6 +17,15 @@ type SteGame = {
   awayioc: string
   home_team?: { groupwins: number; grouplosses: number; groupties: number; groupgb: number }
   away_team?: { groupwins: number; grouplosses: number; groupties: number; groupgb: number }
+}
+
+// sg.start is Amsterdam local time. Convert to UTC for comparison.
+// Season runs Apr-Oct → CEST (UTC+2). Off-season → CET (UTC+1).
+function scheduledStartUtcMs(start: string): number {
+  if (!start) return 0
+  const month = parseInt(start.slice(5, 7), 10)
+  const offsetHours = (month >= 4 && month <= 10) ? 2 : 1
+  return Date.parse(start.replace(' ', 'T') + 'Z') - offsetHours * 3_600_000
 }
 
 function gameStatus(s: number): 'scheduled' | 'live' | 'final' {
@@ -81,8 +90,11 @@ export async function GET(req: Request) {
         if (newStatus === 'final' && sb.status !== 'final') newFinals++
       }
 
-      // Track games that just went live and haven't been notified yet
-      if (newStatus === 'live' && sb.status !== 'live' && !sb.live_notified) {
+      // Track games that just went live and haven't been notified yet.
+      // Guard: only notify once the scheduled start time has actually passed (±5 min),
+      // so stenwessel marking a game "live" prematurely doesn't fire early notifications.
+      if (newStatus === 'live' && sb.status !== 'live' && !sb.live_notified &&
+          Date.now() >= scheduledStartUtcMs(String(sg.start ?? '')) - 5 * 60_000) {
         newlyLive.push({ homeTeamId: sb.home_team_id, awayTeamId: sb.away_team_id, dbId: sb.id })
       }
     }
@@ -153,10 +165,10 @@ export async function GET(req: Request) {
     // Re-fetch current game statuses (after updates were applied)
     const { data: currentGames } = await supabaseAdmin
       .from('games')
-      .select('id, status')
+      .select('id, status, game_date, game_time')
       .eq('season', 2026)
 
-    const gameStatusMap = new Map((currentGames ?? []).map(g => [g.id as number, g.status as string]))
+    const gameMap = new Map((currentGames ?? []).map(g => [g.id as number, g]))
 
     const { data: linkedStreams } = await supabaseAdmin
       .from('streams')
@@ -165,9 +177,17 @@ export async function GET(req: Request) {
 
     let streamsToggled = 0
     for (const s of (linkedStreams ?? [])) {
-      const status = gameStatusMap.get(s.game_id as number)
-      const shouldLive = status === 'live'
-      const shouldOff  = status === 'final'
+      const game = gameMap.get(s.game_id as number)
+      if (!game) continue
+
+      const shouldOff = game.status === 'final'
+
+      // Go live when the game is live, or 15 minutes before scheduled start.
+      let shouldLive = game.status === 'live'
+      if (!shouldLive && game.status === 'scheduled' && game.game_date && game.game_time) {
+        const startUtcMs = scheduledStartUtcMs(`${game.game_date} ${game.game_time}`)
+        shouldLive = startUtcMs > 0 && Date.now() >= startUtcMs - 15 * 60_000
+      }
 
       if (shouldLive && !s.is_live) {
         await supabaseAdmin.from('streams').update({ is_live: true }).eq('id', s.id)
