@@ -58,27 +58,33 @@ export type PitcherStat = {
 
 function extractBatters(players: RawPlayer[]): BatterStat[] {
   const seen = new Set<string>()
-  const slotSeen = new Set<number>() // first player per batting slot = starter
   const result: BatterStat[] = []
+
   for (const p of players) {
     if (!p.firstname) continue
     const name = `${p.firstname} ${p.lastname}`
     if (seen.has(name)) continue
     seen.add(name)
+
+    const spot = n(p.spot)
+    const sub = n(p.sub)
     const pos = String(p.pos ?? '')
-    if (pos === 'P') continue  // pitchers belong in the pitching table only
-    const slot = p._slot as number
-    const inLineup = slot > 0
-    const hasBatted = n(p.ab) > 0 || n(p.bb) > 0 || n(p.hbp) > 0 ||
-                      n(p.sf) > 0 || n(p.sh) > 0 || n(p.r) > 0 || n(p.rbi) > 0
-    if (!inLineup && !hasBatted) continue
-    // A player is a substitute when another player already occupied this batting slot
-    const isSubstitute = inLineup && slotSeen.has(slot)
-    if (inLineup) slotSeen.add(slot)
+
+    // Skip pitchers (spot === 90)
+    if (spot === 90) continue
+
+    // Include if: has valid batting spot (1-9) AND (has plate appearance OR is substitute)
+    const hasBattingSpot = spot >= 1 && spot <= 9
+    const hasPA = n(p.ab) > 0 || n(p.bb) > 0 || n(p.hbp) > 0 ||
+                  n(p.sf) > 0 || n(p.sh) > 0 || n(p.r) > 0 || n(p.rbi) > 0
+    const isSub = sub > 0
+
+    if (!hasBattingSpot || (!hasPA && !isSub)) continue
+
     result.push({
       name,
       pos,
-      isSubstitute,
+      isSubstitute: isSub,
       ab:     n(p.ab),
       h:      n(p.h),
       r:      n(p.r),
@@ -90,7 +96,20 @@ function extractBatters(players: RawPlayer[]): BatterStat[] {
       triple: n(p.triple),
     })
   }
-  return result
+
+  // Sort by spot, then by sub (substitutes come after starter in same spot)
+  return result.sort((a, b) => {
+    // Need to get spot from original players for sorting
+    const aPlayer = players.find(p => `${p.firstname} ${p.lastname}` === a.name)
+    const bPlayer = players.find(p => `${p.firstname} ${p.lastname}` === b.name)
+    const aSpot = n(aPlayer?.spot)
+    const bSpot = n(bPlayer?.spot)
+    const aSub = n(aPlayer?.sub)
+    const bSub = n(bPlayer?.sub)
+
+    if (aSpot !== bSpot) return aSpot - bSpot
+    return aSub - bSub
+  })
 }
 
 function extractPitchers(players: RawPlayer[]): PitcherStat[] {
