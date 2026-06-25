@@ -113,20 +113,36 @@ export async function fetchGameBoxscore(gameId: string | number): Promise<Stenwe
   const awayPlayers = Object.values(collect(aK)) as any[]
   const homePlayers = Object.values(collect(hK)) as any[]
 
+  // Mark starters: players without pinch designation (PR, PH, etc) are starters
+  const isSubstitute = (p: any) => {
+    const pos = String(p.pos || '').toUpperCase()
+    return /^(PR|PH|DD|C\/PH|OF\/PH)/.test(pos)
+  }
+
   // Format into stenwessel-compatible structure
   const boxScore: Record<string, any> = {}
 
   // Away team
   boxScore[aK] = {}
   for (let spot = 1; spot <= 9; spot++) {
-    boxScore[aK][spot] = awayPlayers.filter(p => nv(p.spot) === spot || nv(p.sub) === spot)
+    const players = awayPlayers.filter(p => nv(p.spot) === spot || nv(p.sub) === spot)
+    boxScore[aK][spot] = players.sort((a, b) => {
+      const aIsSub = isSubstitute(a)
+      const bIsSub = isSubstitute(b)
+      return aIsSub === bIsSub ? 0 : aIsSub ? 1 : -1
+    })
   }
   boxScore[aK]['90'] = awayPlayers.filter(p => nv(p.spot) === 90 || nv(p.sub) === 90)
 
   // Home team
   boxScore[hK] = {}
   for (let spot = 1; spot <= 9; spot++) {
-    boxScore[hK][spot] = homePlayers.filter(p => nv(p.spot) === spot || nv(p.sub) === spot)
+    const players = homePlayers.filter(p => nv(p.spot) === spot || nv(p.sub) === spot)
+    boxScore[hK][spot] = players.sort((a, b) => {
+      const aIsSub = isSubstitute(a)
+      const bIsSub = isSubstitute(b)
+      return aIsSub === bIsSub ? 0 : aIsSub ? 1 : -1
+    })
   }
   boxScore[hK]['90'] = homePlayers.filter(p => nv(p.spot) === 90 || nv(p.sub) === 90)
 
