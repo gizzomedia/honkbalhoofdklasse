@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { KNBSB_NUMERIC_ID_MAP } from '@/lib/teams'
+import { fetchSchedule, fetchGameBoxscore } from '@/lib/knbsb-scraper'
 
 export const runtime = 'nodejs'
 
@@ -28,9 +29,8 @@ export async function GET(req: NextRequest) {
   if (!knbsbId || !playerName) return NextResponse.json({ games: [], splits: [] })
 
   try {
-    const schedRes = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store', headers: { 'User-Agent': UA } })
-    const schedJson = await schedRes.json()
-    const allGames: Array<{ id: number; start: string; gamestatus: number; homeid: number; awayid: number; homeioc: string; awayioc: string }> = schedJson.games ?? []
+    const schedData = await fetchSchedule()
+    const allGames: Array<{ id: number; start: string; gamestatus: number; homeid: number; awayid: number; homeioc: string; awayioc: string }> = schedData.games ?? []
 
     const teamGames = allGames
       .filter(g => (g.homeid === knbsbId || g.awayid === knbsbId) && (g.gamestatus === 2 || g.gamestatus === 3))
@@ -61,9 +61,7 @@ export async function GET(req: NextRequest) {
 
     await Promise.all(teamGames.map(async g => {
       try {
-        const r = await fetch(`https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game=${g.id}`, { cache: 'no-store', headers: { 'User-Agent': UA } })
-        if (!r.ok) return
-        const gd = await r.json()
+        const gd = await fetchGameBoxscore(g.id)
         const bs: Record<string, Record<string, unknown[]>> = gd.boxScore ?? {}
         const spots = bs[String(knbsbId)] ?? {}
 

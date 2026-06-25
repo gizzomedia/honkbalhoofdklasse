@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { fetchGameBoxscore } from '@/lib/knbsb-scraper'
 
 function mapTeamFromLabel(label: string): string | null {
   const l = (label ?? '').toLowerCase()
@@ -160,11 +161,7 @@ export async function GET(
 ) {
   const { gameId } = await params
   try {
-    const res  = await fetch(
-      `https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game=${gameId}`,
-      { next: { revalidate: 0 } }
-    )
-    const data = await res.json()
+    const data = await fetchGameBoxscore(gameId)
     const gd        = data.gameData as Record<string, unknown>
     const boxScore  = data.boxScore as Record<string, unknown>
     const pitchers  = (boxScore as Record<string, unknown>)?.pitchers as Record<string, { fullName: string; era: number }> | undefined

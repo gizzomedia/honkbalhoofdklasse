@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-
-const SCHEDULE_URL = 'https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026'
-const GAME_URL     = 'https://boxscore.stenwessel.nl/api/fetchgamedata.php?competition=hb2026&game='
+import { fetchSchedule, fetchGameBoxscore } from '@/lib/knbsb-scraper'
 
 function mapTeam(label: string): string | null {
   const l = (label ?? '').toLowerCase()
@@ -52,11 +50,10 @@ export async function GET() {
     const today = new Date().toISOString().split('T')[0]
 
     // Fetch schedule for live game detection
-    const schedRes  = await fetch(SCHEDULE_URL, { next: { revalidate: 0 } })
-    const schedData = await schedRes.json()
-    const allGames: Record<string, unknown>[] = schedData.games ?? []
+    const schedData = await fetchSchedule()
+    const allGames = schedData.games ?? []
 
-    // Live games — real-time from boxscore API
+    // Live games — real-time from KNBSB scraper
     const liveGameIds = allGames
       .filter(g => String(g.gamestatus) === '1')
       .map(g => ({ id: String(g.id), game: g }))
@@ -65,8 +62,8 @@ export async function GET() {
     await Promise.all(
       liveGameIds.map(async ({ id }) => {
         try {
-          const r = await fetch(GAME_URL + id, { next: { revalidate: 0 } })
-          liveBoxscores[id] = await r.json()
+          const bs = await fetchGameBoxscore(id)
+          liveBoxscores[id] = bs
         } catch { /* skip */ }
       })
     )
