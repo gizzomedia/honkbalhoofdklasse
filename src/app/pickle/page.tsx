@@ -57,9 +57,17 @@ function getCurrentDayNum(): number {
 
 function getPlayerForDayNum(n: number): PoolPlayer {
   const date = getDayDate(n)
-  const day = Math.floor(date.getTime() / 86400000)
-  let seed = day * 1664525 + 1013904223
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+  // Simple seeded hash from date string
+  let seed = 0
+  for (let i = 0; i < dateStr.length; i++) {
+    seed = ((seed << 5) - seed) + dateStr.charCodeAt(i)
+    seed = seed & seed // Convert to 32-bit integer
+  }
+
   const arr = [...ALL_PLAYERS]
+  // Fisher-Yates shuffle with seeded RNG
   for (let i = arr.length - 1; i > 0; i--) {
     seed = (seed * 1664525 + 1013904223) & 0xffffffff
     const j = Math.abs(seed) % (i + 1)
