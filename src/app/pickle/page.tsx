@@ -60,16 +60,15 @@ function getPlayerForDayNum(n: number): PoolPlayer {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
   // Simple seeded hash from date string
-  let seed = 0
+  let seed = 5381
   for (let i = 0; i < dateStr.length; i++) {
-    seed = ((seed << 5) - seed) + dateStr.charCodeAt(i)
-    seed = seed & seed // Convert to 32-bit integer
+    seed = ((seed << 5) + seed) ^ dateStr.charCodeAt(i)
   }
 
   const arr = [...ALL_PLAYERS]
   // Fisher-Yates shuffle with seeded RNG
   for (let i = arr.length - 1; i > 0; i--) {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff
+    seed = ((seed * 1103515245) + 12345) & 0xffffffff
     const j = Math.abs(seed) % (i + 1)
     ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
