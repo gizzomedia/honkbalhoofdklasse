@@ -30,7 +30,15 @@ export async function GET(req: NextRequest) {
 
   try {
     const schedData = await fetchSchedule()
-    const allGames: Array<{ id: number; start: string; gamestatus: number; homeid: number; awayid: number; homeioc: string; awayioc: string }> = schedData.games ?? []
+    const allGames = (schedData.games ?? []).map(g => ({
+      id: Number(g.id),
+      start: String(g.start || ''),
+      gamestatus: Number(g.gamestatus || 0),
+      homeid: Number(g.homeid || 0),
+      awayid: Number(g.awayid || 0),
+      homeioc: String(g.homeioc || ''),
+      awayioc: String(g.awayioc || ''),
+    }))
 
     const teamGames = allGames
       .filter(g => (g.homeid === knbsbId || g.awayid === knbsbId) && (g.gamestatus === 2 || g.gamestatus === 3))
