@@ -207,7 +207,7 @@ export const ROSTERS: StaticRosters = {
       { uniform: '11', name: 'Dienston Manuela',      pos: 'P',  bt: 'L/L', yob: 1993 },
       { uniform: '9',  name: 'Nando Mostaert',        pos: 'IF', bt: 'R/R', yob: 2006 },
       { uniform: '6',  name: 'Rob Paller',            pos: 'OF', bt: 'L/R', yob: 1993 },
-      { uniform: '2',  name: 'Thijmen Peters',        pos: 'IF', bt: 'R/R', yob: 2001, bbref_id: 'peters000thi' },
+      { uniform: '2',  name: 'Thijmen Peters',        pos: 'OF', bt: 'R/R', yob: 2001, bbref_id: 'peters000thi' },
       { uniform: '28', name: 'Axel Poesmans',         pos: 'C',  bt: 'R/R', yob: 1996 },
       { uniform: '44', name: 'Yves Poesmans',         pos: 'OF', bt: 'R/R', yob: 1996 },
       { uniform: '30', name: 'Rens Romgens',          pos: 'P',  bt: 'R/R', yob: 2004 },
