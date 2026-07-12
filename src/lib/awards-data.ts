@@ -59,7 +59,7 @@ export const AWARDS: Award[] = [
   // SSK Pitcher of the Month 2026
   { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'Month 1' },
   { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Month 2' },
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Koen Postelmans', teamId: 'kinheim', label: 'Month 3' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Koen Postelmans', teamId: 'neptunus', label: 'Month 3' },
   // Bat King Europe Hitter of the Month 2026
   { season: 2026, category: 'hitter-of-month',  playerName: 'Darryl Collins',  teamId: 'neptunus', label: 'Month 1' },
   { season: 2026, category: 'hitter-of-month',  playerName: 'Jeandro Tromp',   teamId: 'pirates',  label: 'Month 2' },
