@@ -24,6 +24,12 @@ export default async function AdminPage() {
       allowed: user.can_analytics || user.is_super_admin,
     },
     {
+      href: '/analytics',
+      label: 'Search Analytics',
+      desc: 'Google Search Console',
+      allowed: user.can_analytics || user.is_super_admin,
+    },
+    {
       href: '/admin/streams',
       label: 'Streams',
       desc: 'Livestream links beheren',
