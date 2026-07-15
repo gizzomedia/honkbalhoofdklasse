@@ -228,7 +228,7 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#06101e]">
         <form onSubmit={login} className="space-y-4 w-full max-w-xs px-4">
-          <h1 className="font-display font-800 italic text-3xl uppercase text-white">Search Analytics</h1>
+          <h1 className="font-display font-800 italic text-3xl uppercase text-white">Analytics</h1>
           <input
             type="password" value={pw} onChange={e => setPw(e.target.value)}
             placeholder="Password" autoFocus
@@ -254,7 +254,7 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex items-center gap-4 mb-8 flex-wrap">
           <Link href="/admin" className="font-display font-800 text-[var(--accent)] text-sm hover:opacity-80">← Admin</Link>
-          <h1 className="font-display font-800 italic text-3xl uppercase text-white">Search Analytics</h1>
+          <h1 className="font-display font-800 italic text-3xl uppercase text-white">Analytics</h1>
           <div className="ml-auto flex gap-2">
             {RANGES.map(r => (
               <button key={r.value} onClick={() => setRange(r.value)}
