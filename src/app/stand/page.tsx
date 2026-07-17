@@ -107,13 +107,13 @@ export default async function StandPage() {
       {/* Tabel */}
       <div className="rounded-2xl overflow-hidden border border-[var(--border)]">
         {/* Kolomkoppen */}
-        <div className="grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_6rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 px-4 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-xs tracking-widest">
+        <div className="grid grid-cols-[1.25rem_1fr_1.75rem_1.75rem_2.75rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 md:gap-2 px-3 md:px-5 py-3 bg-[var(--navy)] text-white/60 font-display font-700 uppercase text-[10px] md:text-xs tracking-widest">
           <span>#</span>
           <span>Team</span>
           <span className="text-center">W</span>
           <span className="text-center">L</span>
           <span className="text-center">PCT</span>
-          <span className="text-center">Last 5</span>
+          <span className="text-center hidden md:block">Last 5</span>
           <span className="text-center hidden md:block">G</span>
         </div>
 
@@ -133,7 +133,7 @@ export default async function StandPage() {
               key={s.team_id}
               href={`/rosters/${s.team_id}`}
               className={`
-                grid grid-cols-[1.5rem_1fr_2.5rem_2.5rem_3.5rem_6rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 px-4 md:px-5 py-4
+                grid grid-cols-[1.25rem_1fr_1.75rem_1.75rem_2.75rem] md:grid-cols-[2rem_1fr_3rem_3rem_3rem_6rem_4rem] gap-2 px-3 md:px-5 py-3.5 md:py-4
                 items-center border-b border-[var(--border)] last:border-0
                 transition-colors cursor-pointer
                 ${isLeader
@@ -143,14 +143,14 @@ export default async function StandPage() {
               `}
             >
               {/* Rang */}
-              <span className={`font-display font-800 text-lg ${isLeader ? 'text-white' : 'text-[var(--muted)]'}`}>
+              <span className={`font-display font-800 text-base md:text-lg ${isLeader ? 'text-white' : 'text-[var(--muted)]'}`}>
                 {i + 1}
               </span>
 
               {/* Team */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 p-1.5"
+                  className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center shrink-0 p-1.5"
                   style={{ backgroundColor: color }}
                 >
                   {logo ? (
@@ -167,8 +167,8 @@ export default async function StandPage() {
                     </span>
                   )}
                 </div>
-                <div>
-                  <p className="font-display font-800 text-lg uppercase tracking-wide leading-none text-white">
+                <div className="min-w-0">
+                  <p className="font-display font-800 text-base md:text-lg uppercase tracking-wide leading-none text-white truncate">
                     <strong>{name}</strong>
                   </p>
                   {!isLeader && gb > 0 && (
@@ -185,18 +185,18 @@ export default async function StandPage() {
               </div>
 
               {/* Stats */}
-              <span className={`text-center font-display font-800 text-base ${isLeader ? 'text-white' : 'text-white'}`}>
+              <span className={`text-center font-display font-800 text-sm md:text-base ${isLeader ? 'text-white' : 'text-white'}`}>
                 {s.wins}
               </span>
-              <span className="text-center font-display font-600 text-base text-white">
+              <span className="text-center font-display font-600 text-sm md:text-base text-white">
                 {s.losses}
               </span>
-              <span className={`text-center font-display font-700 text-base ${isLeader ? 'text-white' : 'text-[var(--accent)]'}`}>
+              <span className={`text-center font-display font-700 text-sm md:text-base ${isLeader ? 'text-white' : 'text-[var(--accent)]'}`}>
                 {pct}
               </span>
 
               {/* Last 5 form dots */}
-              <div className="flex items-center justify-center gap-1">
+              <div className="hidden md:flex items-center justify-center gap-1">
                 {form.map((result, fi) => (
                   <span
                     key={fi}
