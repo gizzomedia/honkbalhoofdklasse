@@ -48,7 +48,7 @@ function formatIp(v: unknown): string {
 function getStatValue(type: string, p: Row): string {
   const s = (v: unknown) => (v != null && v !== '' ? String(v) : '-')
   const map: Record<string, () => string> = {
-    avg: () => s(p.avg), slg: () => s(p.slg), obp: () => s(p.obp),
+    avg: () => s(p.avg), slg: () => s(p.slg), obp: () => s(p.obp), ops: () => s(p.ops),
     bavg: () => s(p.bavg),
     r: () => s(p.r), h: () => s(p.h), rbi: () => s(p.rbi),
     double: () => s(p.double), triple: () => s(p.triple), hr: () => s(p.hr),
