@@ -267,7 +267,7 @@ async function getSerieData(seriesWeek: string): Promise<TabData> {
   const [{ data: batters }, { data: pitchers }] = await Promise.all([
     supabaseAdmin
       .from('batting_stats')
-      .select('full_name, team_id, at_bats, hits, home_runs, rbi, stolen_bases, avg, obp, slg, ops')
+      .select('full_name, team_id, at_bats, hits, runs, doubles, home_runs, rbi, stolen_bases, avg, obp, slg, ops')
       .eq('season', new Date().getFullYear())
       .eq('series_week', seriesWeek)
       .gte('at_bats', 1)

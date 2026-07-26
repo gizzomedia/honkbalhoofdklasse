@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
   // 2. Aggregate per-player stats across all games in the series
   type Acc = {
     full_name: string; team_id: string
-    ab: number; h: number; hr: number; rbi: number; sb: number
+    ab: number; h: number; r: number; hr: number; rbi: number; sb: number
     doubles: number; triples: number; bb: number; hbp: number; sf: number
     pitch_outs: number; k: number; wins: number; saves: number; ha: number; walks: number; er: number
   }
@@ -135,9 +135,10 @@ export async function POST(req: NextRequest) {
         const p = players[0] as Record<string, unknown>
         const full = formatName(String(p.firstname ?? ''), String(p.lastname ?? ''))
         const key = `${full}|${friendlyTeam}`
-        const e = map.get(key) ?? { full_name: full, team_id: friendlyTeam, ab: 0, h: 0, hr: 0, rbi: 0, sb: 0, doubles: 0, triples: 0, bb: 0, hbp: 0, sf: 0, pitch_outs: 0, k: 0, wins: 0, saves: 0, ha: 0, walks: 0, er: 0 }
+        const e = map.get(key) ?? { full_name: full, team_id: friendlyTeam, ab: 0, h: 0, r: 0, hr: 0, rbi: 0, sb: 0, doubles: 0, triples: 0, bb: 0, hbp: 0, sf: 0, pitch_outs: 0, k: 0, wins: 0, saves: 0, ha: 0, walks: 0, er: 0 }
         e.ab += Number(p.ab ?? 0)
         e.h += Number(p.h ?? 0)
+        e.r += Number(p.r ?? 0)
         e.hr += Number(p.hr ?? 0)
         e.rbi += Number(p.rbi ?? 0)
         e.sb += Number(p.sb ?? 0)
@@ -173,6 +174,8 @@ export async function POST(req: NextRequest) {
       team_id: p.team_id,
       at_bats: p.ab,
       hits: p.h,
+      runs: p.r,
+      doubles: p.doubles,
       home_runs: p.hr,
       rbi: p.rbi,
       stolen_bases: p.sb,

@@ -305,9 +305,11 @@ function ipToDec(v: unknown): number {
   return parseInt(s, 10) || 0  // integer = full innings (e.g. 19 = 19.0 IP)
 }
 
-function WeekHittingTables({ batters, battingQualified, avgTitle, obpTitle, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; obpTitle?: string; onSelect: OnSelect }) {
+function WeekHittingTables({ batters, battingQualified, avgTitle, obpTitle, showRunsDoubles, onSelect }: { batters: Row[]; battingQualified?: Row[]; avgTitle?: string; obpTitle?: string; showRunsDoubles?: boolean; onSelect: OnSelect }) {
   const byHR   = [...batters].sort((a, b) => (b.home_runs as number) - (a.home_runs as number))
   const byRBI  = [...batters].sort((a, b) => (b.rbi as number) - (a.rbi as number))
+  const byR    = [...batters].sort((a, b) => (b.runs as number) - (a.runs as number))
+  const by2B   = [...batters].sort((a, b) => (b.doubles as number) - (a.doubles as number))
   const bySB   = [...batters].sort((a, b) => (b.stolen_bases as number) - (a.stolen_bases as number))
   const byH    = [...batters].sort((a, b) => (b.hits as number) - (a.hits as number))
   const qualRows = battingQualified ?? batters
@@ -331,6 +333,14 @@ function WeekHittingTables({ batters, battingQualified, avgTitle, obpTitle, onSe
         { label: 'AB',  value: r => fmt(r.at_bats) },
         { label: 'RBI', value: r => fmt(r.rbi) },
       ]} />
+      {showRunsDoubles && <LeaderTable title="Runs" rows={byR} statType="batting" onSelect={onSelect} columns={[
+        { label: 'AB', value: r => fmt(r.at_bats) },
+        { label: 'R',  value: r => fmt(r.runs) },
+      ]} />}
+      {showRunsDoubles && <LeaderTable title="Doubles" rows={by2B} statType="batting" onSelect={onSelect} columns={[
+        { label: 'AB', value: r => fmt(r.at_bats) },
+        { label: '2B', value: r => fmt(r.doubles) },
+      ]} />}
       <LeaderTable title="Hits" rows={byH} statType="batting" onSelect={onSelect} columns={[
         { label: 'AB', value: r => fmt(r.at_bats) },
         { label: 'H',  value: r => fmt(r.hits) },
@@ -516,7 +526,7 @@ export default function LeadersTabs({
 
         {period === 'season' && category === 'hitting'   && <SeasonCategoryGrid categories={season.batting}   statType="batting"  onSelect={onSelect} />}
         {period === 'season' && category === 'pitching'  && <SeasonCategoryGrid categories={season.pitching}  statType="pitching" onSelect={onSelect} />}
-        {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables  batters={week.batters}   onSelect={onSelect} />}
+        {period === 'week'   && week && category === 'hitting'  && <WeekHittingTables  batters={week.batters}   showRunsDoubles onSelect={onSelect} />}
         {period === 'week'   && week && category === 'pitching' && <WeekPitchingTables pitchers={week.pitchers} onSelect={onSelect} />}
         {period === 'month' && loadingMonth && (
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
