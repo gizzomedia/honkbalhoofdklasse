@@ -6,23 +6,30 @@ export const runtime = 'nodejs'
 
 type FinishedGame = { id: number; date: string }
 
-// Group finished games into series by gaps larger than 3 days. Returns clusters
-// sorted by date; every game belongs to exactly one cluster, so series never
-// overlap. GET (the list) and POST (the import) both use this so a game can
-// never be counted under two series_week values.
+// Monday (UTC) of the ISO week containing dateStr ('YYYY-MM-DD').
+function mondayOf(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  const diff = (d.getUTCDay() + 6) % 7 // days since Monday (Mon=0 … Sun=6)
+  d.setUTCDate(d.getUTCDate() - diff)
+  return d.toISOString().slice(0, 10)
+}
+
+// Group finished games into one series per calendar week (Mon–Sun). Returns
+// series sorted by date, each keyed by its earliest game date; every game
+// belongs to exactly one week, so series never overlap and the keys are stable
+// as more games finish (no merging). GET (the list) and POST (the import) both
+// use this, so a game can never be counted under two series_week values.
 function clusterSeries(finished: FinishedGame[]): { seriesDate: string; games: FinishedGame[] }[] {
   const sorted = [...finished].sort((a, b) => a.date.localeCompare(b.date))
-  const clusters: { seriesDate: string; games: FinishedGame[] }[] = []
-  let prevMs = 0
+  const byWeek = new Map<string, FinishedGame[]>()
   for (const g of sorted) {
-    const ms = new Date(g.date).getTime()
-    if (clusters.length === 0 || ms - prevMs > 3 * 86400000) {
-      clusters.push({ seriesDate: g.date, games: [] })
-    }
-    clusters[clusters.length - 1].games.push(g)
-    prevMs = ms
+    const wk = mondayOf(g.date)
+    if (!byWeek.has(wk)) byWeek.set(wk, [])
+    byWeek.get(wk)!.push(g)
   }
-  return clusters
+  return [...byWeek.values()]
+    .map(games => ({ seriesDate: games[0].date, games }))
+    .sort((a, b) => a.seriesDate.localeCompare(b.seriesDate))
 }
 
 // GET: return list of completed series + which are already imported
