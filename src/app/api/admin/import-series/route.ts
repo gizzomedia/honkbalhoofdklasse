@@ -4,6 +4,27 @@ import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
+type FinishedGame = { id: number; date: string }
+
+// Group finished games into series by gaps larger than 3 days. Returns clusters
+// sorted by date; every game belongs to exactly one cluster, so series never
+// overlap. GET (the list) and POST (the import) both use this so a game can
+// never be counted under two series_week values.
+function clusterSeries(finished: FinishedGame[]): { seriesDate: string; games: FinishedGame[] }[] {
+  const sorted = [...finished].sort((a, b) => a.date.localeCompare(b.date))
+  const clusters: { seriesDate: string; games: FinishedGame[] }[] = []
+  let prevMs = 0
+  for (const g of sorted) {
+    const ms = new Date(g.date).getTime()
+    if (clusters.length === 0 || ms - prevMs > 3 * 86400000) {
+      clusters.push({ seriesDate: g.date, games: [] })
+    }
+    clusters[clusters.length - 1].games.push(g)
+    prevMs = ms
+  }
+  return clusters
+}
+
 // GET: return list of completed series + which are already imported
 export async function GET() {
   const [schedRes, { data: existing }] = await Promise.all([
@@ -13,30 +34,15 @@ export async function GET() {
   const allGames: Array<{ id: number; start: string; gamestatus: number }> = (await schedRes.json()).games ?? []
   const importedWeeks = new Set((existing ?? []).map(r => r.series_week))
 
-  const finished = allGames
+  const finished: FinishedGame[] = allGames
     .filter(g => g.gamestatus === 2 || g.gamestatus === 3)
     .map(g => ({ id: g.id, date: g.start.slice(0, 10) }))
-    .sort((a, b) => a.date.localeCompare(b.date))
 
-  const seriesMap = new Map<string, string[]>()
-  let curKey = '', prevMs = 0
-  for (const g of finished) {
-    const ms = new Date(g.date).getTime()
-    if (!curKey || ms - prevMs > 3 * 86400000) curKey = g.date
-    if (!seriesMap.has(curKey)) seriesMap.set(curKey, [])
-    if (!seriesMap.get(curKey)!.includes(g.date)) seriesMap.get(curKey)!.push(g.date)
-    prevMs = ms
-  }
-
-  const series = [...seriesMap.entries()].map(([seriesDate, gameDates]) => ({
-    seriesDate,
-    gameDates,
-    gameCount: finished.filter(g => {
-      const ms = new Date(g.date).getTime()
-      const t0 = new Date(seriesDate).getTime()
-      return ms >= t0 && ms <= t0 + 3 * 86400000
-    }).length,
-    imported: importedWeeks.has(seriesDate),
+  const series = clusterSeries(finished).map(c => ({
+    seriesDate: c.seriesDate,
+    gameDates: [...new Set(c.games.map(g => g.date))],
+    gameCount: c.games.length,
+    imported: importedWeeks.has(c.seriesDate),
     importing: false,
     result: null,
   }))
@@ -91,17 +97,23 @@ export async function POST(req: NextRequest) {
 
   const year = parseInt(seriesDate.slice(0, 4), 10)
 
-  // 1. Get schedule and find games in this series (within 5 days of seriesDate)
+  // 1. Get schedule and find the series (cluster) matching seriesDate.
+  //    Grouped identically to the GET listing, so each game belongs to exactly
+  //    one series — no overlapping windows, no double-counting across weeks.
   const schedRes = await fetch('https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026', { cache: 'no-store' })
   const schedJson = await schedRes.json()
   const allGames: Array<{ id: number; start: string; gamestatus: number }> = schedJson.games ?? []
 
-  const t0 = new Date(seriesDate).getTime()
-  const seriesGames = allGames.filter(g => {
-    if (g.gamestatus !== 2 && g.gamestatus !== 3) return false
-    const diff = (new Date(g.start.slice(0, 10)).getTime() - t0) / 86400000
-    return diff >= 0 && diff <= 5
-  })
+  const finished: FinishedGame[] = allGames
+    .filter(g => g.gamestatus === 2 || g.gamestatus === 3)
+    .map(g => ({ id: g.id, date: g.start.slice(0, 10) }))
+  const clusters = clusterSeries(finished)
+  const clusterIdx = clusters.findIndex(c => c.seriesDate === seriesDate)
+  const seriesGames = clusterIdx === -1 ? [] : clusters[clusterIdx].games
+  // Rows are deleted for this whole series span (up to the next series' start),
+  // so stale sub-series left by earlier overlapping imports get cleaned up when
+  // clusters merge — e.g. a rescheduled game bridging a former gap.
+  const nextSeriesDate = clusterIdx === -1 ? null : clusters[clusterIdx + 1]?.seriesDate ?? null
 
   if (seriesGames.length === 0) {
     return NextResponse.json({ error: 'No finished games found for this series date' }, { status: 404 })
@@ -202,11 +214,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 4. Delete existing data for this series (check errors), then insert fresh
-  const [delBat, delPit] = await Promise.all([
-    supabaseAdmin.from('batting_stats').delete().eq('season', year).eq('series_week', seriesDate),
-    supabaseAdmin.from('pitching_stats').delete().eq('season', year).eq('series_week', seriesDate),
-  ])
+  // 4. Delete existing data for this series span (check errors), then insert
+  //    fresh. Deleting the range [seriesDate, nextSeriesDate) — not just the
+  //    exact key — clears any duplicate rows from earlier overlapping imports.
+  let delBatQ = supabaseAdmin.from('batting_stats').delete().eq('season', year).neq('series_week', 'season').gte('series_week', seriesDate)
+  let delPitQ = supabaseAdmin.from('pitching_stats').delete().eq('season', year).neq('series_week', 'season').gte('series_week', seriesDate)
+  if (nextSeriesDate) {
+    delBatQ = delBatQ.lt('series_week', nextSeriesDate)
+    delPitQ = delPitQ.lt('series_week', nextSeriesDate)
+  }
+  const [delBat, delPit] = await Promise.all([delBatQ, delPitQ])
   if (delBat.error) return NextResponse.json({ error: `Delete batting failed: ${delBat.error.message}` }, { status: 500 })
   if (delPit.error) return NextResponse.json({ error: `Delete pitching failed: ${delPit.error.message}` }, { status: 500 })
 
