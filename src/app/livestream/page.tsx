@@ -78,14 +78,16 @@ export default async function LivestreamPage() {
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-  // A stream only counts as live once we're within 15 minutes of its scheduled
-  // start — even if the is_live flag is already set. Streams without a start
-  // time fall back to the manual flag.
+  // A stream only counts as live inside the real broadcast window: from 15 min
+  // before its scheduled start until 6 h after (a safety cap so a stuck is_live
+  // flag can't linger indefinitely). A stream with no scheduled_at can't be
+  // verified, so it's never shown as live regardless of the flag.
   const LIVE_LEAD_MS = 15 * 60 * 1000
+  const LIVE_MAX_MS = 6 * 60 * 60 * 1000
   const isActuallyLive = (s: Stream) => {
-    if (!s.is_live) return false
-    if (!s.scheduled_at) return true
-    return now.getTime() >= new Date(s.scheduled_at).getTime() - LIVE_LEAD_MS
+    if (!s.is_live || !s.scheduled_at) return false
+    const start = new Date(s.scheduled_at).getTime()
+    return now.getTime() >= start - LIVE_LEAD_MS && now.getTime() < start + LIVE_MAX_MS
   }
 
   const liveNow = streams.filter(isActuallyLive)
