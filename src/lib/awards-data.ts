@@ -63,10 +63,12 @@ export const AWARDS: Award[] = [
   { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'Month 1' },
   { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Month 2' },
   { season: 2026, category: 'pitcher-of-month', playerName: 'Koen Postelmans', teamId: 'neptunus', label: 'Month 3' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Martijn Schoonderwoerd', teamId: 'pirates', label: 'Month 4' },
   // Bat King Europe Hitter of the Month 2026
   { season: 2026, category: 'hitter-of-month',  playerName: 'Darryl Collins',  teamId: 'neptunus', label: 'Month 1' },
   { season: 2026, category: 'hitter-of-month',  playerName: 'Jeandro Tromp',   teamId: 'pirates',  label: 'Month 2' },
   { season: 2026, category: 'hitter-of-month',  playerName: 'Christian Diaz',  teamId: 'neptunus', label: 'Month 3' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Delano Selassa',  teamId: 'pirates',  label: 'Month 4' },
 ]
 
 export function getAwardsByPlayer(playerName: string): Award[] {
