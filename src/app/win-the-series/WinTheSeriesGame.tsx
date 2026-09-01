@@ -7,11 +7,12 @@ import type { HSHitter, HSPitcher } from '@/app/api/win-the-series/route'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const REG_GAMES = 42
-const CUTOFF_MIN = 23, CUTOFF_MAX = 26   // playoff line varies per game, fixed within a game
+const CUTOFF_MIN = 26, CUTOFF_MAX = 29   // playoff line varies per game, fixed within a game
 const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.0
-const STAGE_MULT = { reg: 1.0, semi: 1.06, final: 1.12 }
+const OPP_SEMI = 0.58                     // semifinal opponent strength (win% vs average)
+const OPP_FINAL = 0.68                    // Holland Series opponent — the league's best
 const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
@@ -56,6 +57,8 @@ const isPitcher = (x: HSHitter | HSPitcher): x is HSPitcher => 'era' in x
 const pkey = (p: { teamId: string; name: string }) => `${p.teamId}|${p.name}`
 const fmt3 = (v: number) => v.toFixed(3).replace(/^0\./, '.')
 const winP = (rs: number, ra: number) => { const e = 1.83; const a = rs ** e, b = ra ** e; return a / (a + b) }
+// log5: probability team A (win% a) beats team B (win% b) head-to-head.
+const log5 = (a: number, b: number) => { const d = a + b - 2 * a * b; return d <= 0 ? 0.5 : (a - a * b) / d }
 function simSeries(p: number, need: number): SeriesResult {
   let a = 0, b = 0
   while (a < need && b < need) (Math.random() < p ? a++ : b++)
@@ -236,14 +239,14 @@ export default function WinTheSeriesGame() {
     const spEra = sp.reduce((s, p) => s + p.era, 0) / sp.length
     const rpEra = rp.reduce((s, p) => s + p.era, 0) / rp.length
     const staffEra = Math.max(RA_FLOOR, 0.7 * spEra + 0.3 * rpEra)
+    const talent = winP(rs, staffEra)               // your win% vs a league-average team
     let wins = 0
-    const pReg = winP(rs, staffEra * STAGE_MULT.reg)
-    for (let i = 0; i < REG_GAMES; i++) if (Math.random() < pReg) wins++
+    for (let i = 0; i < REG_GAMES; i++) if (Math.random() < talent) wins++
     const madePlayoffs = wins >= cut
     let semi: SeriesResult | null = null, fin: SeriesResult | null = null, champion = false
     if (madePlayoffs) {
-      semi = simSeries(winP(rs, staffEra * STAGE_MULT.semi), SEMI_WINS)
-      if (semi.won) { fin = simSeries(winP(rs, staffEra * STAGE_MULT.final), FINAL_WINS); champion = fin.won }
+      semi = simSeries(log5(talent, OPP_SEMI), SEMI_WINS)
+      if (semi.won) { fin = simSeries(log5(talent, OPP_FINAL), FINAL_WINS); champion = fin.won }
     }
     setSim({ cutoff: cut, wins, losses: REG_GAMES - wins, madePlayoffs, semi, final: fin, champion, rs, staffEra, lineupOps })
     setPhase('result')
