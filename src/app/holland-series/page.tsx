@@ -4,11 +4,11 @@ import HollandSeriesHub from './HollandSeriesHub'
 
 export const metadata: Metadata = {
   title: 'Holland Series 2026 | Honkbal Hoofdklasse',
-  description: 'De Holland Series 2026 — live serie-stand, schema, uitslagen, boxscores en win-probability van de finale van de KNBSB Honkbal Hoofdklasse.',
+  description: 'Holland Series 2026 — live series score, schedule, results, boxscores and win probability from the KNBSB Honkbal Hoofdklasse final.',
   alternates: { canonical: 'https://honkbalhoofdklasse.com/holland-series' },
   openGraph: {
     title: 'Holland Series 2026',
-    description: 'Live serie-stand, schema en uitslagen van de Honkbal Hoofdklasse finale.',
+    description: 'Live series score, schedule and results from the Honkbal Hoofdklasse final.',
     url: 'https://honkbalhoofdklasse.com/holland-series',
   },
 }

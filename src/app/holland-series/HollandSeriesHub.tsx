@@ -22,7 +22,7 @@ function feedDate(iso: string | null): Date | null {
 const fmtDateTime = (iso: string | null) => {
   const d = feedDate(iso)
   if (!d) return 'TBD'
-  return d.toLocaleString('nl-NL', {
+  return d.toLocaleString('en-US', {
     weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
     timeZone: 'Europe/Amsterdam',
   })
@@ -49,8 +49,8 @@ function Countdown({ targetISO }: { targetISO: string }) {
   )
   return (
     <div className="flex items-center gap-4 md:gap-6">
-      {d > 0 && unit(d, 'Dagen')}
-      {unit(h, 'Uur')}
+      {d > 0 && unit(d, 'Days')}
+      {unit(h, 'Hrs')}
       {unit(m, 'Min')}
       {unit(s, 'Sec')}
     </div>
@@ -98,7 +98,7 @@ function Scoreboard({ series, big }: { series: HSSeries; big?: boolean }) {
       </div>
       <p className="text-center font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-4">
         {clinchedBy
-          ? `${TEAM_NAMES[clinchedBy] ?? clinchedBy} wint de serie`
+          ? `${TEAM_NAMES[clinchedBy] ?? clinchedBy} win the series`
           : `Best of ${bestOf}`}
       </p>
     </div>
@@ -163,7 +163,7 @@ function GameRow({ game, index, onOpenBox }: { game: HSGame; index: number; onOp
           )}
           {hasResult && (
             <button onClick={toggleWp} className="font-display font-700 text-[10px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
-              {wpOpen ? 'Verberg WP' : 'Win prob.'}
+              {wpOpen ? 'Hide WP' : 'Win prob.'}
             </button>
           )}
         </div>
@@ -171,10 +171,10 @@ function GameRow({ game, index, onOpenBox }: { game: HSGame; index: number; onOp
 
       {wpOpen && (
         wpLoading
-          ? <p className="px-5 pb-4 font-display font-700 text-[var(--muted)] text-xs uppercase">Laden…</p>
+          ? <p className="px-5 pb-4 font-display font-700 text-[var(--muted)] text-xs uppercase">Loading…</p>
           : wp && wp.length >= 2
             ? <WinProbChart points={wp} homeId={game.homeId} awayId={game.awayId} homeColor={teamAccent(game.homeId)} awayColor={teamAccent(game.awayId)} />
-            : <p className="px-5 pb-4 font-display font-700 text-[var(--muted)] text-xs uppercase">Geen play-by-play data</p>
+            : <p className="px-5 pb-4 font-display font-700 text-[var(--muted)] text-xs uppercase">No play-by-play data</p>
       )}
     </div>
   )
@@ -237,13 +237,13 @@ export default function HollandSeriesHub({ initial }: { initial: HollandSeriesDa
             <div className="mt-8 flex flex-col items-center gap-3">
               {liveGame ? (
                 <span className="inline-flex items-center gap-2 font-display font-800 text-sm uppercase tracking-widest text-[var(--accent)]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-pulse" /> Game bezig
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-pulse" /> Game in progress
                 </span>
               ) : final.clinchedBy ? (
-                <p className="font-display font-800 italic text-xl uppercase text-white text-center">🏆 {TEAM_NAMES[final.clinchedBy]} — Kampioen</p>
+                <p className="font-display font-800 italic text-xl uppercase text-white text-center">🏆 {TEAM_NAMES[final.clinchedBy]} — Champions</p>
               ) : nextGame ? (
                 <>
-                  <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Volgende game — {fmtDateTime(nextGame.startISO)}{nextGame.location ? ` · ${nextGame.location}` : ''}</p>
+                  <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Next game — {fmtDateTime(nextGame.startISO)}{nextGame.location ? ` · ${nextGame.location}` : ''}</p>
                   <Countdown targetISO={nextGame.startISO!} />
                 </>
               ) : null}
@@ -251,7 +251,7 @@ export default function HollandSeriesHub({ initial }: { initial: HollandSeriesDa
           </section>
 
           <section>
-            <SectionTitle>Schema &amp; Uitslagen</SectionTitle>
+            <SectionTitle>Schedule &amp; Results</SectionTitle>
             <div className="space-y-3">
               {final.games.map((g, i) => <GameRow key={g.id} game={g} index={i} onOpenBox={setBox} />)}
             </div>
@@ -264,7 +264,7 @@ export default function HollandSeriesHub({ initial }: { initial: HollandSeriesDa
         <>
           {finalists && finalists.length === 2 && (
             <section className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 md:p-8">
-              <p className="text-center font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest mb-5">De finalisten</p>
+              <p className="text-center font-display font-700 text-xs text-[var(--accent)] uppercase tracking-widest mb-5">The finalists</p>
               <div className="flex items-center justify-center gap-6 md:gap-12">
                 <div className="flex flex-col items-center gap-2">
                   <TeamBadge teamId={finalists[0]} size={72} />
@@ -276,7 +276,7 @@ export default function HollandSeriesHub({ initial }: { initial: HollandSeriesDa
                   <p className="font-display font-800 uppercase text-white text-center"><strong>{TEAM_NAMES[finalists[1]]}</strong></p>
                 </div>
               </div>
-              <p className="text-center font-display font-700 text-sm text-[var(--muted)] uppercase tracking-widest mt-6">Schema volgt — best of 5</p>
+              <p className="text-center font-display font-700 text-sm text-[var(--muted)] uppercase tracking-widest mt-6">Schedule TBD — best of 5</p>
             </section>
           )}
 
@@ -299,8 +299,8 @@ export default function HollandSeriesHub({ initial }: { initial: HollandSeriesDa
 
       {phase === 'none' && (
         <div className="text-center py-20">
-          <p className="font-display font-800 text-2xl uppercase text-[var(--muted)] italic">Playoffs nog niet begonnen</p>
-          <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest mt-2">Zodra de postseason start verschijnt hier alles</p>
+          <p className="font-display font-800 text-2xl uppercase text-[var(--muted)] italic">Playoffs haven't started yet</p>
+          <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest mt-2">Everything shows up here once the postseason begins</p>
         </div>
       )}
     </div>

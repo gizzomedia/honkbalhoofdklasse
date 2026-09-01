@@ -9,13 +9,13 @@ import SearchModal from './SearchModal'
 import PushNotifications from './PushNotifications'
 
 type NavItem = { href: string; label: string; external?: boolean }
-type NavLink  = { type: 'link';     href: string; label: string }
+type NavLink  = { type: 'link';     href: string; label: string; highlight?: boolean }
 type NavGroup = { type: 'dropdown'; label: string; items: NavItem[] }
 type NavEntry = NavLink | NavGroup
 
 function useNavEntries(): NavEntry[] {
   return [
-    { type: 'link', href: '/holland-series', label: 'Holland Series' },
+    { type: 'link', href: '/holland-series', label: 'Holland Series', highlight: true },
     { type: 'link', href: '/livescores', label: 'Scores' },
     { type: 'link', href: '/schema',     label: 'Schedule' },
     { type: 'link', href: '/uitslagen',  label: 'Results' },
@@ -197,7 +197,7 @@ export default function NavBar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden lg:flex items-center gap-5">
+        <div className="hidden xl:flex items-center gap-4">
           <Link
             href="/"
             className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === '/' ? 'text-white' : 'text-white/60'}`}
@@ -210,7 +210,11 @@ export default function NavBar() {
               <Link
                 key={entry.href}
                 href={entry.href}
-                className={`font-display font-700 text-sm uppercase tracking-wider transition-colors hover:text-white ${pathname === entry.href ? 'text-white' : 'text-white/60'}`}
+                className={
+                  entry.highlight
+                    ? `font-display font-800 text-sm uppercase tracking-wider whitespace-nowrap transition-colors ${pathname === entry.href ? 'text-white' : 'text-[var(--accent)] hover:text-white'}`
+                    : `font-display font-700 text-sm uppercase tracking-wider whitespace-nowrap transition-colors hover:text-white ${pathname === entry.href ? 'text-white' : 'text-white/60'}`
+                }
               >
                 {entry.label}
               </Link>
@@ -234,27 +238,26 @@ export default function NavBar() {
             <button
               onClick={() => setSearchOpen(true)}
               className="flex items-center gap-2 text-white/50 hover:text-white transition-colors bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-1.5"
-              aria-label="Zoeken"
+              aria-label="Search"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="font-display font-700 text-xs text-white/40 uppercase tracking-wider">Zoeken</span>
               <kbd className="font-display font-700 text-[10px] text-white/30 border border-white/10 rounded px-1.5 py-0.5">⌘K</kbd>
             </button>
             <Link
               href="/partner-up"
               className="font-display font-800 text-xs uppercase tracking-wider bg-[var(--accent)] text-white px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
             >
-              Word partner
+              Partner up
             </Link>
           </div>
 
         </div>
 
         {/* Mobile: bell + hamburger */}
-        <div className="lg:hidden flex items-center gap-1">
-          <div className="lg:hidden"><PushNotifications /></div>
+        <div className="xl:hidden flex items-center gap-1">
+          <div className="xl:hidden"><PushNotifications /></div>
           <button
           className="flex flex-col gap-1.5 p-2 shrink-0"
           onClick={() => setOpen(o => !o)}
@@ -268,7 +271,7 @@ export default function NavBar() {
       </div>
 
       {/* Mobile menu */}
-      <div className={`lg:hidden overflow-hidden transition-all duration-300 ${open ? 'max-h-[600px]' : 'max-h-0'}`}>
+      <div className={`xl:hidden transition-all duration-300 ${open ? 'max-h-[85vh] overflow-y-auto' : 'max-h-0 overflow-hidden'}`}>
         <div className="bg-[var(--card)] border-t border-[var(--border)] px-4 py-4 space-y-1">
           {/* Home */}
           <Link href="/"
@@ -280,7 +283,13 @@ export default function NavBar() {
           {entries.map(entry =>
             entry.type === 'link' ? (
               <Link key={entry.href} href={entry.href}
-                className={`block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${pathname === entry.href ? 'bg-[var(--accent)] text-white' : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'}`}>
+                className={`block font-display font-800 text-sm uppercase tracking-wider px-4 py-3 rounded-xl transition-colors ${
+                  pathname === entry.href
+                    ? 'bg-[var(--accent)] text-white'
+                    : entry.highlight
+                    ? 'text-[var(--accent)] hover:text-white hover:bg-[var(--card-hover)]'
+                    : 'text-white/60 hover:text-white hover:bg-[var(--card-hover)]'
+                }`}>
                 {entry.label}
               </Link>
             ) : (
@@ -328,7 +337,7 @@ export default function NavBar() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            Zoeken
+            Search
           </button>
 
         </div>
