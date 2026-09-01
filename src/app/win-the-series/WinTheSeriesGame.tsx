@@ -7,12 +7,13 @@ import type { HSHitter, HSPitcher } from '@/app/api/win-the-series/route'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const REG_GAMES = 42
-const CUTOFF_MIN = 26, CUTOFF_MAX = 29   // playoff line varies per game, fixed within a game
+const CUTOFF_MIN = 28, CUTOFF_MAX = 31   // playoff line varies per game, fixed within a game
 const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
-const RA_FLOOR = 3.0
-const OPP_SEMI = 0.58                     // semifinal opponent strength (win% vs average)
-const OPP_FINAL = 0.68                    // Holland Series opponent — the league's best
+const RA_FLOOR = 3.6                      // a 5-man staff regresses over a full season
+const OFF_EXP = 1.55                      // run scaling vs offense (kept realistic, not explosive)
+const OPP_SEMI = 0.72                     // semifinal opponent — a top playoff team
+const OPP_FINAL = 0.84                    // Holland Series opponent — the league's best
 const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
@@ -235,7 +236,7 @@ export default function WinTheSeriesGame() {
     const sp = SP_KEYS.map(k => f[k] as HSPitcher)
     const rp = RP_KEYS.map(k => f[k] as HSPitcher)
     const lineupOps = hitters.reduce((s, h) => s + h.ops, 0) / hitters.length
-    const rs = data!.leagueEra * (lineupOps / data!.leagueOps) ** 2
+    const rs = data!.leagueEra * (lineupOps / data!.leagueOps) ** OFF_EXP
     const spEra = sp.reduce((s, p) => s + p.era, 0) / sp.length
     const rpEra = rp.reduce((s, p) => s + p.era, 0) / rp.length
     const staffEra = Math.max(RA_FLOOR, 0.7 * spEra + 0.3 * rpEra)

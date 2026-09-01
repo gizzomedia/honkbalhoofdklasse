@@ -96,8 +96,11 @@ export async function GET() {
       })
       .filter((p): p is HSPitcher => !!p.role && !!p.teamId && p.era > 0 && p.name.length > 1)
 
-    const qOps = hitters.filter(h => h.ab >= 30).map(h => h.ops)
-    const leagueOps = qOps.length ? Number((qOps.reduce((a, b) => a + b, 0) / qOps.length).toFixed(3)) : 0.71
+    // Offense baseline = AB-weighted league OPS (the average plate appearance),
+    // which reflects a real average lineup — not the all-batter mean, which is
+    // dragged down by scrubs and makes drafted lineups look far above average.
+    const totAb = hitters.reduce((s, h) => s + h.ab, 0)
+    const leagueOps = totAb > 0 ? Number((hitters.reduce((s, h) => s + h.ops * h.ab, 0) / totAb).toFixed(3)) : 0.74
     // Run environment baseline: mean ERA of pitchers with a real workload
     // (>=20 IP), i.e. starters — not the whole pool, which small-sample
     // relievers would inflate.
