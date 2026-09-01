@@ -12,6 +12,7 @@ const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.0
 const STAGE_MULT = { reg: 1.0, semi: 1.06, final: 1.12 }
+const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
 type Slot = { key: string; label: string; short: string; type: SlotType; pos?: string }
@@ -34,12 +35,16 @@ const SLOTS: Slot[] = [
 const LINEUP_KEYS = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH']
 const SP_KEYS = ['SP1', 'SP2', 'SP3']
 const RP_KEYS = ['RP1', 'RP2']
+const FIELD_SECTIONS = [
+  { pos: 'C', title: 'Catchers' }, { pos: '1B', title: 'First Base' }, { pos: '2B', title: 'Second Base' },
+  { pos: '3B', title: 'Third Base' }, { pos: 'SS', title: 'Shortstop' }, { pos: 'LF', title: 'Left Field' },
+  { pos: 'CF', title: 'Center Field' }, { pos: 'RF', title: 'Right Field' },
+]
 
 type Data = { hitters: HSHitter[]; pitchers: HSPitcher[]; leagueOps: number; leagueEra: number }
 type Mode = 'free' | 'blind'
 type Phase = 'start' | 'draft' | 'result'
 type Filled = Record<string, HSHitter | HSPitcher>
-type Chip = { label: string; slotKey: string | null; open: boolean }
 type SeriesResult = { a: number; b: number; won: boolean }
 type Sim = {
   cutoff: number; wins: number; losses: number; madePlayoffs: boolean
@@ -64,17 +69,9 @@ function domColor(pct: number) {
   return '#ef4444'
 }
 const firstOpen = (keys: string[], filled: Filled) => keys.find(k => !filled[k]) ?? null
-
-// Which positions a player can still be assigned to, and whether each is open.
-function chipsFor(p: HSHitter | HSPitcher, filled: Filled): Chip[] {
-  if (isPitcher(p)) {
-    const keys = p.role === 'SP' ? SP_KEYS : RP_KEYS
-    return [{ label: p.role, slotKey: firstOpen(keys, filled), open: keys.some(k => !filled[k]) }]
-  }
-  const chips: Chip[] = p.positions.map(pos => ({ label: pos, slotKey: pos, open: !filled[pos] }))
-  chips.push({ label: 'DH', slotKey: 'DH', open: !filled['DH'] })
-  return chips
-}
+// Open positions a hitter can still be assigned to (their field spots + DH).
+const openHitterSlots = (h: HSHitter, filled: Filled) =>
+  [...h.positions.filter(p => !filled[p]), ...(!filled['DH'] ? ['DH'] : [])]
 
 // ── Roster board ──────────────────────────────────────────────────────────────
 function SlotCard({ slot, player, blind }: { slot: Slot; player?: HSHitter | HSPitcher; blind: boolean }) {
@@ -101,9 +98,7 @@ function RosterBoard({ filled, blind }: { filled: Filled; blind: boolean }) {
   const group = (title: string, keys: string[]) => (
     <div>
       <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-1.5">{title}</p>
-      <div className="grid grid-cols-3 gap-1.5">
-        {keys.map(k => <SlotCard key={k} slot={SLOTS.find(s => s.key === k)!} player={filled[k]} blind={blind} />)}
-      </div>
+      <div className="grid grid-cols-3 gap-1.5">{keys.map(k => <SlotCard key={k} slot={SLOTS.find(s => s.key === k)!} player={filled[k]} blind={blind} />)}</div>
     </div>
   )
   return (
@@ -114,43 +109,22 @@ function RosterBoard({ filled, blind }: { filled: Filled; blind: boolean }) {
   )
 }
 
-// ── Draft card (player + position chips) ──────────────────────────────────────
-function StatMini({ label, value }: { label: string; value: string }) {
-  return <div className="flex flex-col items-center"><span className="font-display font-800 text-white text-sm tabular-nums leading-none">{value}</span><span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-wider">{label}</span></div>
-}
-function DraftCard({ player, chips, pct, blind, onAssign }: { player: HSHitter | HSPitcher; chips: Chip[]; pct: number; blind: boolean; onAssign: (slotKey: string) => void }) {
+// ── Player row (in a position section) ────────────────────────────────────────
+function PlayerRow({ player, pct, blind, disabled, onClick }: { player: HSHitter | HSPitcher; pct: number; blind: boolean; disabled: boolean; onClick: () => void }) {
   const pit = isPitcher(player)
-  const pickable = chips.some(c => c.open)
   return (
-    <div className={`bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 ${pickable ? '' : 'opacity-45'}`}>
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <p className="font-display font-800 uppercase text-white text-sm leading-tight truncate">{player.name}</p>
-        <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: TEAM_COLORS[player.teamId] ?? '#1e335a' }}>{TEAM_SHORT[player.teamId]}</span>
-      </div>
+    <button onClick={onClick} disabled={disabled}
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-[var(--border)] text-left transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : 'bg-[var(--card)] hover:border-[var(--accent)]'}`}>
+      <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: TEAM_COLORS[player.teamId] ?? '#1e335a' }}>{TEAM_SHORT[player.teamId]}</span>
+      <span className="font-display font-800 uppercase text-white text-sm flex-1 min-w-0 truncate">{player.name}</span>
       {!blind && (
-        <div className="grid grid-cols-4 gap-1 mb-2">
-          {pit ? (<><StatMini label="ERA" value={player.era.toFixed(2)} /><StatMini label="WHIP" value={player.whip.toFixed(2)} /><StatMini label="K" value={String(player.so)} /><StatMini label="IP" value={player.ip.toFixed(0)} /></>)
-               : (<><StatMini label="AVG" value={fmt3(player.avg)} /><StatMini label="OPS" value={fmt3(player.ops)} /><StatMini label="HR" value={String(player.hr)} /><StatMini label="RBI" value={String(player.rbi)} /></>)}
-        </div>
+        <span className="flex items-center gap-2 shrink-0">
+          <span className="font-display font-800 text-white text-sm tabular-nums">{pit ? player.era.toFixed(2) : fmt3(player.ops)}</span>
+          <span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase">{pit ? 'ERA' : 'OPS'}</span>
+          <span className="w-10 h-1.5 rounded-full bg-[var(--card-hover)] overflow-hidden hidden sm:block"><span className="block h-full rounded-full" style={{ width: `${Math.max(8, pct * 100)}%`, backgroundColor: domColor(pct) }} /></span>
+        </span>
       )}
-      {!blind && (
-        <div className="h-1.5 rounded-full bg-[var(--card-hover)] overflow-hidden mb-2.5">
-          <div className="h-full rounded-full" style={{ width: `${Math.max(6, pct * 100)}%`, backgroundColor: domColor(pct) }} />
-        </div>
-      )}
-      <div className="flex flex-wrap gap-1.5">
-        {chips.map((c, i) => c.open ? (
-          <button key={i} onClick={() => c.slotKey && onAssign(c.slotKey)}
-            className="font-display font-800 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
-            {c.label}
-          </button>
-        ) : (
-          <span key={i} className="font-display font-800 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[var(--card-hover)] text-[var(--muted)]/50 line-through">
-            {c.label}
-          </span>
-        ))}
-      </div>
-    </div>
+    </button>
   )
 }
 
@@ -159,9 +133,7 @@ function TeamReel({ teamId, spinning }: { teamId: string; spinning: boolean }) {
   const color = TEAM_COLORS[teamId] ?? '#1e335a'
   return (
     <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-[var(--border)] transition-transform duration-100" style={{ backgroundColor: color, transform: spinning ? 'scale(0.97)' : 'scale(1)' }}>
-      <div className="w-10 h-10 flex items-center justify-center">
-        {TEAM_LOGOS[teamId] ? <Image src={TEAM_LOGOS[teamId]} alt={teamId} width={40} height={40} className="object-contain w-full h-full" /> : <span className="font-display font-800 text-white">{TEAM_SHORT[teamId]}</span>}
-      </div>
+      <div className="w-10 h-10 flex items-center justify-center">{TEAM_LOGOS[teamId] ? <Image src={TEAM_LOGOS[teamId]} alt={teamId} width={40} height={40} className="object-contain w-full h-full" /> : <span className="font-display font-800 text-white">{TEAM_SHORT[teamId]}</span>}</div>
       <span className="font-display font-800 italic uppercase text-white text-lg">{TEAM_NAMES[teamId] ?? teamId}</span>
     </div>
   )
@@ -178,7 +150,9 @@ export default function WinTheSeriesGame() {
   const [dealt, setDealt] = useState<string>(TEAM_IDS[0])
   const [spinning, setSpinning] = useState(false)
   const [cutoff, setCutoff] = useState(24)
+  const [skips, setSkips] = useState(SKIPS)
   const [dealNonce, setDealNonce] = useState(0)
+  const [choosing, setChoosing] = useState<HSHitter | null>(null)
   const [sim, setSim] = useState<Sim | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -201,10 +175,15 @@ export default function WinTheSeriesGame() {
     return [...data.hitters, ...data.pitchers].filter(p => p.teamId === t && !picked.has(pkey(p)))
   }, [data, picked])
 
+  const canPick = useCallback((p: HSHitter | HSPitcher) => {
+    if (isPitcher(p)) return (p.role === 'SP' ? SP_KEYS : RP_KEYS).some(k => !filled[k])
+    return openHitterSlots(p, filled).length > 0
+  }, [filled])
+
   const teamsWithPick = useCallback(() => {
     if (!data) return [] as string[]
-    return TEAM_IDS.filter(t => teamPlayers(t).some(p => chipsFor(p, filled).some(c => c.open)))
-  }, [data, teamPlayers, filled])
+    return TEAM_IDS.filter(t => teamPlayers(t).some(canPick))
+  }, [data, teamPlayers, canPick])
 
   const dealTeam = useCallback((exclude?: string) => {
     let teams = teamsWithPick()
@@ -222,7 +201,6 @@ export default function WinTheSeriesGame() {
     step()
   }, [teamsWithPick])
 
-  // Deal a fresh team whenever a new pick is requested (reads current filled).
   useEffect(() => {
     if (phase !== 'draft' || pickCount >= SLOTS.length) return
     dealTeam()
@@ -252,15 +230,28 @@ export default function WinTheSeriesGame() {
   }
 
   const assign = (player: HSHitter | HSPitcher, slotKey: string) => {
-    if (spinning || filled[slotKey]) return
+    if (filled[slotKey]) return
     const next = { ...filled, [slotKey]: player }
-    setFilled(next)
+    setFilled(next); setChoosing(null)
     if (Object.keys(next).length >= SLOTS.length) runSim(next, cutoff)
     else setDealNonce(n => n + 1)
   }
 
+  const clickPlayer = (p: HSHitter | HSPitcher) => {
+    if (spinning || !canPick(p)) return
+    if (isPitcher(p)) { const k = firstOpen(p.role === 'SP' ? SP_KEYS : RP_KEYS, filled); if (k) assign(p, k); return }
+    const opts = openHitterSlots(p, filled)
+    if (opts.length === 1) assign(p, opts[0])
+    else setChoosing(p) // multi-position → let the user pick where
+  }
+
+  const reroll = () => {
+    if (skips <= 0 || spinning || teamsWithPick().length <= 1) return
+    setSkips(s => s - 1); dealTeam(dealt)
+  }
+
   const start = (m: Mode) => {
-    setMode(m); setFilled({}); setSim(null)
+    setMode(m); setFilled({}); setSim(null); setChoosing(null); setSkips(SKIPS)
     setCutoff(CUTOFF_MIN + Math.floor(Math.random() * (CUTOFF_MAX - CUTOFF_MIN + 1)))
     setPhase('draft'); setDealNonce(n => n + 1)
   }
@@ -274,11 +265,9 @@ export default function WinTheSeriesGame() {
       <Shell>
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 md:p-8 max-w-xl mx-auto text-center">
           <p className="font-display font-700 text-[var(--muted)] text-sm leading-relaxed mb-6">
-            The slot machine deals you a team. Pick any of its players and slot them where you want — a full lineup (9 fielders), rotation (3 starters) and bullpen (2 relievers), using real regular-season stats. Players can only go to positions they actually played this season; filled spots grey out. Then your team plays a season: reach the playoffs, take the semifinal and win the Holland Series.
+            The slot machine deals you a team, with its players listed by position. Pick who you want — a full lineup (9 fielders), rotation (3 starters) and bullpen (2 relievers), using real regular-season stats. A player who covered several positions lets you choose where to slot him; filled spots grey out. You get {SKIPS} team skips. Then your team plays a season: reach the playoffs, take the semifinal and win the Holland Series.
           </p>
-          <div className="grid grid-cols-3 gap-3 mb-8 text-left">
-            <Info n="9 + 5" l="Fielders + pitchers" /><Info n="Semifinal" l="Best of 5" /><Info n="Holland Series" l="Best of 7" />
-          </div>
+          <div className="grid grid-cols-3 gap-3 mb-8 text-left"><Info n="9 + 5" l="Fielders + pitchers" /><Info n="Semifinal" l="Best of 5" /><Info n="Holland Series" l="Best of 7" /></div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button onClick={() => start('free')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity">Play — Free</button>
             <button onClick={() => start('blind')} className="font-display font-800 uppercase tracking-wider bg-[var(--card-hover)] border border-[var(--border)] text-white px-6 py-3 rounded-xl hover:border-[var(--accent)] transition-colors">Play — Blind Mode</button>
@@ -292,10 +281,43 @@ export default function WinTheSeriesGame() {
   // ── Draft ──
   if (phase === 'draft') {
     const roster = teamPlayers(dealt)
-    const hitters = roster.filter(p => !isPitcher(p)).sort((a, b) => (b as HSHitter).ops - (a as HSHitter).ops) as HSHitter[]
-    const pitchers = roster.filter(isPitcher).sort((a, b) => a.era - b.era) as HSPitcher[]
+    const pctOf = (p: HSHitter | HSPitcher) => isPitcher(p) ? pitPct(p.era) : hitPct(p.ops)
+    const sortH = (a: HSHitter, b: HSHitter) => b.ops - a.ops
+
+    const sections: { title: string; slotFilled: boolean; players: (HSHitter | HSPitcher)[]; disableAll?: boolean }[] = []
+    for (const sec of FIELD_SECTIONS) {
+      const players = roster.filter(p => !isPitcher(p) && (p as HSHitter).positions.includes(sec.pos)).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
+      if (players.length) sections.push({ title: sec.title, slotFilled: !!filled[sec.pos], players })
+    }
+    const dhOnly = roster.filter(p => !isPitcher(p) && (p as HSHitter).positions.length === 0).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
+    if (dhOnly.length) sections.push({ title: 'Designated Hitter', slotFilled: !!filled['DH'], players: dhOnly })
+    const sp = roster.filter(isPitcher).filter(p => p.role === 'SP').sort((a, b) => a.era - b.era)
+    const rp = roster.filter(isPitcher).filter(p => p.role === 'RP').sort((a, b) => a.era - b.era)
+    if (sp.length) sections.push({ title: 'Starting Pitchers', slotFilled: SP_KEYS.every(k => filled[k]), players: sp })
+    if (rp.length) sections.push({ title: 'Relievers', slotFilled: RP_KEYS.every(k => filled[k]), players: rp })
+
     return (
       <Shell>
+        {choosing && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setChoosing(null)}>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
+              <p className="font-display font-800 uppercase text-white text-lg mb-1">{choosing.name}</p>
+              <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mb-4">Choose a position</p>
+              <div className="flex flex-wrap gap-2">
+                {[...choosing.positions, 'DH'].map(pos => {
+                  const open = !filled[pos]
+                  return open ? (
+                    <button key={pos} onClick={() => assign(choosing, pos)} className="font-display font-800 text-sm uppercase tracking-wider px-4 py-2 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">{pos}</button>
+                  ) : (
+                    <span key={pos} className="font-display font-800 text-sm uppercase tracking-wider px-4 py-2 rounded-xl bg-[var(--card-hover)] text-[var(--muted)]/50 line-through">{pos}</span>
+                  )
+                })}
+              </div>
+              <button onClick={() => setChoosing(null)} className="mt-4 font-display font-700 text-xs uppercase tracking-widest text-[var(--muted)] hover:text-white">Cancel</button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <p className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--muted)]">{pickCount}/{SLOTS.length} filled · {cutoff} wins for the playoffs</p>
           {mode === 'blind' && <span className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--accent)] border border-[var(--accent)]/40 rounded-lg px-2 py-1">Blind</span>}
@@ -306,30 +328,27 @@ export default function WinTheSeriesGame() {
         <div className="flex flex-col items-center gap-3 mb-6">
           <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Pick a player from</p>
           <TeamReel teamId={dealt} spinning={spinning} />
-          <button onClick={() => dealTeam(dealt)} disabled={spinning || teamsWithPick().length <= 1}
+          <button onClick={reroll} disabled={spinning || skips <= 0 || teamsWithPick().length <= 1}
             className="font-display font-800 text-xs uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] text-white px-3 py-2 rounded-lg hover:border-[var(--accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            ↻ Deal another team
+            ↻ Skip team ({skips} left)
           </button>
         </div>
 
         {!spinning && (
-          <div className="space-y-6">
-            {hitters.length > 0 && (
-              <div>
-                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Position players — tap a position to slot them</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {hitters.map(h => <DraftCard key={pkey(h)} player={h} chips={chipsFor(h, filled)} pct={hitPct(h.ops)} blind={mode === 'blind'} onAssign={k => assign(h, k)} />)}
+          <div className="space-y-5">
+            {sections.map(sec => (
+              <div key={sec.title}>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className={`font-display font-800 text-xs uppercase tracking-widest ${sec.slotFilled ? 'text-[var(--muted)]/50' : 'text-white'}`}>{sec.title}</p>
+                  {sec.slotFilled && <span className="font-display font-700 text-[9px] uppercase tracking-widest text-[var(--muted)]/50 border border-[var(--border)] rounded px-1.5 py-0.5">Filled</span>}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {sec.players.map(p => (
+                    <PlayerRow key={pkey(p)} player={p} pct={pctOf(p)} blind={mode === 'blind'} disabled={sec.slotFilled} onClick={() => clickPlayer(p)} />
+                  ))}
                 </div>
               </div>
-            )}
-            {pitchers.length > 0 && (
-              <div>
-                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Pitchers</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {pitchers.map(p => <DraftCard key={pkey(p)} player={p} chips={chipsFor(p, filled)} pct={pitPct(p.era)} blind={mode === 'blind'} onAssign={k => assign(p, k)} />)}
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         )}
       </Shell>
