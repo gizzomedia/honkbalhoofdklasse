@@ -112,17 +112,37 @@ function RosterBoard({ filled, blind }: { filled: Filled; blind: boolean }) {
 // ── Player row (in a position section) ────────────────────────────────────────
 function PlayerRow({ player, pct, blind, disabled, onClick }: { player: HSHitter | HSPitcher; pct: number; blind: boolean; disabled: boolean; onClick: () => void }) {
   const pit = isPitcher(player)
+  const head = pit ? player.era.toFixed(2) : fmt3(player.ops)
+  const headLabel = pit ? 'ERA' : 'OPS'
+  const strip: [string, string | number][] = pit
+    ? [['W', player.w], ['SV', player.sv], ['WHIP', player.whip.toFixed(2)], ['K', player.so]]
+    : [['AVG', fmt3(player.avg)], ['HR', player.hr], ['RBI', player.rbi], ['SB', player.sb]]
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg border border-[var(--border)] text-left transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : 'bg-[var(--card)] hover:border-[var(--accent)]'}`}>
-      <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: TEAM_COLORS[player.teamId] ?? '#1e335a' }}>{TEAM_SHORT[player.teamId]}</span>
-      <span className="font-display font-800 uppercase text-white text-sm flex-1 min-w-0 truncate">{player.name}</span>
+      className={`group w-full text-left rounded-lg border px-3 py-2.5 transition-all ${disabled ? 'opacity-40 cursor-not-allowed border-[var(--border)]' : 'bg-[var(--card)] border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--card-hover)]'}`}
+      style={!disabled ? { borderLeft: `3px solid ${teamAccent(player.teamId)}` } : undefined}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: TEAM_COLORS[player.teamId] ?? '#1e335a' }}>{TEAM_SHORT[player.teamId]}</span>
+          <span className="font-display font-800 uppercase text-white text-sm truncate">{player.name}</span>
+        </div>
+        {!blind && (
+          <div className="flex items-baseline gap-1 shrink-0">
+            <span className="font-display font-800 text-white text-base tabular-nums leading-none">{head}</span>
+            <span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase">{headLabel}</span>
+          </div>
+        )}
+      </div>
       {!blind && (
-        <span className="flex items-center gap-2 shrink-0">
-          <span className="font-display font-800 text-white text-sm tabular-nums">{pit ? player.era.toFixed(2) : fmt3(player.ops)}</span>
-          <span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase">{pit ? 'ERA' : 'OPS'}</span>
-          <span className="w-10 h-1.5 rounded-full bg-[var(--card-hover)] overflow-hidden hidden sm:block"><span className="block h-full rounded-full" style={{ width: `${Math.max(8, pct * 100)}%`, backgroundColor: domColor(pct) }} /></span>
-        </span>
+        <div className="flex items-center gap-3 mt-2">
+          {strip.map(([l, v]) => (
+            <span key={l} className="flex items-baseline gap-1">
+              <span className="font-display font-800 text-white/90 text-xs tabular-nums leading-none">{v}</span>
+              <span className="font-display font-700 text-[8px] text-[var(--muted)] uppercase tracking-wider">{l}</span>
+            </span>
+          ))}
+          <span className="ml-auto w-12 h-1 rounded-full bg-[var(--card-hover)] overflow-hidden hidden sm:block"><span className="block h-full rounded-full" style={{ width: `${Math.max(8, pct * 100)}%`, backgroundColor: domColor(pct) }} /></span>
+        </div>
       )}
     </button>
   )
@@ -263,16 +283,23 @@ export default function WinTheSeriesGame() {
   if (phase === 'start') {
     return (
       <Shell>
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 md:p-8 max-w-xl mx-auto text-center">
-          <p className="font-display font-700 text-[var(--muted)] text-sm leading-relaxed mb-6">
-            The slot machine deals you a team, with its players listed by position. Pick who you want — a full lineup (9 fielders), rotation (3 starters) and bullpen (2 relievers), using real regular-season stats. A player who covered several positions lets you choose where to slot him; filled spots grey out. You get {SKIPS} team skips. Then your team plays a season: reach the playoffs, take the semifinal and win the Holland Series.
-          </p>
-          <div className="grid grid-cols-3 gap-3 mb-8 text-left"><Info n="9 + 5" l="Fielders + pitchers" /><Info n="Semifinal" l="Best of 5" /><Info n="Holland Series" l="Best of 7" /></div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => start('free')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity">Play — Free</button>
-            <button onClick={() => start('blind')} className="font-display font-800 uppercase tracking-wider bg-[var(--card-hover)] border border-[var(--border)] text-white px-6 py-3 rounded-xl hover:border-[var(--accent)] transition-colors">Play — Blind Mode</button>
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {['Draft', 'Playoffs', 'Title'].map((step, i) => (
+              <span key={step} className="flex items-center gap-2">
+                <span className={`font-display font-800 uppercase text-sm tracking-wider ${i === 2 ? 'text-[var(--accent)]' : 'text-white'}`}>{step}</span>
+                {i < 2 && <span className="text-[var(--muted)]">→</span>}
+              </span>
+            ))}
           </div>
-          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-4">Blind mode hides all stats while you draft · the playoff line shifts each game</p>
+          <div className="grid grid-cols-3 gap-2 mb-8">
+            <Info n="9 + 5" l="Roster" /><Info n="Bo5" l="Semifinal" /><Info n="Bo7" l="Holland Series" />
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <button onClick={() => start('free')} className="font-display font-800 uppercase tracking-widest bg-[var(--accent)] text-white px-6 py-4 rounded-xl hover:opacity-90 transition-opacity text-lg">Play</button>
+            <button onClick={() => start('blind')} className="font-display font-800 uppercase tracking-widest bg-[var(--card)] border border-[var(--border)] text-white px-6 py-3 rounded-xl hover:border-[var(--accent)] transition-colors">Blind Mode</button>
+          </div>
+          <p className="text-center font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mt-5">{SKIPS} skips · playoff line shifts each game</p>
         </div>
       </Shell>
     )
