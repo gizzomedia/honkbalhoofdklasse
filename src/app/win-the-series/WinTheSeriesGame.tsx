@@ -12,8 +12,8 @@ const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.6                      // a 5-man staff regresses over a full season
 const OFF_EXP = 1.55                      // run scaling vs offense (kept realistic, not explosive)
-const OPP_SEMI = 0.72                     // semifinal opponent: a top playoff team
-const OPP_FINAL = 0.84                    // Holland Series opponent: the league's best
+const OPP_SEMI = 0.66                     // semifinal opponent: a top playoff team
+const OPP_FINAL = 0.79                    // Holland Series opponent: the league's best
 const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
@@ -175,20 +175,29 @@ function PlayerRow({ player, pct, blind, disabled, onClick }: { player: HSHitter
 }
 
 // ── Slot machine ──────────────────────────────────────────────────────────────
+// Fixed-size reel so nothing shifts as it spins; during the spin we render just
+// the team abbreviation + colour (no image) so every frame swaps instantly.
 function TeamReel({ teamId, spinning, question }: { teamId: string; spinning: boolean; question?: boolean }) {
+  const base = 'w-64 h-20 rounded-2xl flex items-center justify-center gap-3 select-none overflow-hidden'
   if (question) {
     return (
-      <div className="flex items-center gap-3 px-8 py-4 rounded-2xl border-2 border-[var(--accent)] bg-[var(--card)]">
+      <div className={`${base} border-2 border-dashed border-[var(--accent)] bg-[var(--card)]`}>
         <span className="font-display font-800 text-4xl text-white leading-none">?</span>
-        <span className="font-display font-800 uppercase text-[var(--muted)] tracking-widest text-sm">Team</span>
       </div>
     )
   }
   const color = TEAM_COLORS[teamId] ?? '#1e335a'
+  if (spinning) {
+    return (
+      <div className={base} style={{ backgroundColor: color }}>
+        <span className="font-display font-800 italic text-4xl text-white leading-none">{TEAM_SHORT[teamId]}</span>
+      </div>
+    )
+  }
   return (
-    <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-[var(--border)] transition-transform duration-100" style={{ backgroundColor: color, transform: spinning ? 'scale(0.97)' : 'scale(1)' }}>
-      <div className="w-10 h-10 flex items-center justify-center">{TEAM_LOGOS[teamId] ? <Image src={TEAM_LOGOS[teamId]} alt={teamId} width={40} height={40} className="object-contain w-full h-full" /> : <span className="font-display font-800 text-white">{TEAM_SHORT[teamId]}</span>}</div>
-      <span className="font-display font-800 italic uppercase text-white text-lg">{TEAM_NAMES[teamId] ?? teamId}</span>
+    <div className={base} style={{ backgroundColor: color }}>
+      <div className="w-11 h-11 flex items-center justify-center shrink-0">{TEAM_LOGOS[teamId] ? <Image src={TEAM_LOGOS[teamId]} alt={teamId} width={44} height={44} className="object-contain w-full h-full" /> : <span className="font-display font-800 text-white">{TEAM_SHORT[teamId]}</span>}</div>
+      <span className="font-display font-800 italic uppercase text-white text-base truncate">{TEAM_NAMES[teamId] ?? teamId}</span>
     </div>
   )
 }
@@ -199,10 +208,10 @@ function SpinGate({ round, total, dealt, spinning, onSpin }: { round: number; to
       <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-[0.3em]">Pick {round} / {total}</p>
       <TeamReel teamId={dealt} spinning={spinning} question={!spinning} />
       {spinning ? (
-        <p className="font-display font-800 text-[11px] text-[var(--accent)] uppercase tracking-[0.3em] animate-pulse">Spinning…</p>
+        <p className="font-display font-800 text-[11px] text-[var(--accent)] uppercase tracking-[0.3em] animate-pulse">Spinning</p>
       ) : (
         <>
-          <span className="font-display font-800 uppercase tracking-widest text-white text-lg bg-[var(--accent)] px-10 py-4 rounded-xl shadow-[0_0_35px_-5px_var(--accent)]">🎰 Spin</span>
+          <span className="font-display font-800 uppercase tracking-widest text-white text-lg bg-[var(--accent)] px-12 py-4 rounded-xl shadow-[0_0_35px_-5px_var(--accent)]">Spin</span>
           <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-[0.25em]">Click anywhere to spin</p>
         </>
       )}
@@ -236,8 +245,10 @@ export default function WinTheSeriesGame() {
 
   const picked = useMemo(() => new Set(Object.values(filled).map(pkey)), [filled])
   const pickCount = Object.keys(filled).length
-  const opsSorted = useMemo(() => (data?.hitters ?? []).map(h => h.ops).sort((a, b) => a - b), [data])
-  const eraSorted = useMemo(() => (data?.pitchers ?? []).map(p => p.era).sort((a, b) => a - b), [data])
+  // Pick-quality (sort + dominance bar) uses sample-adjusted rates, so small
+  // samples can't top the board on rate alone.
+  const opsSorted = useMemo(() => (data?.hitters ?? []).map(h => h.opsAdj).sort((a, b) => a - b), [data])
+  const eraSorted = useMemo(() => (data?.pitchers ?? []).map(p => p.eraAdj).sort((a, b) => a - b), [data])
   const hitPct = (ops: number) => opsSorted.length < 2 ? 0.5 : opsSorted.filter(o => o < ops).length / (opsSorted.length - 1)
   const pitPct = (era: number) => eraSorted.length < 2 ? 0.5 : eraSorted.filter(e => e > era).length / (eraSorted.length - 1)
 
@@ -262,15 +273,21 @@ export default function WinTheSeriesGame() {
     if (!teams.length) return
     const final = teams[Math.floor(Math.random() * teams.length)]
     setSpinning(true)
-    let delay = 55
+    const STEPS = 20
+    let i = 0, prev = dealt
     const step = () => {
-      setDealt(TEAM_IDS[Math.floor(Math.random() * TEAM_IDS.length)])
-      delay *= 1.3
-      if (delay < 360) timer.current = setTimeout(step, delay)
-      else { setDealt(final); setSpinning(false); setRevealed(true) }
+      let t = TEAM_IDS[Math.floor(Math.random() * TEAM_IDS.length)]
+      if (t === prev) t = TEAM_IDS[(TEAM_IDS.indexOf(t) + 1) % TEAM_IDS.length]
+      prev = t
+      setDealt(t)
+      i++
+      if (i < STEPS) {
+        const p = i / STEPS
+        timer.current = setTimeout(step, 34 + 150 * p * p) // ease-out: steady then slowing
+      } else { setDealt(final); setSpinning(false); setRevealed(true) }
     }
     step()
-  }, [teamsWithPick])
+  }, [teamsWithPick, dealt])
 
   const spin = () => { if (!spinning && !revealed) dealTeam() }
 
@@ -278,10 +295,10 @@ export default function WinTheSeriesGame() {
     const hitters = LINEUP_KEYS.map(k => f[k] as HSHitter)
     const sp = SP_KEYS.map(k => f[k] as HSPitcher)
     const rp = RP_KEYS.map(k => f[k] as HSPitcher)
-    const lineupOps = hitters.reduce((s, h) => s + h.ops, 0) / hitters.length
+    const lineupOps = hitters.reduce((s, h) => s + h.opsAdj, 0) / hitters.length
     const rs = data!.leagueEra * (lineupOps / data!.leagueOps) ** OFF_EXP
-    const spEra = sp.reduce((s, p) => s + p.era, 0) / sp.length
-    const rpEra = rp.reduce((s, p) => s + p.era, 0) / rp.length
+    const spEra = sp.reduce((s, p) => s + p.eraAdj, 0) / sp.length
+    const rpEra = rp.reduce((s, p) => s + p.eraAdj, 0) / rp.length
     const staffEra = Math.max(RA_FLOOR, 0.7 * spEra + 0.3 * rpEra)
     const talent = winP(rs, staffEra)               // your win% vs a league-average team
     let wins = 0
@@ -357,8 +374,8 @@ export default function WinTheSeriesGame() {
   // ── Draft ──
   if (phase === 'draft') {
     const roster = teamPlayers(dealt)
-    const pctOf = (p: HSHitter | HSPitcher) => isPitcher(p) ? pitPct(p.era) : hitPct(p.ops)
-    const sortH = (a: HSHitter, b: HSHitter) => b.ops - a.ops
+    const pctOf = (p: HSHitter | HSPitcher) => isPitcher(p) ? pitPct(p.eraAdj) : hitPct(p.opsAdj)
+    const sortH = (a: HSHitter, b: HSHitter) => b.opsAdj - a.opsAdj
 
     const sections: { title: string; slotFilled: boolean; players: (HSHitter | HSPitcher)[]; directSlot?: string }[] = []
     for (const sec of FIELD_SECTIONS) {
@@ -370,8 +387,8 @@ export default function WinTheSeriesGame() {
       const dh = roster.filter(p => !isPitcher(p)).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
       if (dh.length) sections.push({ title: 'Designated Hitter', slotFilled: false, players: dh, directSlot: 'DH' })
     }
-    const sp = roster.filter(isPitcher).filter(p => p.role === 'SP').sort((a, b) => a.era - b.era)
-    const rp = roster.filter(isPitcher).filter(p => p.role === 'RP').sort((a, b) => a.era - b.era)
+    const sp = roster.filter(isPitcher).filter(p => p.role === 'SP').sort((a, b) => a.eraAdj - b.eraAdj)
+    const rp = roster.filter(isPitcher).filter(p => p.role === 'RP').sort((a, b) => a.eraAdj - b.eraAdj)
     if (sp.length) sections.push({ title: 'Starting Pitchers', slotFilled: SP_KEYS.every(k => filled[k]), players: sp })
     if (rp.length) sections.push({ title: 'Relievers', slotFilled: RP_KEYS.every(k => filled[k]), players: rp })
 

@@ -50,31 +50,50 @@ async function fetchSection(section: string) {
 export type HSHitter = {
   name: string; teamId: string
   ab: number; r: number; h: number; hr: number; rbi: number; sb: number
-  avg: number; obp: number; slg: number; ops: number
+  avg: number; obp: number; slg: number; ops: number; opsAdj: number
   positions: string[]
 }
 export type HSPitcher = {
   name: string; teamId: string; role: 'SP' | 'RP'
-  era: number; whip: number; so: number; ip: number; w: number; sv: number
+  era: number; whip: number; so: number; ip: number; w: number; sv: number; eraAdj: number
 }
+
+// Regression toward the mean by playing time: a small sample counts less. K is
+// the amount of league-average "ballast" added — a player needs roughly K of
+// their own to be trusted, so a half-season stud and a full-season regular end
+// up weighed against each other rather than the small sample winning outright.
+const K_AB = 60   // hitters: AB of regression
+const K_IP = 40   // pitchers: IP of regression
 
 export async function GET() {
   try {
     const [bat, pit] = await Promise.all([fetchSection('batting'), fetchSection('pitching')])
+
+    // Baselines first — the adjusted rates regress toward these.
+    // Offense: AB-weighted league OPS (the average plate appearance) = a real
+    // average lineup, not the all-batter mean that scrubs drag down.
+    let sumOpsAb = 0, sumAb = 0
+    for (const p of bat) { const ab = num(p.ab); if (ab < 10) continue; sumOpsAb += (rate(p.obp) + rate(p.slg)) * ab; sumAb += ab }
+    const leagueOps = sumAb > 0 ? Number((sumOpsAb / sumAb).toFixed(3)) : 0.74
+    // Run environment: mean ERA of pitchers with a real workload (>=20 IP).
+    const qEras = pit.map(p => ({ era: num(p.era), ip: ipDec(p.pitch_ip) })).filter(x => x.ip >= 20 && x.era > 0).map(x => x.era)
+    const leagueEra = qEras.length ? Number((qEras.reduce((a, b) => a + b, 0) / qEras.length).toFixed(2)) : 4.9
 
     const hitters: HSHitter[] = bat
       .filter(p => num(p.ab) >= 10)
       .map(p => {
         const teamId = KNBSB_NUMERIC_ID_MAP[num(p.teamid)] ?? ''
         const { last, first } = spans(String(p.name ?? ''))
-        const obp = rate(p.obp), slg = rate(p.slg)
+        const obp = rate(p.obp), slg = rate(p.slg), ops = Number((obp + slg).toFixed(3))
+        const ab = num(p.ab)
         const posRec = POS[keyOf(teamId, last, first)]?.pos ?? {}
         const positions = FIELD_POS.filter(fp => (posRec[fp] ?? 0) >= 1)
         return {
           name: `${first.split(' ')[0]} ${titleLast(last)}`.trim(),
           teamId,
-          ab: num(p.ab), r: num(p.r), h: num(p.h), hr: num(p.hr), rbi: num(p.rbi), sb: num(p.sb),
-          avg: rate(p.avg), obp, slg, ops: Number((obp + slg).toFixed(3)),
+          ab, r: num(p.r), h: num(p.h), hr: num(p.hr), rbi: num(p.rbi), sb: num(p.sb),
+          avg: rate(p.avg), obp, slg, ops,
+          opsAdj: Number(((ops * ab + leagueOps * K_AB) / (ab + K_AB)).toFixed(3)),
           positions,
         }
       })
@@ -86,26 +105,17 @@ export async function GET() {
         const { last, first } = spans(String(p.name ?? ''))
         const ip = ipDec(p.pitch_ip)
         const gs = num(p.pitch_gs)
+        const era = num(p.era)
         const role: 'SP' | 'RP' | null = gs >= 3 && ip >= 12 ? 'SP' : gs < 3 && ip >= 5 ? 'RP' : null
         return {
           name: `${first.split(' ')[0]} ${titleLast(last)}`.trim(),
           teamId, role,
-          era: num(p.era), whip: ip > 0 ? Number(((num(p.pitch_bb) + num(p.pitch_h)) / ip).toFixed(2)) : 0,
+          era, whip: ip > 0 ? Number(((num(p.pitch_bb) + num(p.pitch_h)) / ip).toFixed(2)) : 0,
           so: num(p.pitch_so), ip: Number(ip.toFixed(1)), w: num(p.pitch_win), sv: num(p.pitch_save),
+          eraAdj: Number(((era * ip + leagueEra * K_IP) / (ip + K_IP)).toFixed(2)),
         }
       })
       .filter((p): p is HSPitcher => !!p.role && !!p.teamId && p.era > 0 && p.name.length > 1)
-
-    // Offense baseline = AB-weighted league OPS (the average plate appearance),
-    // which reflects a real average lineup — not the all-batter mean, which is
-    // dragged down by scrubs and makes drafted lineups look far above average.
-    const totAb = hitters.reduce((s, h) => s + h.ab, 0)
-    const leagueOps = totAb > 0 ? Number((hitters.reduce((s, h) => s + h.ops * h.ab, 0) / totAb).toFixed(3)) : 0.74
-    // Run environment baseline: mean ERA of pitchers with a real workload
-    // (>=20 IP), i.e. starters — not the whole pool, which small-sample
-    // relievers would inflate.
-    const qEras = pit.map(p => ({ era: num(p.era), ip: ipDec(p.pitch_ip) })).filter(x => x.ip >= 20 && x.era > 0).map(x => x.era)
-    const leagueEra = qEras.length ? Number((qEras.reduce((a, b) => a + b, 0) / qEras.length).toFixed(2)) : 4.9
 
     return NextResponse.json({ hitters, pitchers, leagueOps, leagueEra }, {
       headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' },
