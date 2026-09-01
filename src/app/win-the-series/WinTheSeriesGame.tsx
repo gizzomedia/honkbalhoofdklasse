@@ -6,8 +6,8 @@ import { TEAM_IDS, TEAM_NAMES, TEAM_SHORT, TEAM_LOGOS, TEAM_COLORS, teamAccent }
 import type { HSHitter, HSPitcher } from '@/app/api/win-the-series/route'
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const REG_GAMES = 42
-const CUTOFF_MIN = 28, CUTOFF_MAX = 31   // playoff line varies per game, fixed within a game
+const REG_GAMES = 36
+const CUTOFF_MIN = 24, CUTOFF_MAX = 27   // playoff line varies per game, fixed within a game
 const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.6                      // a 5-man staff regresses over a full season
@@ -51,7 +51,8 @@ type SeriesResult = { a: number; b: number; won: boolean }
 type Sim = {
   cutoff: number; wins: number; losses: number; madePlayoffs: boolean
   semi: SeriesResult | null; final: SeriesResult | null; champion: boolean
-  rs: number; staffEra: number; lineupOps: number
+  rs: number; staffEra: number; lineupOps: number; spEra: number; rpEra: number
+  talent: number; titleOdds: number; weakBat: { pos: string; name: string; ops: number }
 }
 
 const isPitcher = (x: HSHitter | HSPitcher): x is HSPitcher => 'era' in x
@@ -73,6 +74,27 @@ function domColor(pct: number) {
   return '#ef4444'
 }
 const firstOpen = (keys: string[], filled: Filled) => keys.find(k => !filled[k]) ?? null
+
+// Monte-Carlo the team's chance to actually win it all — grounds the result.
+function champOdds(talent: number, cutoff: number, N = 2500): number {
+  let ch = 0
+  for (let i = 0; i < N; i++) {
+    let w = 0
+    for (let g = 0; g < REG_GAMES; g++) if (Math.random() < talent) w++
+    if (w < cutoff) continue
+    if (!simSeries(log5(talent, OPP_SEMI), SEMI_WINS).won) continue
+    if (simSeries(log5(talent, OPP_FINAL), FINAL_WINS).won) ch++
+  }
+  return ch / N
+}
+
+type Grade = 'A' | 'B' | 'C' | 'D' | 'F'
+const GRADE_COLOR: Record<Grade, string> = { A: '#22c55e', B: '#84cc16', C: '#eab308', D: '#f97316', F: '#ef4444' }
+const GRADE_SCORE: Record<Grade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 }
+const offGrade = (r: number): Grade => r >= 1.18 ? 'A' : r >= 1.08 ? 'B' : r >= 1.0 ? 'C' : r >= 0.92 ? 'D' : 'F'
+const armGrade = (era: number, lg: number): Grade => { const r = lg / era; return r >= 1.30 ? 'A' : r >= 1.12 ? 'B' : r >= 1.0 ? 'C' : r >= 0.88 ? 'D' : 'F' }
+
+const POS_LABEL: Record<string, string> = { C: 'catcher', '1B': 'first base', '2B': 'second base', '3B': 'third base', SS: 'shortstop', LF: 'left field', CF: 'center field', RF: 'right field', DH: 'DH' }
 // Open positions a hitter can still be assigned to (their field spots + DH).
 const openHitterSlots = (h: HSHitter, filled: Filled) =>
   [...h.positions.filter(p => !filled[p]), ...(!filled['DH'] ? ['DH'] : [])]
@@ -249,7 +271,9 @@ export default function WinTheSeriesGame() {
       semi = simSeries(log5(talent, OPP_SEMI), SEMI_WINS)
       if (semi.won) { fin = simSeries(log5(talent, OPP_FINAL), FINAL_WINS); champion = fin.won }
     }
-    setSim({ cutoff: cut, wins, losses: REG_GAMES - wins, madePlayoffs, semi, final: fin, champion, rs, staffEra, lineupOps })
+    let weakBat = { pos: LINEUP_KEYS[0], name: hitters[0].name, ops: hitters[0].ops }
+    LINEUP_KEYS.forEach((k, i) => { if (hitters[i].ops < weakBat.ops) weakBat = { pos: k, name: hitters[i].name, ops: hitters[i].ops } })
+    setSim({ cutoff: cut, wins, losses: REG_GAMES - wins, madePlayoffs, semi, final: fin, champion, rs, staffEra, lineupOps, spEra, rpEra, talent, titleOdds: champOdds(talent, cut), weakBat })
     setPhase('result')
   }
 
@@ -395,17 +419,43 @@ export default function WinTheSeriesGame() {
     : s.final ? `Runner-up — lost the Holland Series ${s.final.a}-${s.final.b}`
     : s.semi ? `Eliminated in the playoffs ${s.semi.a}-${s.semi.b}`
     : `Missed the playoffs — ${s.wins}-${s.losses}`
+  const offG = offGrade(s.lineupOps / data.leagueOps)
+  const rotG = armGrade(s.spEra, data.leagueEra)
+  const bulG = armGrade(s.rpEra, data.leagueEra)
+  const units: { key: string; g: Grade }[] = [{ key: 'offense', g: offG }, { key: 'rotation', g: rotG }, { key: 'bullpen', g: bulG }]
+  const worst = units.reduce((a, b) => GRADE_SCORE[b.g] < GRADE_SCORE[a.g] ? b : a)
+  const best = units.reduce((a, b) => GRADE_SCORE[b.g] > GRADE_SCORE[a.g] ? b : a)
+  const report = s.champion
+    ? `Balanced enough to go all the way — your ${best.key} led the charge.`
+    : !s.madePlayoffs
+      ? `${s.cutoff - s.wins} win${s.cutoff - s.wins === 1 ? '' : 's'} short of the playoff line. Your ${worst.key} was the biggest gap.`
+      : GRADE_SCORE[worst.g] <= 1
+        ? worst.key === 'offense'
+          ? `Your bats held you back — ${POS_LABEL[s.weakBat.pos]} (${s.weakBat.name}, ${fmt3(s.weakBat.ops)} OPS) was the soft spot.`
+          : worst.key === 'rotation'
+            ? `Your rotation (${s.spEra.toFixed(2)} ERA) gave up too much — stronger starters get you further.`
+            : `A leaky bullpen (${s.rpEra.toFixed(2)} ERA) cost you in the tight games.`
+        : `Strong all around — the ${s.final ? 'Holland Series' : 'playoff'} opponent was just elite. Short series are a coin flip.`
   return (
     <Shell>
       <div className={`rounded-2xl p-6 md:p-8 mb-6 text-center border ${s.champion ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] bg-[var(--card)]'}`}>
         <p className="font-display font-800 italic text-3xl md:text-4xl uppercase text-white leading-tight"><strong>{outcome}</strong></p>
-        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-3">{s.rs.toFixed(1)} runs scored/game · {s.staffEra.toFixed(2)} staff ERA · lineup OPS {fmt3(s.lineupOps)}</p>
+        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-3">Title odds were {Math.round(s.titleOdds * 100)}% · {s.rs.toFixed(1)} R/G · {s.staffEra.toFixed(2)} staff ERA</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <Stage title="Regular Season" score={`${s.wins}-${s.losses}`} ok={s.madePlayoffs} note={s.madePlayoffs ? 'Clinched a playoff spot' : `Needed ${s.cutoff} wins`} />
         <Stage title="Playoffs · Semifinal" score={s.semi ? `${s.semi.a}-${s.semi.b}` : '—'} ok={!!s.semi?.won} dim={!s.madePlayoffs} note={!s.madePlayoffs ? 'Did not qualify' : s.semi?.won ? 'Advanced' : 'Eliminated'} />
         <Stage title="Holland Series" score={s.final ? `${s.final.a}-${s.final.b}` : '—'} ok={s.champion} dim={!s.semi?.won} note={!s.semi?.won ? 'Did not reach' : s.champion ? 'Champions!' : 'Lost the final'} />
       </div>
+
+      <p className="font-display font-700 text-[var(--muted)] text-xs uppercase tracking-widest mb-3">Scouting report</p>
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        <ScoutUnit label="Offense" value={fmt3(s.lineupOps)} sub={`OPS · lg ${fmt3(data.leagueOps)}`} grade={offG} />
+        <ScoutUnit label="Rotation" value={s.spEra.toFixed(2)} sub={`ERA · lg ${data.leagueEra.toFixed(2)}`} grade={rotG} />
+        <ScoutUnit label="Bullpen" value={s.rpEra.toFixed(2)} sub={`ERA · lg ${data.leagueEra.toFixed(2)}`} grade={bulG} />
+      </div>
+      <p className="font-display font-700 text-white text-sm mb-8 leading-snug">{report}</p>
+
       <p className="font-display font-700 text-[var(--muted)] text-xs uppercase tracking-widest mb-3">Your team</p>
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-8"><RosterBoard filled={filled} blind={false} /></div>
       <div className="flex justify-center"><button onClick={() => setPhase('start')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-8 py-3 rounded-xl hover:opacity-90 transition-opacity">Play again</button></div>
@@ -427,6 +477,18 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 function Info({ n, l }: { n: string; l: string }) {
   return <div className="bg-[var(--card-hover)] rounded-xl px-3 py-2"><p className="font-display font-800 text-white text-sm uppercase leading-none">{n}</p><p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider mt-1">{l}</p></div>
+}
+function ScoutUnit({ label, value, sub, grade }: { label: string; value: string; sub: string; grade: Grade }) {
+  return (
+    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest truncate">{label}</p>
+        <span className="font-display font-800 text-sm w-6 h-6 flex items-center justify-center rounded-md shrink-0" style={{ color: GRADE_COLOR[grade], border: `1.5px solid ${GRADE_COLOR[grade]}` }}>{grade}</span>
+      </div>
+      <p className="font-display font-800 text-2xl text-white tabular-nums leading-none">{value}</p>
+      <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-wider mt-1">{sub}</p>
+    </div>
+  )
 }
 function Stage({ title, score, note, ok, dim }: { title: string; score: string; note: string; ok: boolean; dim?: boolean }) {
   return (
