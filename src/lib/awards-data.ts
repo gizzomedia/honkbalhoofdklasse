@@ -60,15 +60,15 @@ export const AWARDS: Award[] = [
   { season: 2026, category: 'hottest-player-week', playerName: 'Nando Mostaert',      teamId: 'twins',    label: 'Week 13', note: '2 HR, 11 TB, 5 RBI, 4 R, .917 SLG, 1.301 OPS' },
   { season: 2026, category: 'hottest-player-week', playerName: 'Darryl Collins',      teamId: 'neptunus', label: 'Week 14', note: '6-for-9 (.667), 1 2B, 1 3B, 9 TB, 1.000 SLG, 1.667 OPS, 4 RBI, 2 R' },
   // SSK Pitcher of the Month 2026
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'Month 1' },
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Month 2' },
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Koen Postelmans', teamId: 'neptunus', label: 'Month 3' },
-  { season: 2026, category: 'pitcher-of-month', playerName: 'Martijn Schoonderwoerd', teamId: 'pirates', label: 'Month 4' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Shairon Martis', teamId: 'neptunus', label: 'April' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Lars Huijer',    teamId: 'pirates',  label: 'Mei' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Koen Postelmans', teamId: 'neptunus', label: 'Juni' },
+  { season: 2026, category: 'pitcher-of-month', playerName: 'Martijn Schoonderwoerd', teamId: 'pirates', label: 'Juli' },
   // Bat King Europe Hitter of the Month 2026
-  { season: 2026, category: 'hitter-of-month',  playerName: 'Darryl Collins',  teamId: 'neptunus', label: 'Month 1' },
-  { season: 2026, category: 'hitter-of-month',  playerName: 'Jeandro Tromp',   teamId: 'pirates',  label: 'Month 2' },
-  { season: 2026, category: 'hitter-of-month',  playerName: 'Christian Diaz',  teamId: 'neptunus', label: 'Month 3' },
-  { season: 2026, category: 'hitter-of-month',  playerName: 'Delano Selassa',  teamId: 'pirates',  label: 'Month 4' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Darryl Collins',  teamId: 'neptunus', label: 'April' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Jeandro Tromp',   teamId: 'pirates',  label: 'Mei' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Christian Diaz',  teamId: 'neptunus', label: 'Juni' },
+  { season: 2026, category: 'hitter-of-month',  playerName: 'Delano Selassa',  teamId: 'pirates',  label: 'Juli' },
 ]
 
 export function getAwardsByPlayer(playerName: string): Award[] {
