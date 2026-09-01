@@ -32,11 +32,14 @@ const SLOTS: Slot[] = [
   { key: 'RP2', label: 'Reliever 2', short: 'RP', type: 'RP' },
 ]
 const LINEUP_KEYS = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH']
+const SP_KEYS = ['SP1', 'SP2', 'SP3']
+const RP_KEYS = ['RP1', 'RP2']
 
 type Data = { hitters: HSHitter[]; pitchers: HSPitcher[]; leagueOps: number; leagueEra: number }
 type Mode = 'free' | 'blind'
 type Phase = 'start' | 'draft' | 'result'
 type Filled = Record<string, HSHitter | HSPitcher>
+type Chip = { label: string; slotKey: string | null; open: boolean }
 type SeriesResult = { a: number; b: number; won: boolean }
 type Sim = {
   cutoff: number; wins: number; losses: number; madePlayoffs: boolean
@@ -60,19 +63,27 @@ function domColor(pct: number) {
   if (pct >= 0.25) return '#f97316'
   return '#ef4444'
 }
+const firstOpen = (keys: string[], filled: Filled) => keys.find(k => !filled[k]) ?? null
+
+// Which positions a player can still be assigned to, and whether each is open.
+function chipsFor(p: HSHitter | HSPitcher, filled: Filled): Chip[] {
+  if (isPitcher(p)) {
+    const keys = p.role === 'SP' ? SP_KEYS : RP_KEYS
+    return [{ label: p.role, slotKey: firstOpen(keys, filled), open: keys.some(k => !filled[k]) }]
+  }
+  const chips: Chip[] = p.positions.map(pos => ({ label: pos, slotKey: pos, open: !filled[pos] }))
+  chips.push({ label: 'DH', slotKey: 'DH', open: !filled['DH'] })
+  return chips
+}
 
 // ── Roster board ──────────────────────────────────────────────────────────────
-function SlotCard({ slot, player, active, blind }: { slot: Slot; player?: HSHitter | HSPitcher; active: boolean; blind: boolean }) {
+function SlotCard({ slot, player, blind }: { slot: Slot; player?: HSHitter | HSPitcher; blind: boolean }) {
   const filled = !!player
   const accent = player ? teamAccent(player.teamId) : 'var(--border)'
   return (
-    <div
-      className={`rounded-xl px-2.5 py-2 border transition-all ${
-        filled ? 'bg-[var(--card-hover)] border-transparent' : active ? 'border-[var(--accent)] bg-[var(--accent)]/10 animate-pulse' : 'border-dashed border-[var(--border)] bg-[var(--card)]'
-      }`}
-      style={filled ? { borderLeft: `3px solid ${accent}` } : undefined}
-    >
-      <p className="font-display font-800 text-[10px] uppercase tracking-widest" style={{ color: active && !filled ? 'var(--accent)' : 'var(--muted)' }}>{slot.short}</p>
+    <div className={`rounded-xl px-2.5 py-2 border transition-all ${filled ? 'bg-[var(--card-hover)] border-transparent' : 'border-dashed border-[var(--border)] bg-[var(--card)]'}`}
+      style={filled ? { borderLeft: `3px solid ${accent}` } : undefined}>
+      <p className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--muted)]">{slot.short}</p>
       {filled ? (
         <>
           <p className="font-display font-800 text-white text-xs uppercase leading-tight truncate">{player!.name}</p>
@@ -86,74 +97,60 @@ function SlotCard({ slot, player, active, blind }: { slot: Slot; player?: HSHitt
     </div>
   )
 }
-
-function RosterBoard({ filled, activeKey, blind }: { filled: Filled; activeKey: string | null; blind: boolean }) {
+function RosterBoard({ filled, blind }: { filled: Filled; blind: boolean }) {
   const group = (title: string, keys: string[]) => (
     <div>
       <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-1.5">{title}</p>
-      <div className="grid grid-cols-3 sm:grid-cols-3 gap-1.5">
-        {keys.map(k => {
-          const slot = SLOTS.find(s => s.key === k)!
-          return <SlotCard key={k} slot={slot} player={filled[k]} active={activeKey === k} blind={blind} />
-        })}
+      <div className="grid grid-cols-3 gap-1.5">
+        {keys.map(k => <SlotCard key={k} slot={SLOTS.find(s => s.key === k)!} player={filled[k]} blind={blind} />)}
       </div>
     </div>
   )
   return (
     <div className="space-y-3">
       {group('Lineup', LINEUP_KEYS)}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {group('Rotation', ['SP1', 'SP2', 'SP3'])}
-        {group('Bullpen', ['RP1', 'RP2'])}
-      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{group('Rotation', SP_KEYS)}{group('Bullpen', RP_KEYS)}</div>
     </div>
   )
 }
 
-// ── Pick card ─────────────────────────────────────────────────────────────────
+// ── Draft card (player + position chips) ──────────────────────────────────────
 function StatMini({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col items-center">
-      <span className="font-display font-800 text-white text-sm tabular-nums leading-none">{value}</span>
-      <span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-wider">{label}</span>
-    </div>
-  )
+  return <div className="flex flex-col items-center"><span className="font-display font-800 text-white text-sm tabular-nums leading-none">{value}</span><span className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-wider">{label}</span></div>
 }
-function PickCard({ player, pct, blind, onPick }: { player: HSHitter | HSPitcher; pct: number; blind: boolean; onPick?: () => void }) {
+function DraftCard({ player, chips, pct, blind, onAssign }: { player: HSHitter | HSPitcher; chips: Chip[]; pct: number; blind: boolean; onAssign: (slotKey: string) => void }) {
   const pit = isPitcher(player)
+  const pickable = chips.some(c => c.open)
   return (
-    <button onClick={onPick} disabled={!onPick}
-      className={`w-full text-left bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 transition-colors ${onPick ? 'hover:border-[var(--accent)] cursor-pointer' : ''}`}>
+    <div className={`bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 ${pickable ? '' : 'opacity-45'}`}>
       <div className="flex items-center justify-between gap-2 mb-2">
         <p className="font-display font-800 uppercase text-white text-sm leading-tight truncate">{player.name}</p>
         <span className="font-display font-800 text-[10px] px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: TEAM_COLORS[player.teamId] ?? '#1e335a' }}>{TEAM_SHORT[player.teamId]}</span>
       </div>
-      {blind ? (
-        <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest py-2">Stats hidden</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-4 gap-1 mb-2">
-            {pit ? (<>
-              <StatMini label="ERA" value={player.era.toFixed(2)} />
-              <StatMini label="WHIP" value={player.whip.toFixed(2)} />
-              <StatMini label="K" value={String(player.so)} />
-              <StatMini label="IP" value={player.ip.toFixed(0)} />
-            </>) : (<>
-              <StatMini label="AVG" value={fmt3(player.avg)} />
-              <StatMini label="OPS" value={fmt3(player.ops)} />
-              <StatMini label="HR" value={String(player.hr)} />
-              <StatMini label="RBI" value={String(player.rbi)} />
-            </>)}
-          </div>
-          {!pit && player.positions.length > 0 && (
-            <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase tracking-wider mb-2">Plays: {player.positions.join(' · ')}</p>
-          )}
-          <div className="h-1.5 rounded-full bg-[var(--card-hover)] overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${Math.max(6, pct * 100)}%`, backgroundColor: domColor(pct) }} />
-          </div>
-        </>
+      {!blind && (
+        <div className="grid grid-cols-4 gap-1 mb-2">
+          {pit ? (<><StatMini label="ERA" value={player.era.toFixed(2)} /><StatMini label="WHIP" value={player.whip.toFixed(2)} /><StatMini label="K" value={String(player.so)} /><StatMini label="IP" value={player.ip.toFixed(0)} /></>)
+               : (<><StatMini label="AVG" value={fmt3(player.avg)} /><StatMini label="OPS" value={fmt3(player.ops)} /><StatMini label="HR" value={String(player.hr)} /><StatMini label="RBI" value={String(player.rbi)} /></>)}
+        </div>
       )}
-    </button>
+      {!blind && (
+        <div className="h-1.5 rounded-full bg-[var(--card-hover)] overflow-hidden mb-2.5">
+          <div className="h-full rounded-full" style={{ width: `${Math.max(6, pct * 100)}%`, backgroundColor: domColor(pct) }} />
+        </div>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {chips.map((c, i) => c.open ? (
+          <button key={i} onClick={() => c.slotKey && onAssign(c.slotKey)}
+            className="font-display font-800 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 transition-opacity">
+            {c.label}
+          </button>
+        ) : (
+          <span key={i} className="font-display font-800 text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[var(--card-hover)] text-[var(--muted)]/50 line-through">
+            {c.label}
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -178,10 +175,10 @@ export default function WinTheSeriesGame() {
   const [mode, setMode] = useState<Mode>('free')
 
   const [filled, setFilled] = useState<Filled>({})
-  const [idx, setIdx] = useState(0)
   const [dealt, setDealt] = useState<string>(TEAM_IDS[0])
   const [spinning, setSpinning] = useState(false)
   const [cutoff, setCutoff] = useState(24)
+  const [dealNonce, setDealNonce] = useState(0)
   const [sim, setSim] = useState<Sim | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -193,25 +190,24 @@ export default function WinTheSeriesGame() {
   }, [])
 
   const picked = useMemo(() => new Set(Object.values(filled).map(pkey)), [filled])
+  const pickCount = Object.keys(filled).length
   const opsSorted = useMemo(() => (data?.hitters ?? []).map(h => h.ops).sort((a, b) => a - b), [data])
   const eraSorted = useMemo(() => (data?.pitchers ?? []).map(p => p.era).sort((a, b) => a - b), [data])
   const hitPct = (ops: number) => opsSorted.length < 2 ? 0.5 : opsSorted.filter(o => o < ops).length / (opsSorted.length - 1)
-  const pitPct = (era: number) => eraSorted.length < 2 ? 0.5 : eraSorted.filter(e => e > era).length / (eraSorted.length - 1) // lower ERA = higher dominance
+  const pitPct = (era: number) => eraSorted.length < 2 ? 0.5 : eraSorted.filter(e => e > era).length / (eraSorted.length - 1)
 
-  const eligibleForSlot = useCallback((slot: Slot): (HSHitter | HSPitcher)[] => {
+  const teamPlayers = useCallback((t: string): (HSHitter | HSPitcher)[] => {
     if (!data) return []
-    if (slot.type === 'SP' || slot.type === 'RP') return data.pitchers.filter(p => p.role === slot.type && !picked.has(pkey(p)))
-    if (slot.type === 'dh') return data.hitters.filter(h => !picked.has(pkey(h)))
-    return data.hitters.filter(h => h.positions.includes(slot.pos!) && !picked.has(pkey(h)))
+    return [...data.hitters, ...data.pitchers].filter(p => p.teamId === t && !picked.has(pkey(p)))
   }, [data, picked])
 
-  const teamsFor = useCallback((slot: Slot) => {
-    const elig = eligibleForSlot(slot)
-    return TEAM_IDS.filter(t => elig.some(p => p.teamId === t))
-  }, [eligibleForSlot])
+  const teamsWithPick = useCallback(() => {
+    if (!data) return [] as string[]
+    return TEAM_IDS.filter(t => teamPlayers(t).some(p => chipsFor(p, filled).some(c => c.open)))
+  }, [data, teamPlayers, filled])
 
-  const dealTeam = useCallback((slot: Slot, exclude?: string) => {
-    let teams = teamsFor(slot)
+  const dealTeam = useCallback((exclude?: string) => {
+    let teams = teamsWithPick()
     if (teams.length > 1 && exclude) teams = teams.filter(t => t !== exclude)
     if (!teams.length) return
     const final = teams[Math.floor(Math.random() * teams.length)]
@@ -224,31 +220,24 @@ export default function WinTheSeriesGame() {
       else { setDealt(final); setSpinning(false) }
     }
     step()
-  }, [teamsFor])
+  }, [teamsWithPick])
 
-  // Deal a team whenever the active slot changes — reads fresh picked/eligibility.
+  // Deal a fresh team whenever a new pick is requested (reads current filled).
   useEffect(() => {
-    if (phase !== 'draft') return
-    dealTeam(SLOTS[idx])
+    if (phase !== 'draft' || pickCount >= SLOTS.length) return
+    dealTeam()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, phase])
-
-  const start = (m: Mode) => {
-    setMode(m); setFilled({}); setIdx(0); setSim(null)
-    setCutoff(CUTOFF_MIN + Math.floor(Math.random() * (CUTOFF_MAX - CUTOFF_MIN + 1)))
-    setPhase('draft')
-  }
+  }, [dealNonce, phase])
 
   const runSim = (f: Filled, cut: number) => {
     const hitters = LINEUP_KEYS.map(k => f[k] as HSHitter)
-    const sp = ['SP1', 'SP2', 'SP3'].map(k => f[k] as HSPitcher)
-    const rp = ['RP1', 'RP2'].map(k => f[k] as HSPitcher)
+    const sp = SP_KEYS.map(k => f[k] as HSPitcher)
+    const rp = RP_KEYS.map(k => f[k] as HSPitcher)
     const lineupOps = hitters.reduce((s, h) => s + h.ops, 0) / hitters.length
     const rs = data!.leagueEra * (lineupOps / data!.leagueOps) ** 2
     const spEra = sp.reduce((s, p) => s + p.era, 0) / sp.length
     const rpEra = rp.reduce((s, p) => s + p.era, 0) / rp.length
     const staffEra = Math.max(RA_FLOOR, 0.7 * spEra + 0.3 * rpEra)
-
     let wins = 0
     const pReg = winP(rs, staffEra * STAGE_MULT.reg)
     for (let i = 0; i < REG_GAMES; i++) if (Math.random() < pReg) wins++
@@ -262,13 +251,18 @@ export default function WinTheSeriesGame() {
     setPhase('result')
   }
 
-  const pick = (player: HSHitter | HSPitcher) => {
-    if (spinning) return
-    const slot = SLOTS[idx]
-    const next = { ...filled, [slot.key]: player }
+  const assign = (player: HSHitter | HSPitcher, slotKey: string) => {
+    if (spinning || filled[slotKey]) return
+    const next = { ...filled, [slotKey]: player }
     setFilled(next)
-    if (idx + 1 >= SLOTS.length) { runSim(next, cutoff); return }
-    setIdx(idx + 1) // the deal effect fires on the index change
+    if (Object.keys(next).length >= SLOTS.length) runSim(next, cutoff)
+    else setDealNonce(n => n + 1)
+  }
+
+  const start = (m: Mode) => {
+    setMode(m); setFilled({}); setSim(null)
+    setCutoff(CUTOFF_MIN + Math.floor(Math.random() * (CUTOFF_MAX - CUTOFF_MIN + 1)))
+    setPhase('draft'); setDealNonce(n => n + 1)
   }
 
   if (error) return <Shell><p className="text-center font-display font-700 text-[var(--muted)] uppercase py-20">Kon spelersdata niet laden. Probeer later opnieuw.</p></Shell>
@@ -280,12 +274,10 @@ export default function WinTheSeriesGame() {
       <Shell>
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 md:p-8 max-w-xl mx-auto text-center">
           <p className="font-display font-700 text-[var(--muted)] text-sm leading-relaxed mb-6">
-            The slot machine deals you a team for every roster spot. Pick a player from that team who actually played the position this season — build a full lineup (9 fielders), a rotation (3 starters) and a bullpen (2 relievers) from real regular-season stats. Then your team plays a season: reach the playoffs, take the semifinal and win the Holland Series.
+            The slot machine deals you a team. Pick any of its players and slot them where you want — a full lineup (9 fielders), rotation (3 starters) and bullpen (2 relievers), using real regular-season stats. Players can only go to positions they actually played this season; filled spots grey out. Then your team plays a season: reach the playoffs, take the semifinal and win the Holland Series.
           </p>
           <div className="grid grid-cols-3 gap-3 mb-8 text-left">
-            <Info n="9 + 5" l="Fielders + pitchers" />
-            <Info n="Semifinal" l="Best of 5" />
-            <Info n="Holland Series" l="Best of 7" />
+            <Info n="9 + 5" l="Fielders + pitchers" /><Info n="Semifinal" l="Best of 5" /><Info n="Holland Series" l="Best of 7" />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button onClick={() => start('free')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-6 py-3 rounded-xl hover:opacity-90 transition-opacity">Play — Free</button>
@@ -299,32 +291,45 @@ export default function WinTheSeriesGame() {
 
   // ── Draft ──
   if (phase === 'draft') {
-    const slot = SLOTS[idx]
-    const available = eligibleForSlot(slot).filter(p => p.teamId === dealt)
+    const roster = teamPlayers(dealt)
+    const hitters = roster.filter(p => !isPitcher(p)).sort((a, b) => (b as HSHitter).ops - (a as HSHitter).ops) as HSHitter[]
+    const pitchers = roster.filter(isPitcher).sort((a, b) => a.era - b.era) as HSPitcher[]
     return (
       <Shell>
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <p className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--muted)]">Pick {idx + 1}/{SLOTS.length} · {cutoff} wins for the playoffs</p>
+          <p className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--muted)]">{pickCount}/{SLOTS.length} filled · {cutoff} wins for the playoffs</p>
           {mode === 'blind' && <span className="font-display font-800 text-[10px] uppercase tracking-widest text-[var(--accent)] border border-[var(--accent)]/40 rounded-lg px-2 py-1">Blind</span>}
         </div>
 
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-6"><RosterBoard filled={filled} activeKey={slot.key} blind={mode === 'blind'} /></div>
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-6"><RosterBoard filled={filled} blind={mode === 'blind'} /></div>
 
-        <div className="flex flex-col items-center gap-3 mb-5">
-          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Now drafting</p>
-          <p className="font-display font-800 italic text-3xl uppercase text-white -mt-1"><strong>{slot.label}</strong></p>
+        <div className="flex flex-col items-center gap-3 mb-6">
+          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Pick a player from</p>
           <TeamReel teamId={dealt} spinning={spinning} />
-          <button onClick={() => dealTeam(slot, dealt)} disabled={spinning || teamsFor(slot).length <= 1}
+          <button onClick={() => dealTeam(dealt)} disabled={spinning || teamsWithPick().length <= 1}
             className="font-display font-800 text-xs uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] text-white px-3 py-2 rounded-lg hover:border-[var(--accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             ↻ Deal another team
           </button>
         </div>
 
         {!spinning && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {available.map(p => (
-              <PickCard key={pkey(p)} player={p} pct={isPitcher(p) ? pitPct(p.era) : hitPct(p.ops)} blind={mode === 'blind'} onPick={() => pick(p)} />
-            ))}
+          <div className="space-y-6">
+            {hitters.length > 0 && (
+              <div>
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Position players — tap a position to slot them</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {hitters.map(h => <DraftCard key={pkey(h)} player={h} chips={chipsFor(h, filled)} pct={hitPct(h.ops)} blind={mode === 'blind'} onAssign={k => assign(h, k)} />)}
+                </div>
+              </div>
+            )}
+            {pitchers.length > 0 && (
+              <div>
+                <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-widest mb-2">Pitchers</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {pitchers.map(p => <DraftCard key={pkey(p)} player={p} chips={chipsFor(p, filled)} pct={pitPct(p.era)} blind={mode === 'blind'} onAssign={k => assign(p, k)} />)}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Shell>
@@ -341,23 +346,16 @@ export default function WinTheSeriesGame() {
     <Shell>
       <div className={`rounded-2xl p-6 md:p-8 mb-6 text-center border ${s.champion ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] bg-[var(--card)]'}`}>
         <p className="font-display font-800 italic text-3xl md:text-4xl uppercase text-white leading-tight"><strong>{outcome}</strong></p>
-        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-3">
-          {s.rs.toFixed(1)} runs scored/game · {s.staffEra.toFixed(2)} staff ERA · lineup OPS {fmt3(s.lineupOps)}
-        </p>
+        <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest mt-3">{s.rs.toFixed(1)} runs scored/game · {s.staffEra.toFixed(2)} staff ERA · lineup OPS {fmt3(s.lineupOps)}</p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
         <Stage title="Regular Season" score={`${s.wins}-${s.losses}`} ok={s.madePlayoffs} note={s.madePlayoffs ? 'Clinched a playoff spot' : `Needed ${s.cutoff} wins`} />
         <Stage title="Playoffs · Semifinal" score={s.semi ? `${s.semi.a}-${s.semi.b}` : '—'} ok={!!s.semi?.won} dim={!s.madePlayoffs} note={!s.madePlayoffs ? 'Did not qualify' : s.semi?.won ? 'Advanced' : 'Eliminated'} />
         <Stage title="Holland Series" score={s.final ? `${s.final.a}-${s.final.b}` : '—'} ok={s.champion} dim={!s.semi?.won} note={!s.semi?.won ? 'Did not reach' : s.champion ? 'Champions!' : 'Lost the final'} />
       </div>
-
       <p className="font-display font-700 text-[var(--muted)] text-xs uppercase tracking-widest mb-3">Your team</p>
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-8"><RosterBoard filled={filled} activeKey={null} blind={false} /></div>
-
-      <div className="flex justify-center">
-        <button onClick={() => setPhase('start')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-8 py-3 rounded-xl hover:opacity-90 transition-opacity">Play again</button>
-      </div>
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-8"><RosterBoard filled={filled} blind={false} /></div>
+      <div className="flex justify-center"><button onClick={() => setPhase('start')} className="font-display font-800 uppercase tracking-wider bg-[var(--accent)] text-white px-8 py-3 rounded-xl hover:opacity-90 transition-opacity">Play again</button></div>
     </Shell>
   )
 }
