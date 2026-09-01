@@ -7,13 +7,13 @@ import type { HSHitter, HSPitcher } from '@/app/api/win-the-series/route'
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const REG_GAMES = 36
-const CUTOFF_MIN = 24, CUTOFF_MAX = 27   // playoff line varies per game, fixed within a game
+const CUTOFF_MIN = 22, CUTOFF_MAX = 25   // playoff line varies per game, fixed within a game
 const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.6                      // a 5-man staff regresses over a full season
 const OFF_EXP = 1.55                      // run scaling vs offense (kept realistic, not explosive)
-const OPP_SEMI = 0.72                     // semifinal opponent — a top playoff team
-const OPP_FINAL = 0.84                    // Holland Series opponent — the league's best
+const OPP_SEMI = 0.72                     // semifinal opponent: a top playoff team
+const OPP_FINAL = 0.84                    // Holland Series opponent: the league's best
 const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
@@ -75,7 +75,7 @@ function domColor(pct: number) {
 }
 const firstOpen = (keys: string[], filled: Filled) => keys.find(k => !filled[k]) ?? null
 
-// Monte-Carlo the team's chance to actually win it all — grounds the result.
+// Monte-Carlo the team's chance to actually win it all; grounds the result.
 function champOdds(talent: number, cutoff: number, N = 2500): number {
   let ch = 0
   for (let i = 0; i < N; i++) {
@@ -91,8 +91,8 @@ function champOdds(talent: number, cutoff: number, N = 2500): number {
 type Grade = 'A' | 'B' | 'C' | 'D' | 'F'
 const GRADE_COLOR: Record<Grade, string> = { A: '#22c55e', B: '#84cc16', C: '#eab308', D: '#f97316', F: '#ef4444' }
 const GRADE_SCORE: Record<Grade, number> = { A: 4, B: 3, C: 2, D: 1, F: 0 }
-const offGrade = (r: number): Grade => r >= 1.18 ? 'A' : r >= 1.08 ? 'B' : r >= 1.0 ? 'C' : r >= 0.92 ? 'D' : 'F'
-const armGrade = (era: number, lg: number): Grade => { const r = lg / era; return r >= 1.30 ? 'A' : r >= 1.12 ? 'B' : r >= 1.0 ? 'C' : r >= 0.88 ? 'D' : 'F' }
+const offGrade = (r: number): Grade => r >= 1.22 ? 'A' : r >= 1.10 ? 'B' : r >= 1.0 ? 'C' : r >= 0.92 ? 'D' : 'F'
+const armGrade = (era: number, lg: number): Grade => { const r = lg / era; return r >= 1.38 ? 'A' : r >= 1.15 ? 'B' : r >= 1.0 ? 'C' : r >= 0.88 ? 'D' : 'F' }
 
 const POS_LABEL: Record<string, string> = { C: 'catcher', '1B': 'first base', '2B': 'second base', '3B': 'third base', SS: 'shortstop', LF: 'left field', CF: 'center field', RF: 'right field', DH: 'DH' }
 // Open positions a hitter can still be assigned to (their field spots + DH).
@@ -175,12 +175,37 @@ function PlayerRow({ player, pct, blind, disabled, onClick }: { player: HSHitter
 }
 
 // ── Slot machine ──────────────────────────────────────────────────────────────
-function TeamReel({ teamId, spinning }: { teamId: string; spinning: boolean }) {
+function TeamReel({ teamId, spinning, question }: { teamId: string; spinning: boolean; question?: boolean }) {
+  if (question) {
+    return (
+      <div className="flex items-center gap-3 px-8 py-4 rounded-2xl border-2 border-[var(--accent)] bg-[var(--card)]">
+        <span className="font-display font-800 text-4xl text-white leading-none">?</span>
+        <span className="font-display font-800 uppercase text-[var(--muted)] tracking-widest text-sm">Team</span>
+      </div>
+    )
+  }
   const color = TEAM_COLORS[teamId] ?? '#1e335a'
   return (
     <div className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-[var(--border)] transition-transform duration-100" style={{ backgroundColor: color, transform: spinning ? 'scale(0.97)' : 'scale(1)' }}>
       <div className="w-10 h-10 flex items-center justify-center">{TEAM_LOGOS[teamId] ? <Image src={TEAM_LOGOS[teamId]} alt={teamId} width={40} height={40} className="object-contain w-full h-full" /> : <span className="font-display font-800 text-white">{TEAM_SHORT[teamId]}</span>}</div>
       <span className="font-display font-800 italic uppercase text-white text-lg">{TEAM_NAMES[teamId] ?? teamId}</span>
+    </div>
+  )
+}
+
+function SpinGate({ round, total, dealt, spinning, onSpin }: { round: number; total: number; dealt: string; spinning: boolean; onSpin: () => void }) {
+  return (
+    <div onClick={onSpin} role="button" tabIndex={0} className="cursor-pointer select-none py-12 flex flex-col items-center gap-6">
+      <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-[0.3em]">Pick {round} / {total}</p>
+      <TeamReel teamId={dealt} spinning={spinning} question={!spinning} />
+      {spinning ? (
+        <p className="font-display font-800 text-[11px] text-[var(--accent)] uppercase tracking-[0.3em] animate-pulse">Spinning…</p>
+      ) : (
+        <>
+          <span className="font-display font-800 uppercase tracking-widest text-white text-lg bg-[var(--accent)] px-10 py-4 rounded-xl shadow-[0_0_35px_-5px_var(--accent)]">🎰 Spin</span>
+          <p className="font-display font-700 text-[10px] text-[var(--muted)] uppercase tracking-[0.25em]">Click anywhere to spin</p>
+        </>
+      )}
     </div>
   )
 }
@@ -197,7 +222,7 @@ export default function WinTheSeriesGame() {
   const [spinning, setSpinning] = useState(false)
   const [cutoff, setCutoff] = useState(24)
   const [skips, setSkips] = useState(SKIPS)
-  const [dealNonce, setDealNonce] = useState(0)
+  const [revealed, setRevealed] = useState(false)   // has this round's team been spun yet?
   const [choosing, setChoosing] = useState<HSHitter | null>(null)
   const [sim, setSim] = useState<Sim | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -242,16 +267,12 @@ export default function WinTheSeriesGame() {
       setDealt(TEAM_IDS[Math.floor(Math.random() * TEAM_IDS.length)])
       delay *= 1.3
       if (delay < 360) timer.current = setTimeout(step, delay)
-      else { setDealt(final); setSpinning(false) }
+      else { setDealt(final); setSpinning(false); setRevealed(true) }
     }
     step()
   }, [teamsWithPick])
 
-  useEffect(() => {
-    if (phase !== 'draft' || pickCount >= SLOTS.length) return
-    dealTeam()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealNonce, phase])
+  const spin = () => { if (!spinning && !revealed) dealTeam() }
 
   const runSim = (f: Filled, cut: number) => {
     const hitters = LINEUP_KEYS.map(k => f[k] as HSHitter)
@@ -282,7 +303,7 @@ export default function WinTheSeriesGame() {
     const next = { ...filled, [slotKey]: player }
     setFilled(next); setChoosing(null)
     if (Object.keys(next).length >= SLOTS.length) runSim(next, cutoff)
-    else setDealNonce(n => n + 1)
+    else setRevealed(false) // next round waits for a fresh spin
   }
 
   const clickPlayer = (p: HSHitter | HSPitcher) => {
@@ -301,7 +322,7 @@ export default function WinTheSeriesGame() {
   const start = (m: Mode) => {
     setMode(m); setFilled({}); setSim(null); setChoosing(null); setSkips(SKIPS)
     setCutoff(CUTOFF_MIN + Math.floor(Math.random() * (CUTOFF_MAX - CUTOFF_MIN + 1)))
-    setPhase('draft'); setDealNonce(n => n + 1)
+    setPhase('draft'); setRevealed(false)
   }
 
   if (error) return <Shell><p className="text-center font-display font-700 text-[var(--muted)] uppercase py-20">Kon spelersdata niet laden. Probeer later opnieuw.</p></Shell>
@@ -383,12 +404,16 @@ export default function WinTheSeriesGame() {
 
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-6"><RosterBoard filled={filled} blind={mode === 'blind'} /></div>
 
+        {!revealed ? (
+          <SpinGate round={pickCount + 1} total={SLOTS.length} dealt={dealt} spinning={spinning} onSpin={spin} />
+        ) : (
+        <>
         <div className="flex flex-col items-center gap-3 mb-6">
-          <p className="font-display font-700 text-xs text-[var(--muted)] uppercase tracking-widest">Pick a player from</p>
+          <p className="font-display font-800 text-[11px] text-[var(--accent)] uppercase tracking-[0.3em]">You're on the clock</p>
           <TeamReel teamId={dealt} spinning={spinning} />
           <button onClick={reroll} disabled={spinning || skips <= 0 || teamsWithPick().length <= 1}
             className="font-display font-800 text-xs uppercase tracking-wider bg-[var(--card)] border border-[var(--border)] text-white px-3 py-2 rounded-lg hover:border-[var(--accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-            ↻ Skip team ({skips} left)
+            ↻ Reroll team ({skips} left)
           </button>
         </div>
 
@@ -409,6 +434,8 @@ export default function WinTheSeriesGame() {
             ))}
           </div>
         )}
+        </>
+        )}
       </Shell>
     )
   }
@@ -416,9 +443,9 @@ export default function WinTheSeriesGame() {
   // ── Result ──
   const s = sim!
   const outcome = s.champion ? '🏆 Holland Series Champions!'
-    : s.final ? `Runner-up — lost the Holland Series ${s.final.a}-${s.final.b}`
-    : s.semi ? `Eliminated in the playoffs ${s.semi.a}-${s.semi.b}`
-    : `Missed the playoffs — ${s.wins}-${s.losses}`
+    : s.final ? `Lost the Holland Series ${s.final.a}-${s.final.b}`
+    : s.semi ? `Out in the playoffs ${s.semi.a}-${s.semi.b}`
+    : `Missed the playoffs at ${s.wins}-${s.losses}`
   const offG = offGrade(s.lineupOps / data.leagueOps)
   const rotG = armGrade(s.spEra, data.leagueEra)
   const bulG = armGrade(s.rpEra, data.leagueEra)
@@ -426,16 +453,16 @@ export default function WinTheSeriesGame() {
   const worst = units.reduce((a, b) => GRADE_SCORE[b.g] < GRADE_SCORE[a.g] ? b : a)
   const best = units.reduce((a, b) => GRADE_SCORE[b.g] > GRADE_SCORE[a.g] ? b : a)
   const report = s.champion
-    ? `Balanced enough to go all the way — your ${best.key} led the charge.`
+    ? `Balanced enough to go all the way. Your ${best.key} led the charge.`
     : !s.madePlayoffs
       ? `${s.cutoff - s.wins} win${s.cutoff - s.wins === 1 ? '' : 's'} short of the playoff line. Your ${worst.key} was the biggest gap.`
       : GRADE_SCORE[worst.g] <= 1
         ? worst.key === 'offense'
-          ? `Your bats held you back — ${POS_LABEL[s.weakBat.pos]} (${s.weakBat.name}, ${fmt3(s.weakBat.ops)} OPS) was the soft spot.`
+          ? `Your bats held you back, with ${POS_LABEL[s.weakBat.pos]} (${s.weakBat.name}, ${fmt3(s.weakBat.ops)} OPS) the soft spot.`
           : worst.key === 'rotation'
-            ? `Your rotation (${s.spEra.toFixed(2)} ERA) gave up too much — stronger starters get you further.`
+            ? `Your rotation gave up too much at ${s.spEra.toFixed(2)} ERA. Stronger starters get you further.`
             : `A leaky bullpen (${s.rpEra.toFixed(2)} ERA) cost you in the tight games.`
-        : `Strong all around — the ${s.final ? 'Holland Series' : 'playoff'} opponent was just elite. Short series are a coin flip.`
+        : `Strong all around. The ${s.final ? 'Holland Series' : 'playoff'} opponent was just elite, and short series are a coin flip.`
   return (
     <Shell>
       <div className={`rounded-2xl p-6 md:p-8 mb-6 text-center border ${s.champion ? 'border-[var(--accent)] bg-[var(--accent)]/10' : 'border-[var(--border)] bg-[var(--card)]'}`}>
@@ -444,8 +471,8 @@ export default function WinTheSeriesGame() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <Stage title="Regular Season" score={`${s.wins}-${s.losses}`} ok={s.madePlayoffs} note={s.madePlayoffs ? 'Clinched a playoff spot' : `Needed ${s.cutoff} wins`} />
-        <Stage title="Playoffs · Semifinal" score={s.semi ? `${s.semi.a}-${s.semi.b}` : '—'} ok={!!s.semi?.won} dim={!s.madePlayoffs} note={!s.madePlayoffs ? 'Did not qualify' : s.semi?.won ? 'Advanced' : 'Eliminated'} />
-        <Stage title="Holland Series" score={s.final ? `${s.final.a}-${s.final.b}` : '—'} ok={s.champion} dim={!s.semi?.won} note={!s.semi?.won ? 'Did not reach' : s.champion ? 'Champions!' : 'Lost the final'} />
+        <Stage title="Playoffs · Semifinal" score={s.semi ? `${s.semi.a}-${s.semi.b}` : '·'} ok={!!s.semi?.won} dim={!s.madePlayoffs} note={!s.madePlayoffs ? 'Did not qualify' : s.semi?.won ? 'Advanced' : 'Eliminated'} />
+        <Stage title="Holland Series" score={s.final ? `${s.final.a}-${s.final.b}` : '·'} ok={s.champion} dim={!s.semi?.won} note={!s.semi?.won ? 'Did not reach' : s.champion ? 'Champions!' : 'Lost the final'} />
       </div>
 
       <p className="font-display font-700 text-[var(--muted)] text-xs uppercase tracking-widest mb-3">Scouting report</p>
