@@ -12,8 +12,8 @@ const SEMI_WINS = 3                      // best-of-5
 const FINAL_WINS = 4                     // best-of-7
 const RA_FLOOR = 3.6                      // a 5-man staff regresses over a full season
 const OFF_EXP = 1.55                      // run scaling vs offense (kept realistic, not explosive)
-const OPP_SEMI = 0.66                     // semifinal opponent: a top playoff team
-const OPP_FINAL = 0.79                    // Holland Series opponent: the league's best
+const OPP_SEMI = 0.62                     // semifinal opponent: a top playoff team
+const OPP_FINAL = 0.75                    // Holland Series opponent: the league's best
 const SKIPS = 3
 
 type SlotType = 'field' | 'dh' | 'SP' | 'RP'
