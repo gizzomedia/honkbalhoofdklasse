@@ -314,13 +314,16 @@ export default function WinTheSeriesGame() {
     const pctOf = (p: HSHitter | HSPitcher) => isPitcher(p) ? pitPct(p.era) : hitPct(p.ops)
     const sortH = (a: HSHitter, b: HSHitter) => b.ops - a.ops
 
-    const sections: { title: string; slotFilled: boolean; players: (HSHitter | HSPitcher)[]; disableAll?: boolean }[] = []
+    const sections: { title: string; slotFilled: boolean; players: (HSHitter | HSPitcher)[]; directSlot?: string }[] = []
     for (const sec of FIELD_SECTIONS) {
       const players = roster.filter(p => !isPitcher(p) && (p as HSHitter).positions.includes(sec.pos)).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
       if (players.length) sections.push({ title: sec.title, slotFilled: !!filled[sec.pos], players })
     }
-    const dhOnly = roster.filter(p => !isPitcher(p) && (p as HSHitter).positions.length === 0).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
-    if (dhOnly.length) sections.push({ title: 'Designated Hitter', slotFilled: !!filled['DH'], players: dhOnly })
+    // DH is a wildcard: while it's open, every available batter can be slotted there.
+    if (!filled['DH']) {
+      const dh = roster.filter(p => !isPitcher(p)).sort((a, b) => sortH(a as HSHitter, b as HSHitter))
+      if (dh.length) sections.push({ title: 'Designated Hitter', slotFilled: false, players: dh, directSlot: 'DH' })
+    }
     const sp = roster.filter(isPitcher).filter(p => p.role === 'SP').sort((a, b) => a.era - b.era)
     const rp = roster.filter(isPitcher).filter(p => p.role === 'RP').sort((a, b) => a.era - b.era)
     if (sp.length) sections.push({ title: 'Starting Pitchers', slotFilled: SP_KEYS.every(k => filled[k]), players: sp })
@@ -374,7 +377,7 @@ export default function WinTheSeriesGame() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {sec.players.map(p => (
-                    <PlayerRow key={pkey(p)} player={p} pct={pctOf(p)} blind={mode === 'blind'} disabled={sec.slotFilled} onClick={() => clickPlayer(p)} />
+                    <PlayerRow key={pkey(p)} player={p} pct={pctOf(p)} blind={mode === 'blind'} disabled={sec.slotFilled} onClick={() => sec.directSlot ? assign(p, sec.directSlot!) : clickPlayer(p)} />
                   ))}
                 </div>
               </div>
