@@ -15,7 +15,7 @@ type NavEntry = NavLink | NavGroup
 
 function useNavEntries(): NavEntry[] {
   return [
-    { type: 'link', href: '/holland-series', label: 'Holland Series', highlight: true },
+    { type: 'link', href: '/postseason', label: 'Postseason', highlight: true },
     { type: 'link', href: '/livescores', label: 'Scores' },
     { type: 'link', href: '/schema',     label: 'Schedule' },
     { type: 'link', href: '/uitslagen',  label: 'Results' },

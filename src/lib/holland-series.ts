@@ -13,11 +13,12 @@ export type HSGame = {
   status: HSGameStatus
   gameNumber: number | null
   location: string | null
+  ifNecessary?: boolean
 }
 
 export type HSSeries = {
   label: string
-  teamA: string      // host of game 1 (stable ordering)
+  teamA: string      // host of game 1 (higher seed / stable ordering)
   teamB: string
   winsA: number
   winsB: number
@@ -27,13 +28,28 @@ export type HSSeries = {
   nextGame: HSGame | null
 }
 
-export type HollandSeriesData = {
-  phase: 'final' | 'pre-final' | 'none'
-  final: HSSeries | null
-  semifinals: HSSeries[]
-  finalists: string[] | null   // set once both semifinals are clinched, before the final is scheduled
+export type PostseasonData = {
+  semifinals: HSSeries[]        // [Play-offs A (1v4), Play-offs B (2v3)]
+  final: HSSeries | null        // from the feed, or synthesised from the schedule below
+  finalScheduled: boolean       // true when `final` is the published-schedule fallback (not yet in the feed)
+  seeds: Record<string, number> // teamId -> playoff seed (1-4)
   updatedAt: string
 }
+// Back-compat alias for the previous name.
+export type HollandSeriesData = PostseasonData
+
+// Holland Series final schedule (not yet in the KNBSB feed). Odd games are hosted
+// by the top seed, even games by the runner-up. Used as a fallback until the feed
+// publishes the games with live scores.
+const FINAL_SCHEDULE = [
+  { game: 1, date: '2026-09-05', time: '14:00', venue: 'Rotterdam', topHost: true },
+  { game: 2, date: '2026-09-06', time: '14:00', venue: 'Amsterdam', topHost: false },
+  { game: 3, date: '2026-09-10', time: '19:30', venue: 'Rotterdam', topHost: true },
+  { game: 4, date: '2026-09-12', time: '14:00', venue: 'Amsterdam', topHost: false },
+  { game: 5, date: '2026-09-13', time: '13:00', venue: 'Rotterdam', topHost: true, ifNec: true },
+  { game: 6, date: '2026-09-19', time: '14:00', venue: 'Amsterdam', topHost: false, ifNec: true },
+  { game: 7, date: '2026-09-20', time: '13:00', venue: 'Rotterdam', topHost: true, ifNec: true },
+]
 
 // ── Feed parsing ──────────────────────────────────────────────────────────────
 const FEED = 'https://boxscore.stenwessel.nl/api/fetchschedule.php?competition=hb2026'
@@ -47,7 +63,6 @@ function teamOf(g: RawGame, side: 'home' | 'away'): string | null {
   return KNBSB_NUMERIC_ID_MAP[numId] ?? null
 }
 
-// Returns 'skip' for cancelled / not-needed games (negative status codes).
 function statusOf(gs: unknown): HSGameStatus | 'skip' {
   const s = String(gs ?? '')
   if (s === '1') return 'live'
@@ -72,8 +87,7 @@ function toHSGame(g: RawGame): HSGame | null {
   return {
     id: String(g.id),
     startISO: g.start ? String(g.start) : null,
-    homeId,
-    awayId,
+    homeId, awayId,
     homeScore: scoreOf(g.homeruns, status),
     awayScore: scoreOf(g.awayruns, status),
     status,
@@ -82,76 +96,85 @@ function toHSGame(g: RawGame): HSGame | null {
   }
 }
 
-function sortGames(a: HSGame, b: HSGame): number {
-  if (a.startISO && b.startISO) return a.startISO.localeCompare(b.startISO)
-  return (a.gameNumber ?? 0) - (b.gameNumber ?? 0)
-}
+const sortGames = (a: HSGame, b: HSGame) =>
+  (a.startISO && b.startISO) ? a.startISO.localeCompare(b.startISO) : (a.gameNumber ?? 0) - (b.gameNumber ?? 0)
 
-function buildSeries(label: string, raw: RawGame[]): HSSeries | null {
-  const games = raw.map(toHSGame).filter((g): g is HSGame => g !== null).sort(sortGames)
+function seriesFrom(label: string, games: HSGame[], forcedBestOf?: number): HSSeries | null {
   if (games.length === 0) return null
-
-  // Stable ordering: the host of game 1 is teamA. Falls back to alphabetical if
-  // game 1 can't be identified, so the scoreboard sides never swap mid-series.
-  const first = games[0]
+  games = [...games].sort(sortGames)
   const teams = [...new Set(games.flatMap(g => [g.homeId, g.awayId]))]
   if (teams.length < 2) return null
-  const teamA = first.homeId
-  const teamB = teams.find(t => t !== teamA) ?? first.awayId
+  const teamA = games[0].homeId
+  const teamB = teams.find(t => t !== teamA) ?? games[0].awayId
 
-  let winsA = 0
-  let winsB = 0
+  let winsA = 0, winsB = 0
   for (const g of games) {
     if (g.status !== 'final' || g.homeScore == null || g.awayScore == null) continue
-    const winner = g.homeScore > g.awayScore ? g.homeId : g.awayScore > g.homeScore ? g.awayId : null
-    if (winner === teamA) winsA++
-    else if (winner === teamB) winsB++
+    const w = g.homeScore > g.awayScore ? g.homeId : g.awayScore > g.homeScore ? g.awayId : null
+    if (w === teamA) winsA++; else if (w === teamB) winsB++
   }
-
-  const bestOfRaw = Math.max(0, ...raw.map(g => Number(g.best_of) || 0))
-  const bestOf = bestOfRaw >= 3 ? bestOfRaw : 5 // playoffs & Holland Series are best-of-5
+  const bestOf = forcedBestOf ?? (Math.max(0, ...games.map(() => 0)) >= 3 ? 5 : 5)
   const needed = Math.floor(bestOf / 2) + 1
   const clinchedBy = winsA >= needed ? teamA : winsB >= needed ? teamB : null
-
-  const nextGame = games.find(g => g.status === 'live')
-    ?? games.find(g => g.status === 'scheduled')
-    ?? null
-
+  const nextGame = games.find(g => g.status === 'live') ?? games.find(g => g.status === 'scheduled') ?? null
   return { label, teamA, teamB, winsA, winsB, bestOf, clinchedBy, games, nextGame }
+}
+
+function buildFromRaw(label: string, raw: RawGame[], forcedBestOf?: number): HSSeries | null {
+  const games = raw.map(toHSGame).filter((g): g is HSGame => g !== null)
+  const bo = forcedBestOf ?? (Math.max(0, ...raw.map(g => Number(g.best_of) || 0)) >= 3 ? Math.max(...raw.map(g => Number(g.best_of) || 0)) : 5)
+  return seriesFrom(label, games, bo)
 }
 
 const matches = (g: RawGame, re: RegExp) => re.test(String(g.gametypelabel ?? ''))
 
-export async function getHollandSeries(): Promise<HollandSeriesData> {
+// Synthesise the final from the known schedule when it isn't in the feed yet.
+function scheduledFinal(topSeed: string, runnerUp: string): HSSeries {
+  const games: HSGame[] = FINAL_SCHEDULE.map(t => ({
+    id: `final-g${t.game}`,
+    startISO: `${t.date} ${t.time}:00`,
+    homeId: t.topHost ? topSeed : runnerUp,
+    awayId: t.topHost ? runnerUp : topSeed,
+    homeScore: null, awayScore: null,
+    status: 'scheduled' as const,
+    gameNumber: t.game,
+    location: t.venue,
+    ifNecessary: !!t.ifNec,
+  }))
+  return { label: 'Holland Series', teamA: topSeed, teamB: runnerUp, winsA: 0, winsB: 0, bestOf: 7, clinchedBy: null, games, nextGame: games[0] }
+}
+
+export async function getHollandSeries(): Promise<PostseasonData> {
   const updatedAt = new Date().toISOString()
   let games: RawGame[] = []
   try {
     const res = await fetch(FEED, { next: { revalidate: 15 } })
     games = (await res.json())?.games ?? []
   } catch {
-    return { phase: 'none', final: null, semifinals: [], finalists: null, updatedAt }
+    return { semifinals: [], final: null, finalScheduled: false, seeds: {}, updatedAt }
   }
 
-  const finalGames = games.filter(g => matches(g, /holland|finale/i))
-  if (finalGames.length > 0) {
-    const final = buildSeries('Holland Series', finalGames)
-    if (final) return { phase: 'final', final, semifinals: [], finalists: null, updatedAt }
+  const semiA = buildFromRaw('Play-offs A', games.filter(g => matches(g, /play-?offs?\s*a/i)), 5)
+  const semiB = buildFromRaw('Play-offs B', games.filter(g => matches(g, /play-?offs?\s*b/i)), 5)
+  const semifinals = [semiA, semiB].filter((s): s is HSSeries => s !== null)
+
+  // Seeds: Play-offs A is 1v4 (host = seed 1), Play-offs B is 2v3 (host = seed 2).
+  const seeds: Record<string, number> = {}
+  if (semiA) { seeds[semiA.teamA] = 1; seeds[semiA.teamB] = 4 }
+  if (semiB) { seeds[semiB.teamA] = 2; seeds[semiB.teamB] = 3 }
+
+  // Final: prefer the real feed games; otherwise synthesise from the schedule once
+  // both semifinals are decided.
+  let final = buildFromRaw('Holland Series', games.filter(g => matches(g, /holland|finale/i)), 7)
+  let finalScheduled = false
+  if (!final) {
+    const clinchers = semifinals.map(s => s.clinchedBy).filter((t): t is string => !!t)
+    if (clinchers.length === 2) {
+      const [top, runner] = [...clinchers].sort((a, b) => (seeds[a] ?? 9) - (seeds[b] ?? 9))
+      final = scheduledFinal(top, runner)
+      finalScheduled = true
+    }
   }
 
-  const semifinals = [
-    buildSeries('Play-offs A', games.filter(g => matches(g, /play-?offs?\s*a/i))),
-    buildSeries('Play-offs B', games.filter(g => matches(g, /play-?offs?\s*b/i))),
-  ].filter((s): s is HSSeries => s !== null)
-
-  // Both brackets decided but the final isn't in the feed yet → announce the matchup.
-  const clinchers = semifinals.map(s => s.clinchedBy).filter((t): t is string => !!t)
-  const finalists = clinchers.length === 2 ? clinchers : null
-
-  return {
-    phase: semifinals.length > 0 ? 'pre-final' : 'none',
-    final: null,
-    semifinals,
-    finalists,
-    updatedAt,
-  }
+  return { semifinals, final, finalScheduled, seeds, updatedAt }
 }
