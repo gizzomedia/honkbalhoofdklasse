@@ -11,7 +11,7 @@ const LABEL_OVERRIDE: Record<string, string> = {
 }
 
 type Row = Record<string, unknown>
-type Period = 'week' | 'month' | 'season'
+type Period = 'week' | 'month' | 'season' | 'semi' | 'final'
 type Category = 'hitting' | 'pitching'
 type OnSelect = (name: string, teamId: string, statType: 'batting' | 'pitching') => void
 
@@ -463,6 +463,8 @@ export default function LeadersTabs({
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthPrefix)
   const [monthData, setMonthData] = useState<TabData>(month)
   const [loadingMonth, setLoadingMonth] = useState(false)
+  const [psData, setPsData] = useState<TabData | null>(null)
+  const [psLoading, setPsLoading] = useState(false)
 
   useEffect(() => {
     const cur = currentMonthPrefix()
@@ -473,6 +475,16 @@ export default function LeadersTabs({
       .then(data => { setMonthData(data); setLoadingMonth(false) })
       .catch(() => setLoadingMonth(false))
   }, [selectedMonth, month])
+
+  // Postseason leaders (semifinals / Holland Series) — only the teams that played.
+  useEffect(() => {
+    if (period !== 'semi' && period !== 'final') return
+    setPsLoading(true); setPsData(null)
+    fetch(`/api/leaders/postseason?round=${period}`)
+      .then(r => r.json())
+      .then(data => { setPsData(data); setPsLoading(false) })
+      .catch(() => setPsLoading(false))
+  }, [period])
 
   const onSelect: OnSelect = (name, teamId, statType) => {
     setSelectedPlayer({ name, teamId, statType })
@@ -513,6 +525,12 @@ export default function LeadersTabs({
             <TabButton active={period === 'season'} onClick={() => setPeriod('season')}>
               Season 2026
             </TabButton>
+            <TabButton active={period === 'semi'} onClick={() => setPeriod('semi')}>
+              Semifinals
+            </TabButton>
+            <TabButton active={period === 'final'} onClick={() => setPeriod('final')}>
+              Holland Series
+            </TabButton>
           </div>
           <div className="flex gap-2">
             <TabButton active={category === 'hitting'} onClick={() => setCategory('hitting')}>
@@ -545,6 +563,26 @@ export default function LeadersTabs({
             ? <WeekPitchingTables pitchers={monthData.pitchers} eraTitle="ERA (min 1 IP/G)" whipTitle="WHIP (min 1 IP/G)" onSelect={onSelect} />
             : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
                 <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{formatMonth(selectedMonth)} — No data yet</p>
+              </div>
+        )}
+
+        {(period === 'semi' || period === 'final') && psLoading && (
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+            <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">Loading…</p>
+          </div>
+        )}
+        {(period === 'semi' || period === 'final') && !psLoading && category === 'hitting' && (
+          psData && psData.batters.length > 0
+            ? <WeekHittingTables batters={psData.batters} battingQualified={psData.batters} showRunsDoubles onSelect={onSelect} />
+            : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{period === 'final' ? 'Holland Series has not been played yet' : 'No games yet'}</p>
+              </div>
+        )}
+        {(period === 'semi' || period === 'final') && !psLoading && category === 'pitching' && (
+          psData && psData.pitchers.length > 0
+            ? <WeekPitchingTables pitchers={psData.pitchers} onSelect={onSelect} />
+            : <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 text-center">
+                <p className="font-display font-700 text-[var(--muted)] text-sm uppercase tracking-widest">{period === 'final' ? 'Holland Series has not been played yet' : 'No games yet'}</p>
               </div>
         )}
       </div>
