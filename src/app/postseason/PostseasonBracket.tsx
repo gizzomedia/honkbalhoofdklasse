@@ -102,7 +102,7 @@ function GameRow({ game, index, onOpenBox }: { game: HSGame; index: number; onOp
     <div className="bg-[var(--card-hover)] border border-[var(--border)] rounded-xl overflow-hidden">
       <div className="flex items-center gap-3 px-3 py-2.5">
         <div className="shrink-0 w-24">
-          <p className="font-display font-800 text-xs text-white uppercase">Game {game.gameNumber ?? index + 1}{game.ifNecessary ? '*' : ''}</p>
+          <p className="font-display font-800 text-xs text-white uppercase">Game {index + 1}{game.ifNecessary ? '*' : ''}</p>
           {game.status === 'live'
             ? <span className="inline-flex items-center gap-1 font-display font-800 text-[10px] text-[var(--accent)] uppercase"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse" />Live</span>
             : <p className="font-display font-700 text-[9px] text-[var(--muted)] uppercase leading-tight">{game.status === 'final' ? 'Final' : fmtDateTime(game.startISO)}</p>}
