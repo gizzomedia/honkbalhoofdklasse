@@ -1,0 +1,95 @@
+{
+  "purpose": "Fictional franchise sponsorships; not actual partnerships or endorsements.",
+  "logos": [
+    {
+      "brand": "newbalance",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/newbalance.svg",
+      "sha256": "d8996468a6716a21df0db1b02378bdeecc772f6e66e633f76478970548c8e781",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "nike",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/nike.svg",
+      "sha256": "1792451e1b6393bd1d7153830f8aa55a0a49eddd1c3b65ed6fa13c68d7d5a547",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "puma",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/puma.svg",
+      "sha256": "67a04c6aae392c014fd410d2e9df0bfbc6bab2bfc8171d46373a0b39c98a605d",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "adidas",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/adidas.svg",
+      "sha256": "914191458c0f416cfb1e5ad5750c55e87bd9a6cdc38259cfba70932b30a9237b",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "underarmour",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/underarmour.svg",
+      "sha256": "51a8a19364eac8467711387823ebb5dc40c6c84c8dfe8c349eb1f7d5b90d3166",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "reebok",
+      "source": "https://github.com/simple-icons/simple-icons/blob/develop/icons/reebok.svg",
+      "sha256": "4f2181f891cfaefc82d9b79df1a12b0b10bd53c71dfdddb4447fe930e304c8f4",
+      "treatment": "Monochrome white PNG rendered from original SVG; brand names remain trademarks of their owners."
+    },
+    {
+      "brand": "action",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/4/45/Action_Nederland_Logo_2020.svg",
+      "sha256": "4bb9c2887159e8ddd945a5a2a22079b9b550f0535337c68824c4d4a52bee6270",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "lidl",
+      "source": "https://info.lidl/assets/images/icons/logo-lidl.svg",
+      "sha256": "0f8286f0bec48afe79300d2ad366c8ca684c5962c7101011ce0d7932227b058c",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "aldi",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/aldinord.svg",
+      "sha256": "8074b5a218794e41eb655479eaf17e31cc90f7421723b544c4a5960a7fce4380",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "b45",
+      "source": "https://www.b45baseball.com/cdn/shop/files/2016logo_bats_2x4_black_2fb09eb2-aeb7-4a42-9be2-6724304bdf26_120x@2x.png?v=1738519186",
+      "sha256": "b9222fd4de1ff7b971433dbc1feeda6684624222f1cf3164ef0b4f9eb0ecbdb2",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "rawlings",
+      "source": "https://www.rawlings.com/on/demandware.static/Sites-rawlings-consolidated-Site/-/en_US/v1789560774304/images/header/logo-rawlings-large.png",
+      "sha256": "4ec62ada3c737e8bde80aa41b97f182deb4e3651300381739ae3c7a46f7f7d70",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "marucci",
+      "source": "https://maruccisports.com/assets/marucci-white.svg",
+      "sha256": "6a159f0cf9094e4536e26270d43587e283dc254a47b823f89989a430cf6c1508",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "wilson",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Wilson-logo.svg",
+      "sha256": "6e17720334851b744df0f90353abb9f2031bdf928161a4704a4e4c972d37a692",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "louisvuitton",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/6/6a/Louis_Vuitton_logo.svg",
+      "sha256": "2b4b5d33c7b3516768da8bb8272b416ad043e45453a711d7ee2f47146776c5aa",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    },
+    {
+      "brand": "decathlon",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Decathlon_-_logo_%28France%2C_2024%29.svg",
+      "sha256": "384e11b197e81093eff8900a4108cb170b9df4f9e717534173c5b1fff84637c5",
+      "treatment": "Bundled logo resized for game UI; wordmarks rendered light where needed."
+    }
+  ]
+}

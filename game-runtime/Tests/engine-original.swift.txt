@@ -1,0 +1,494 @@
+import Foundation
+import Darwin
+setbuf(stdout,nil)
+
+let root=URL(fileURLWithPath:CommandLine.arguments.count>1 ? CommandLine.arguments[1]:"outputs/Hoofdklasse26")
+let db=Database(root:root)
+var assertions=0
+func check(_ condition:@autoclosure ()->Bool,_ message:String){assertions+=1;if !condition(){fputs("FAIL: "+message+"\n",stderr);exit(1)}}
+func make(_ seed:UInt64=42)->Franchise {var f=Franchise.make(db:db,user:0,slot:1,fantasy:false,seed:seed);f.options.injuryFrequency=0;f.options.autoRest=false;return f}
+var f=make()
+check(f.validate(),"New career validates")
+check(f.schedule.count==126,"126 regular-season fixtures")
+for club in 0..<7 {
+    check(f.schedule.filter{$0.home==club || $0.away==club}.count==36,"36 games per club")
+    check(f.schedule.filter{$0.home==club}.count==18,"18 home games per club")
+    check(f.clubs[club].lineup.count==9 && Set(f.clubs[club].lineup).count==9,"Nine unique starters")
+    for opponent in 0..<7 where opponent != club {check(f.schedule.filter{($0.away==club && $0.home==opponent) || ($0.home==club && $0.away==opponent)}.count==6,"Six meetings per opponent")}
+}
+check(f.schedule.first!.day==3,"Opening day April 9")
+check(f.schedule.last!.day==Franchise.offset(8,1),"Regular season ends August 1")
+check(f.schedule.filter{$0.day==Franchise.offset(7,14)}.count==3,"July 14 rescheduled round")
+let draftStart=Franchise.make(db:db,user:3,slot:2,fantasy:true,seed:2)
+var d=draftStart
+while d.draft{d.draftBest()}
+check(d.validate(),"Completed snake draft validates")
+check(d.clubs.allSatisfy{$0.roster.count==25},"25 unique players per club after draft")
+check(d.players.filter{$0.club == -1}.count==39,"39 undrafted reserves")
+check(Set(d.clubs.flatMap{$0.roster}).count==175,"No duplicate draft ownership")
+var first=draftStart
+check(first.draftTeam==3,"User gets first pick")
+for _ in 0..<7 {first.draftBest()}
+check(first.draftTeam==first.draftOrder.last,"Second round reverses order")
+let trainee=f.roster(0).first!.profile.id
+check(f.assignTraining(trainee,ability:5,intensity:1),"Training assignment accepted")
+let original=f.player(trainee)!,cash=f.clubs[0].cash
+check(f.completeTraining(),"First training settles")
+check(f.player(trainee)!.growth[5]>original.growth[5],"Training improves selected ability")
+check(f.player(trainee)!.fatigue>original.fatigue,"Training adds fatigue")
+check(f.clubs[0].cash<cash,"Payroll and training cost money")
+let trained=f.player(trainee)!,afterCash=f.clubs[0].cash
+check(!f.completeTraining() && f.clubs[0].cash==afterCash && f.player(trainee)!.growth==trained.growth,"Weekly training cannot be repeated for free gains")
+var light=make(),intense=make(),academy=make()
+_=light.assignTraining(trainee,ability:5,intensity:0);_=intense.assignTraining(trainee,ability:5,intensity:2);_=academy.assignTraining(trainee,ability:5,intensity:0);academy.clubs[0].academy=2
+_=light.completeTraining();_=intense.completeTraining();_=academy.completeTraining()
+check(intense.player(trainee)!.growth[5]>light.player(trainee)!.growth[5],"Intense training gives more development")
+check(intense.player(trainee)!.fatigue>light.player(trainee)!.fatigue,"Intense training has a readiness cost")
+check(academy.player(trainee)!.growth[5]>light.player(trainee)!.growth[5],"Academy improves gains")
+var recovery=make(),upgraded=make()
+let pi=recovery.players.firstIndex{$0.club==0}!
+recovery.players[pi].fatigue=70;upgraded.players[pi].fatigue=70;upgraded.clubs[0].locker=2
+recovery.advanceTime(2);upgraded.advanceTime(2)
+check(upgraded.players[pi].fatigue<recovery.players[pi].fatigue,"Locker room speeds recovery")
+let upgradeCash=f.clubs[0].cash
+check(f.upgrade(0),"Stadium upgrade succeeds")
+check(f.clubs[0].capacity==1300 && f.clubs[0].cash==upgradeCash-28000,"Stadium adds capacity and deducts exact price")
+f.clubs[0].cash=0;check(!f.upgrade(1),"Cannot buy upgrades without cash")
+f=make()
+let candidate=f.loanCandidates().first!,oldOwner=candidate.club,price=f.loanPrice(candidate.profile.id),beforeLoan=f.clubs[0].cash
+check(f.loan(candidate.profile.id),"Loan succeeds")
+check(f.player(candidate.profile.id)!.club==0 && f.player(candidate.profile.id)!.loanOwner==oldOwner,"Loan ownership tracked")
+check(f.clubs[0].cash==beforeLoan-price,"Loan deducts quoted fee")
+check(!f.loan(candidate.profile.id),"Cannot loan same player twice")
+check(!f.loan(f.clubs[1].lineup[0]),"Other club's starting player protected")
+var baseline=make()
+let hitter=baseline.player(baseline.clubs[0].lineup[0])!,pitcher=baseline.player(baseline.starter(1))!
+let pr=baseline.probabilities(batter:hitter,pitcher:pitcher,defense:50,approach:0,pitchLoad:0)
+var improved=hitter;improved.growth[0]+=15;improved.growth[1]+=15;improved.growth[2]+=15
+let ip=baseline.probabilities(batter:improved,pitcher:pitcher,defense:50,approach:0,pitchLoad:0)
+check(ip.hit>pr.hit && ip.homer>pr.homer && ip.walk>pr.walk && ip.strike<pr.strike,"Trained skills change actual plate-appearance probabilities")
+var tired=pitcher;tired.fatigue=85
+let tp=baseline.probabilities(batter:hitter,pitcher:tired,defense:50,approach:0,pitchLoad:0)
+check(tp.hit>pr.hit && tp.walk>pr.walk,"Tired starters allow more hits and walks")
+check(baseline.probabilities(batter:hitter,pitcher:pitcher,defense:80,approach:0,pitchLoad:0).hit<pr.hit,"Good fielding prevents hits")
+let defenseBefore=baseline.teamDefense(0)
+baseline.clubs[0].defense=Array(repeating:"C",count:9)
+check(baseline.teamDefense(0)<defenseBefore,"Out-of-position lineup reduces defense")
+f=make();_=f.completeTraining()
+let userGame=f.nextUserGame!,bench=f.roster(0).first{!f.clubs[0].lineup.contains($0.profile.id) && !$0.isPitcher}!
+check(f.setLineup(slot:0,id:bench.profile.id),"Bench player can replace lineup slot")
+let custom=f.clubs[0].rotation[2];f.clubs[0].nextStarter=custom
+f.advanceTime(userGame.day);f.simulate(userGame.id)
+let box=f.schedule.first{$0.id==userGame.id}!
+check(box.box[bench.profile.id]!.pa>0,"Chosen lineup actually receives plate appearances")
+check(box.starters[userGame.home==0 ? 1:0]==custom,"Starter override used in the game")
+check(f.clubs[0].nextStarter==nil,"One-game starter override clears afterward")
+check(box.lines[0].reduce(0,+)==box.awayRuns && box.lines[1].reduce(0,+)==box.homeRuns,"Line score equals final score")
+check(box.box.values.reduce(0){$0+$1.r}==box.awayRuns!+box.homeRuns!,"Every run has a box-score scorer")
+check(box.attendance<=f.clubs[userGame.home].capacity,"Crowds cannot exceed stadium capacity")
+// Same seed, same inputs: all simulated results replay deterministically.
+var sameA=make(98),sameB=make(98)
+for _ in 0..<15 {if sameA.trainingDue{_=sameA.completeTraining();_=sameB.completeTraining()}else{_=sameA.step();_=sameB.step()}}
+check(sameA.schedule.map{$0.awayRuns}==sameB.schedule.map{$0.awayRuns} && sameA.rng==sameB.rng,"Seeded simulation is deterministic")
+// Manager improvements should improve results across independent seeds, not guarantee a win.
+var baseWins=0,betterWins=0
+for seed in 1...120 {
+    var a=make(UInt64(seed)),b=a
+    for i in b.players.indices where b.players[i].club==0 {b.players[i].growth=Array(repeating:16,count:8)}
+    let game=a.nextUserGame!
+    a.simulate(game.id);b.simulate(game.id)
+    if a.schedule.first(where:{$0.id==game.id})!.winner==0{baseWins+=1}
+    if b.schedule.first(where:{$0.id==game.id})!.winner==0{betterWins+=1}
+}
+check(betterWins>baseWins,"Development improves wins across 120 paired simulations")
+print("Paired decision-effect check: baseline \(baseWins)/120 wins; developed club \(betterWins)/120 wins")
+f=make(2026)
+let seasonLoan=f.loanCandidates().first!.profile.id;_=f.loan(seasonLoan)
+_=f.assignTraining(trainee,ability:5,intensity:1)
+for _ in 0..<1000 {if f.champion != nil{break};if f.trainingDue{_=f.completeTraining()}else{_=f.step()}}
+check(f.champion != nil,"Full career season reaches a champion")
+check(f.schedule.filter{$0.stage=="Regular" && $0.played}.count==126,"Every regular fixture simulated")
+check(f.table().allSatisfy{$0.w+$0.l==36},"Final regular standings count only 36 games")
+check(f.table().reduce(0){$0+$1.w}==126,"Wins balance league losses")
+for s in [1000,1001]{check(f.seriesWinner(s,3) != nil,"Semifinal ends at three wins");check(f.schedule.filter{$0.series==s && $0.played}.count<=5,"Semifinal at most five games")}
+check(f.seriesWinner(3000,4)==f.champion,"Holland Series ends at four wins")
+check(f.schedule.filter{$0.series==3000 && $0.played}.count<=7,"Final at most seven games")
+let firstSemi=f.schedule.first{$0.series==1000}!,secondSemi=f.schedule.first{$0.series==1001}!
+check(Set([firstSemi.home,firstSemi.away])==Set([f.seeds[0],f.seeds[3]]),"First vs fourth semifinal")
+check(Set([secondSemi.home,secondSemi.away])==Set([f.seeds[1],f.seeds[2]]),"Second vs third semifinal")
+for g in f.schedule where g.played {
+    check(g.awayRuns != g.homeRuns,"Every game has a winner")
+    check(g.box.values.allSatisfy{$0.ab >= $0.h && $0.h >= $0.hr && $0.pa >= $0.ab},"Valid batting line in every game")
+    check(g.box.values.reduce(0){$0+$1.r}==g.awayRuns!+g.homeRuns!,"Every game accounts for every run")
+}
+check(f.validate(),"Completed season still validates")
+let temp=FileManager.default.temporaryDirectory.appendingPathComponent("franchise-test-"+UUID().uuidString)
+let store=FranchiseStore(directory:temp);try store.save(f);let loaded=try store.load(1)
+check(loaded.rng==f.rng && loaded.champion==f.champion && loaded.training.count==f.training.count,"Save round trip preserves career decisions and RNG")
+try store.save(f);try Data("broken".utf8).write(to:store.path(1));let backup=try store.load(1)
+check(backup.champion==f.champion,"Corrupt current save recovers last valid backup")
+let growth=f.player(trainee)!.growth,stadium=f.clubs[0].stadium
+check(f.nextSeason(),"Next season starts")
+check(f.year==2027 && f.champion==nil && f.history.count==1,"Season history retained")
+check(f.player(seasonLoan)!.loanOwner==nil && f.player(seasonLoan)!.club != 0,"Loan player returns at season end")
+check(f.player(trainee)!.growth[5]==growth[5] && f.clubs[0].stadium==stadium,"Development and facilities persist")
+check(f.players.allSatisfy{$0.totals.pa==0 && $0.fatigue==0},"New season clears season stats and fatigue")
+check(f.validate(),"Next-season save validates")
+try FileManager.default.removeItem(at:temp)
+check(box.battingOrders[userGame.home==0 ? 1:0][0]==bench.profile.id,"Historical box keeps actual batting order")
+check(box.playerTeams[bench.profile.id]==0,"Historical box keeps original club affiliation")
+for club in 0..<7 {
+    var season=Franchise.make(db:db,user:club,slot:1,fantasy:club%2==1,seed:UInt64(1000+club))
+    season.options.injuryFrequency=0
+    while season.draft{season.draftBest()}
+    for _ in 0..<1000{if season.champion != nil{break};if season.trainingDue{_=season.completeTraining()}else{_=season.step()}}
+    check(season.champion != nil && season.validate(),"All seven selectable clubs complete career season")
+    check(season.schedule.filter{$0.stage=="Regular" && $0.played}.count==126,"All seven career schedules finish")
+    check(season.nextSeason() && season.validate(),"All seven clubs continue into next season")
+}
+// Version 0.4 manager systems.
+var auto=make(501);let ap=auto.roster(0).first!.profile.id
+_=auto.assignTraining(ap,ability:6,intensity:1)
+for _ in 0..<30{_=auto.step()}
+check(auto.day>7 && auto.player(ap)!.development(6)>0,"Automatic weekly training advances without confirmation")
+check(auto.training[ap]?.ability==6,"Individual plan repeats without being replaced")
+var manual=make();manual.options.automaticTraining=false
+check(manual.step()=="Weekly training is ready." && !manual.schedule.contains{$0.played},"Manual training remains optional")
+var roles=make();let batter=roles.roster(0).first{!$0.isPitcher}!,arm=roles.roster(0).first{$0.isPitcher}!
+check(!roles.assignTraining(batter.profile.id,ability:10,intensity:1),"Hitters cannot train pitcher break")
+check(roles.assignTraining(arm.profile.id,ability:10,intensity:1),"Pitchers can train break")
+check(roles.assignTraining(batter.profile.id,ability:8,intensity:1),"Hitters can train stealing")
+let tiredIndex=roles.players.firstIndex{$0.profile.id==arm.profile.id}!
+roles.players[tiredIndex].fatigue=80;roles.options.autoRest=true;roles.training[arm.profile.id]?.intensity=2
+_=roles.completeTraining();check(roles.players[tiredIndex].fatigue==83,"Automatic recovery changes intense to light when tired")
+var medical=make();let victim=medical.clubs[0].lineup[0],vi=medical.players.firstIndex{$0.profile.id==victim}!
+medical.players[vi].injury=PlayerInjury(name:"Test injury",untilDay:8)
+check(!medical.setLineup(slot:2,id:victim),"Injured hitters cannot be selected")
+_=medical.step();check(medical.nextUserGame!.played==false && medical.pauseReason != nil,"Unavailable hitter pauses user fixture")
+medical.repairUnavailable(0);check(!medical.clubs[0].lineup.contains(victim),"Healthy reserve replaces injured hitter")
+medical.pauseReason=nil;_=medical.step();check(medical.schedule.contains{$0.played},"Simulation continues after replacement")
+medical.advanceTime(9);check(medical.player(victim)!.injury==nil,"Injury resolves after recovery date")
+var injuries=Franchise.make(db:db,user:0,slot:1,fantasy:false,seed:702)
+let ids=Set(injuries.roster(0).map{$0.profile.id})
+for _ in 0..<200{injuries.checkInjuries(ids)}
+check(!injuries.injured(0).isEmpty,"Occasional injury model can produce injuries")
+var off=make();for _ in 0..<200{off.checkInjuries(Set(off.roster(0).map{$0.profile.id}))}
+check(off.injured(0).isEmpty,"Injury-off setting prevents new injuries")
+var farm=make();let reserve=farm.roster(0).first{!farm.clubs[0].lineup.contains($0.profile.id) && !farm.clubs[0].rotation.contains($0.profile.id)}!
+check(!farm.setFarm(farm.clubs[0].lineup[0],true),"Cannot demote a current starter")
+check(farm.setFarm(reserve.profile.id,true),"Reserve can join farm")
+let beforeFarm=farm.player(reserve.profile.id)!.growth.reduce(0,+)
+_=farm.completeTraining()
+check(farm.player(reserve.profile.id)!.growth.reduce(0,+)>beforeFarm && farm.player(reserve.profile.id)!.farmProgress!.games==3,"Farm automatically develops players and records workload")
+check(!farm.setLineup(slot:0,id:reserve.profile.id),"Farm player cannot appear in first-team lineup")
+check(farm.setFarm(reserve.profile.id,false),"Developed reserve can be promoted")
+var infrastructure=make();infrastructure.clubs[0].cash=3000000
+for kind in facilities.indices{let prior=infrastructure.clubs[0].level(kind);check(infrastructure.upgrade(kind) && infrastructure.clubs[0].level(kind)==prior+1,"Every facility upgrades")}
+for _ in 0..<6{_=infrastructure.upgrade(0)}
+check(infrastructure.clubs[0].stadium>5 && infrastructure.validate(),"Stadium supports more than five levels")
+check(infrastructure.farmCapacity==4,"Farm campus adds a real development slot")
+var lab=make(),ordinary=make();lab.clubs[0].moreFacilities=[0,0,0,4,0,0]
+_=lab.assignTraining(ap,ability:10,intensity:1);_=ordinary.assignTraining(ap,ability:10,intensity:1)
+_=lab.completeTraining();_=ordinary.completeTraining()
+check(lab.player(ap)!.development(10)>ordinary.player(ap)!.development(10),"Pitching lab improves break development")
+var phGames=0,steals=0
+for seed in 1...80{var sim=make(UInt64(900+seed));for i in sim.players.indices{sim.players[i].fatigue=45};let id=sim.nextUserGame!.id;sim.simulate(id);let g=sim.schedule.first{$0.id==id}!
+    if g.box.values.contains(where:{$0.x.pinchPA>0}){phGames+=1}
+    steals+=g.box.values.reduce(0){$0+$1.sb+$1.x.cs}
+    check(g.box.values.reduce(0){$0+$1.hr}==g.box.values.reduce(0){$0+$1.x.pitchHR},"Expanded HR accounting agrees for hitters and pitchers")
+    check(g.box.values.reduce(0){$0+$1.x.wins}==1 && g.box.values.reduce(0){$0+$1.x.losses}==1,"One pitching win and loss per game")
+    check(g.box.values.allSatisfy{$0.h >= $0.hr+$0.x.doubles+$0.x.triples},"Valid singles and extra-base breakdown")
+    check(g.battingOrders.allSatisfy{Set($0).count==$0.count && $0.count<=11},"Pinch hitters never re-enter or duplicate slots")
+}
+check(phGames>10,"CPU and delegated bench hitters receive meaningful playing time")
+check(steals>0,"Stealing ability drives attempted steals and recorded results")
+print("Bench integration: \(phGames)/80 games with pinch hitters; \(steals) steal attempts")
+let sourceHitter=db.players.first{($0.stats?.sb ?? 0)>0 && $0.position != "P"}!
+let rated=FranchisePlayer(profile:sourceHitter,club:0)
+check(rated.evidence(8) != nil && rated.evidenceText(8).contains(String(sourceHitter.stats!.sb!)),"Stealing rating exposes actual 2026 evidence")
+check(rated.rating>=40 && rated.rating<=99,"Overall is in the requested range")
+let unknown=FranchisePlayer(profile:db.players.first{$0.stats==nil}!,club:0)
+check(unknown.evidenceCount==0 && unknown.ratingLabel=="EST","Missing evidence is explicitly estimated")
+var grown=rated;grown.develop(0,10);check(grown.rating>rated.rating,"Career development affects overall")
+var old=rated;old.growth=Array(repeating:0,count:8);old.develop(9,0.5)
+check(old.growth.count==12 && old.skill(9).isFinite,"Older eight-ability careers safely expand")
+var awardSeason=make(820)
+for _ in 0..<1000{if awardSeason.champion != nil{break};_=awardSeason.step()}
+check(awardSeason.awardHistory?.count==5,"Five end-of-season awards recorded")
+for category in 0..<5{check(!awardSeason.awardLeaders(category).isEmpty && awardSeason.awardLeaders(category).count<=3,"Live top-three award races")}
+let awardCount=awardSeason.awardHistory!.count;awardSeason.archiveAwards();check(awardSeason.awardHistory!.count==awardCount,"Awards awarded once per season")
+var objectives=make();objectives.clubs[0].fans+=300;let objectiveCash=objectives.clubs[0].cash
+objectives.settleObjectives();check(objectives.clubs[0].cash==objectiveCash+5000,"Club objective pays its reward")
+objectives.settleObjectives();check(objectives.clubs[0].cash==objectiveCash+5000,"Objective reward cannot repeat")
+let newTemp=FileManager.default.temporaryDirectory.appendingPathComponent("franchise-v04-"+UUID().uuidString),newStore=FranchiseStore(directory:newTemp)
+try newStore.save(farm);let farmLoaded=try newStore.load(1)
+check(farmLoaded.player(reserve.profile.id)!.farmProgress!.games==3,"Farm development survives save and load")
+try newStore.save(awardSeason);let awardsLoaded=try newStore.load(1)
+check(awardsLoaded.awardHistory!.count==5 && awardsLoaded.settings != nil,"Awards and new options persist")
+try FileManager.default.removeItem(at:newTemp)
+let exact=FranchisePlayer(profile:db.players.first{$0.name=="Nando Mostaert"}!,club:0)
+check(exact.fits("SS") && exact.fits("2B") && !exact.fits("1B"),"2026 exact appearances replace generic IF eligibility")
+let third=FranchisePlayer(profile:db.players.first{$0.name=="Railison Bentura"}!,club:0)
+check(third.fits("3B") && !third.fits("SS") && third.profile.positionAppearances?["3B"]==37,"Actual third-base appearance count preserved")
+let center=FranchisePlayer(profile:db.players.first{$0.name=="Thijmen Peters"}!,club:0)
+check(center.fits("CF") && center.fits("RF") && !center.fits("LF"),"Outfield positions stay distinct")
+let twoWay=FranchisePlayer(profile:db.players.first{$0.name=="Drew Janssen"}!,club:0)
+check(twoWay.canPitch && twoWay.canHit && twoWay.fits("1B"),"Two-way player has both observed roles")
+check(twoWay.trainableAbilities.contains(10) && twoWay.trainableAbilities.contains(8),"Two-way players can train pitching and hitting abilities")
+let verified=db.players.filter{!($0.positions ?? []).isEmpty}
+check(verified.count>=200,"Over 200 rosters have observed position evidence")
+check(db.players.filter{$0.stats != nil}.count==211,"Full box-score audit expands statistical coverage")
+check(db.players.allSatisfy{$0.positions?.allSatisfy{["P","C","1B","2B","3B","SS","LF","CF","RF","DH"].contains($0)} ?? false},"No generic IF/OF or PH/PR grants fielding eligibility")
+var exactLineups=make()
+for club in 0..<7{check(exactLineups.clubs[club].lineup.enumerated().allSatisfy{exactLineups.player($0.element)!.fits(exactLineups.clubs[club].defense[$0.offset])},"Optimized real roster covers every exact position")}
+// An actual v0.3 save has no new option/injury/farm/position fields.
+let legacy=root.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("work/franchise/action-test-saves/franchise-3.json")
+if let data=try? Data(contentsOf:legacy){var migrated=try JSONDecoder().decode(Franchise.self,from:data);migrated.refreshProfiles(db);check(migrated.validate(),"Existing v0.3 save migrates without losing career");check(migrated.players.contains{!($0.profile.positions ?? []).isEmpty},"Old career receives audited source profiles")}
+var conflict=make()
+if let p=conflict.players.first(where:{$0.club==0 && $0.canPitch && !$0.isPitcher}),let slot=conflict.clubs[0].lineup.firstIndex(of:p.profile.id){
+    conflict.clubs[0].nextStarter=p.profile.id;conflict.clubs[0].defense[slot]="1B"
+    check(conflict.userBlockers().contains(where:{$0.contains("fielding position")}),"Starting pitcher cannot simultaneously occupy a fielding position")
+    conflict.clubs[0].defense[slot]="DH"
+    check(!conflict.userBlockers().contains(where:{$0.contains("fielding position")}),"Two-way starting pitcher can bat as DH")
+}
+for seed in 1...3 {
+    var healthSeason=make(UInt64(2500+seed));healthSeason.options.injuryFrequency=2
+    for _ in 0..<1000 {
+        if healthSeason.champion != nil{break}
+        if !healthSeason.userBlockers().isEmpty{healthSeason.repairUnavailable(healthSeason.user)}
+        _=healthSeason.step()
+    }
+    check(healthSeason.champion != nil && healthSeason.validate(),"Season with standard injuries and replacements completes safely")
+}
+// Verify actual effects, not only level counters.
+for (kind,ability) in [(2,0),(4,6),(5,0),(6,10)] {
+    var base=make(),improved=make();let person=ability>=5 ? ap:batter.profile.id
+    improved.clubs[0].cash=1000000;_=improved.upgrade(kind)
+    _=base.assignTraining(person,ability:ability,intensity:1);_=improved.assignTraining(person,ability:ability,intensity:1)
+    _=base.completeTraining();_=improved.completeTraining()
+    check(improved.player(person)!.development(ability)>base.player(person)!.development(ability),"Specialist/academy upgrade changes real weekly growth")
+}
+var farmBase=make(),farmUp=make();_=farmBase.setFarm(reserve.profile.id,true);_=farmUp.setFarm(reserve.profile.id,true)
+_=farmUp.upgrade(8);farmBase.developFarm();farmUp.developFarm()
+check(farmUp.player(reserve.profile.id)!.farmProgress!.gain>farmBase.player(reserve.profile.id)!.farmProgress!.gain,"Farm facility increases actual development")
+var gates=make(),fanClub=make();fanClub.clubs[0].moreFacilities=[0,0,0,0,2,0]
+let homeGame=gates.schedule.first{$0.home==0}!.id;gates.simulate(homeGame);fanClub.simulate(homeGame)
+let crowd=gates.schedule.first{$0.id==homeGame}!.attendance
+check(fanClub.clubs[0].income-gates.clubs[0].income==crowd*2,"Fan facility increases actual concessions per attendee")
+var basicMedical=make(999),betterMedical=make(999);basicMedical.options.injuryFrequency=2;betterMedical.options.injuryFrequency=2;betterMedical.clubs[0].moreFacilities=[8,0,0,0,0,0]
+let patient=basicMedical.players.firstIndex{$0.club==0}!,patientID=basicMedical.players[patient].profile.id
+var basicEvents=0,betterEvents=0
+for _ in 0..<5000 {
+    basicMedical.players[patient].injury=nil;betterMedical.players[patient].injury=nil
+    basicMedical.checkInjuries([patientID]);betterMedical.checkInjuries([patientID])
+    if basicMedical.players[patient].injury != nil{basicEvents+=1}
+    if betterMedical.players[patient].injury != nil{betterEvents+=1}
+}
+check(betterEvents<basicEvents,"Medical centre lowers actual injury events over repeated trials")
+var market=make();let listed=market.loanCandidates().first!
+check((0..<7).allSatisfy{club in market.loanCandidates().filter{$0.club==club}.count<=2},"Each club offers at most two surplus reserves")
+check(listed.club>=0 && market.loanEligible(listed),"Genuine surplus reserve remains available")
+let listedIndex=market.players.firstIndex{$0.profile.id==listed.profile.id}!
+market.players[listedIndex].totals.x.saves=2;check(!market.loanEligible(market.players[listedIndex]),"Established closer protected")
+market.players[listedIndex].totals.x.saves=0;market.clubs[listed.club].nextStarter=listed.profile.id
+check(!market.loanEligible(market.players[listedIndex]),"Next-game starter protected even outside rotation")
+market.clubs[listed.club].nextStarter=nil;market.players[listedIndex].injury=PlayerInjury(name:"Test",untilDay:10)
+check(!market.loanEligible(market.players[listedIndex]),"Injured player cannot be borrowed")
+market.players[listedIndex].injury=nil;market.day=Franchise.offset(7,1)
+check(market.loanCandidates().isEmpty && !market.loan(listed.profile.id),"Deadline enforced both in market and transaction")
+// 0.5: management decisions, fractional OVR and bullpen accounting.
+let sourceRatings=make().players.map{$0.rating}
+print("OVR distribution: min \(sourceRatings.min()!) / mean \(Double(sourceRatings.reduce(0,+))/Double(sourceRatings.count)) / max \(sourceRatings.max()!) / 90+ \(sourceRatings.filter{$0>=90}.count)")
+check((70...75).contains(Double(sourceRatings.reduce(0,+))/Double(sourceRatings.count)),"League overall averages 70–75")
+check((90...96).contains(sourceRatings.max()!),"Elite players reach the requested 90s")
+var progression=make();let developmentID=progression.clubs[0].lineup[0]
+let startOVR=progression.player(developmentID)!.overallValue
+_=progression.assignTraining(developmentID,ability:0,intensity:2)
+for week in 0..<12{progression.advanceTime(week*7);_=progression.completeTraining()}
+check(progression.player(developmentID)!.rating>Int(startOVR.rounded()),"Repeated real training raises displayed OVR")
+check((progression.player(developmentID)!.developmentHistory?.count ?? 0)>=12,"Weekly development snapshots persist")
+for original in make().roster(0) {
+    for ability in original.trainableAbilities {var trained=original;trained.develop(ability,1)
+        check(trained.overallValue>original.overallValue,"Every trainable ability contributes to overall, including two-way roles")
+    }
+}
+let feeTiers=make().coachingCandidates(0).map{$0.signingFee}
+check(feeTiers==[7500,18000,35000],"Quality-tier signing fees make staffing a club-budget investment")
+var poorClub=make();let expensive=poorClub.coachingCandidates(0)[2];poorClub.clubs[0].cash=expensive.signingFee
+check(!poorClub.hireCoach(expensive) && poorClub.staff.isEmpty && poorClub.clubs[0].cash==expensive.signingFee,"Hiring retains at least the first weekly salary and never partially charges")
+var payroll=make();let coach=payroll.coachingCandidates(0)[2],cashBefore=payroll.clubs[0].cash
+check(payroll.hireCoach(coach) && payroll.clubs[0].cash==cashBefore-coach.signingFee,"Hiring deducts signing fee and activates coach")
+check(!payroll.hireCoach(coach),"Cannot sign the same coach twice")
+var plain=make();_=plain.assignTraining(developmentID,ability:0,intensity:1);_=payroll.assignTraining(developmentID,ability:0,intensity:1)
+_=plain.completeTraining();_=payroll.completeTraining()
+check(payroll.player(developmentID)!.development(0)>plain.player(developmentID)!.development(0),"Hitting coach raises actual training gain")
+let paidCash=payroll.clubs[0].cash;_=payroll.completeTraining();check(payroll.clubs[0].cash==paidCash,"Salary and training settle only once per week")
+payroll.fireCoach(0);check(payroll.staffWeeklyCost==0 && payroll.coachBonus(0)==0,"Released coach no longer charges or boosts")
+for role in [1,2,3] {
+    var withCoach=make(),withoutCoach=make();_=withCoach.hireCoach(withCoach.coachingCandidates(role)[2])
+    if role==1{_=withCoach.assignTraining(ap,ability:6,intensity:1);_=withoutCoach.assignTraining(ap,ability:6,intensity:1);_=withCoach.completeTraining();_=withoutCoach.completeTraining();check(withCoach.player(ap)!.development(6)>withoutCoach.player(ap)!.development(6),"Pitching coach improves control training")}
+    else if role==2{_=withCoach.setFarm(reserve.profile.id,true);_=withoutCoach.setFarm(reserve.profile.id,true);withCoach.developFarm();withoutCoach.developFarm();check(withCoach.player(reserve.profile.id)!.farmProgress!.gain>withoutCoach.player(reserve.profile.id)!.farmProgress!.gain,"Development coach increases farm growth")}
+    else{withCoach.players[0].club=0;withoutCoach.players[0].club=0;withCoach.players[0].fatigue=80;withoutCoach.players[0].fatigue=80;withCoach.advanceTime(1);withoutCoach.advanceTime(1);check(withCoach.players[0].readiness>withoutCoach.players[0].readiness,"Fitness coach speeds daily recovery")}
+}
+var delegated=make();delegated.automation.staff=true;delegated.automation.trainingPlan=true;delegated.automation.tickets=true;delegated.automation.facilities=true
+_=delegated.completeTraining()
+check(delegated.staff.count==4 && delegated.staffWeeklyCost<=delegated.automation.weeklyStaffBudget,"Auto hiring fills roles within weekly cap")
+check(delegated.training.count==6 && facilities.indices.contains(where:{delegated.clubs[0].level($0)>0}),"Automatic training planning and upgrades execute")
+check(delegated.clubs[0].cash>=delegated.automation.reserve,"Automatic spending retains cash buffer in test scenario")
+let manualOrder=delegated.clubs[0].lineup;delegated.prepareManagedTeam();check(delegated.clubs[0].lineup==manualOrder,"Manual lineup stays unchanged when delegation is off")
+var pricing=make();pricing.clubs[0].stadium=4
+check(pricing.ticketForecast(price:18).fans<pricing.ticketForecast(price:10).fans,"Higher tickets reduce projected attendance")
+let oldField=pricing.clubs[0].defense
+check(pricing.setFieldPosition(slot:0,position:"SS") && pricing.clubs[0].defense[0]=="SS" && Set(pricing.clubs[0].defense)==Set(oldField),"Position selector swaps directly and preserves unique defense")
+var reliefGames=0
+for seed in 0..<40{var bullpen=make(UInt64(8000+seed));let game=bullpen.nextUserGame!.id;bullpen.simulate(game);let box=bullpen.schedule.first{$0.id==game}!.box
+    let relievers=box.filter{($0.value.x.reliefGames ?? 0)>0}
+    if relievers.values.contains(where:{$0.outs>0}){reliefGames+=1}
+    check(relievers.allSatisfy{bullpen.player($0.key)!.totals.outs >= $0.value.outs && (bullpen.player($0.key)!.totals.x.reliefGames ?? 0)>0},"Relief innings and appearances reach season totals")
+}
+check(reliefGames>=38,"Healthy bullpens actually pitch in normal games")
+print("Bullpen use: \(reliefGames)/40 normal games")
+let mgmtData=try JSONEncoder().encode(delegated),mgmtSave=try JSONDecoder().decode(Franchise.self,from:mgmtData)
+check(mgmtSave.staff==delegated.staff && mgmtSave.automation.staff && mgmtSave.players.contains{!($0.developmentHistory ?? []).isEmpty},"Staff, automation and history survive save round trip")
+var commercial=make();let beforeSponsor=commercial.clubs[0].cash
+check(commercial.signSponsor("action",slot:0) && commercial.clubs[0].cash>beforeSponsor,"Entry sponsor signs and pays first year")
+check(!commercial.signSponsor("nike",slot:1),"Elite sponsor requires earned reputation")
+check(!commercial.signSponsor("action",slot:1) && !commercial.signSponsor("lidl",slot:0),"Brand and slot cannot be signed twice")
+let firstContract=commercial.sponsors[0],paidSponsor=commercial.clubs[0].cash
+commercial.renewSponsorYear();check(commercial.clubs[0].cash==paidSponsor,"Annual sponsorship cannot pay twice")
+commercial.year=firstContract.endYear+1;commercial.renewSponsorYear();check(commercial.sponsors.isEmpty,"Expired contract frees its slot")
+var multi=make();multi.clubs[0].fans=25000
+let longOffer=sponsorBrands.flatMap{brand in sponsorSlots.indices.map{multi.sponsorOffer(brand,slot:$0)}}.first{$0.years==3}!
+multi.offerSponsor(longOffer.brand.id)
+check(multi.signSponsor(longOffer.brand.id,slot:longOffer.slot),"Rare three-year deal can be signed when unlocked")
+let firstAnnual=multi.clubs[0].cash;multi.year+=1;multi.renewSponsorYear()
+check(multi.clubs[0].cash==firstAnnual+longOffer.annual,"Multi-year sponsor pays full annual fee on rollover")
+var veteran=make().players.first{($0.profile.birthYear ?? 2020)<=1990}!,young=make().players.first{($0.profile.birthYear ?? 1900)>=2006}!
+let veteranBefore=veteran.overallValue,youngBefore=young.overallValue
+veteran.applyAgeProgression(nextYear:2027);young.applyAgeProgression(nextYear:2027)
+check(veteran.overallValue<veteranBefore && young.overallValue==youngBefore,"Age curve lowers older players without penalizing young players")
+let future=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(multi))
+check(future.sponsors.count==1 && future.sponsors[0].paidYears.count==2,"Sponsor term and payment history survive saves")
+// 0.6: gradual sponsors, fielding, retail and construction.
+var offers=make()
+check(offers.receivedSponsorBrands().map{$0.id}==["action"],"New club receives only one opening offer")
+let openingOffers=offers.sponsorMarket!.offers.count
+for _ in 0..<10{offers.refreshSponsorMarket()}
+check(offers.sponsorMarket!.offers.count==openingOffers,"Viewing/reloading cannot generate extra offers")
+offers.day=7;offers.refreshSponsorMarket();check(offers.sponsorMarket!.offers.count==1,"No flood of offers in week one")
+offers.day=14;offers.refreshSponsorMarket();check(offers.receivedSponsorBrands().count==2,"At most one fresh approach after two weeks")
+check(!offers.signSponsor("louisvuitton",slot:1),"Unreceived luxury offer cannot be forged")
+_=offers.signSponsor("action",slot:0)
+check(!offers.receivedSponsorBrands().contains{$0.id=="action"} && !offers.signSponsor("action",slot:1),"Signed brand disappears from all other placements")
+var elite=make();elite.clubs[0].fans=25000
+for week in stride(from:2,through:30,by:2){elite.day=week*7;elite.refreshSponsorMarket();check(elite.sponsorMarket!.offers.count<=3,"Pending offers stay capped");if elite.receivedSponsorBrands().contains(where:{$0.id=="louisvuitton"}){break}}
+check(elite.receivedSponsorBrands().contains{$0.id=="louisvuitton"},"Large fanbase can receive luxury offer over time")
+var migration=make();migration.sponsorContracts=[SponsorContract(brandID:"bakker",slot:0,annual:1234,startYear:2026,years:2,paidYears:[2026])];migration.migrateSponsors()
+check(migration.sponsors[0].brandID=="action" && migration.sponsors[0].annual==1234,"Old fictional sponsor migrates without losing contract economics")
+var retail=make();let retailCash=retail.clubs[0].cash
+check(retail.orderMerchandise(0) && retail.merch.stock[0]==25 && retail.clubs[0].cash==retailCash-200,"Merch stock purchase deducts exact cost")
+retail.settleClubCommerce();let settledCash=retail.clubs[0].cash,remaining=retail.merch.stock[0]
+check(retail.merch.sold[0]>0 && remaining+retail.merch.sold[0]==25,"Weekly sales consume actual stock")
+retail.settleClubCommerce();check(retail.clubs[0].cash==settledCash && retail.merch.stock[0]==remaining,"Commerce cannot settle twice in one week")
+var cheap=make(),premium=make();cheap.merch.stock=[500,500,500];premium.merch.stock=[500,500,500];cheap.merch.pricing=[0,0,0];premium.merch.pricing=[2,2,2];cheap.settleClubCommerce();premium.settleClubCommerce()
+check(cheap.merch.sold.reduce(0,+)>premium.merch.sold.reduce(0,+),"Premium merchandising reduces demand")
+var construction=make();check(!construction.startClubProject("shop"),"Project prerequisites enforced")
+_=construction.upgrade(7);let projectCash=construction.clubs[0].cash
+check(construction.startClubProject("shop") && construction.clubs[0].cash==projectCash-20000,"Construction charges once")
+check(!construction.hasProject("shop") && !construction.startClubProject("outreach"),"No effects before completion; one site at a time")
+construction.advanceTime(13);check(!construction.hasProject("shop"),"Construction waits full duration")
+construction.advanceTime(14);check(construction.hasProject("shop"),"Project activates at completion")
+construction.clubs[0].cash=0;construction.settleClubCommerce();check(!construction.hasProject("shop"),"Unfunded upkeep suspends benefits")
+construction.day=21;construction.clubs[0].cash=1000;construction.settleClubCommerce();check(construction.hasProject("shop") && construction.clubs[0].cash==900,"Funding restores benefits and pays exact upkeep")
+check(construction.ticketFanEffect(10)>construction.ticketFanEffect(22),"Ticket price has a real fan-growth trade-off")
+var errorsGood=0,errorsBad=0
+for seed in 0..<50 {
+    var good=make(UInt64(seed+16000)),bad=good
+    bad.clubs[0].defense=Array(bad.clubs[0].defense.dropFirst())+[bad.clubs[0].defense[0]]
+    let g=good.nextUserGame!.id;good.simulate(g);bad.simulate(g)
+    let goodBox=good.schedule.first{$0.id==g}!.box,badBox=bad.schedule.first{$0.id==g}!.box
+    errorsGood+=goodBox.filter{good.player($0.key)?.club==0}.values.reduce(0){$0+$1.glove.errors}
+    errorsBad+=badBox.filter{bad.player($0.key)?.club==0}.values.reduce(0){$0+$1.glove.errors}
+    check(goodBox.values.reduce(0){$0+$1.glove.putouts}==goodBox.values.reduce(0){$0+$1.outs},"Defensive putouts reconcile with pitching outs")
+    check(goodBox.values.reduce(0){$0+$1.glove.outs}==goodBox.values.reduce(0){$0+$1.outs}*9,"Nine defenders credited per completed out")
+    check(badBox.values.contains{$0.glove.outOfPositionOuts>0},"Wrong positions create recorded out-of-position innings")
+    for (id,row) in goodBox where row.fielding != nil{check(good.player(id)!.totals.glove.putouts==row.glove.putouts,"Fielding reaches season totals")}
+}
+check(errorsBad>errorsGood,"Out-of-position lineups commit more errors across paired games")
+print("Fielding errors, 50 paired games: eligible \(errorsGood), shuffled \(errorsBad)")
+let commerceSave=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(construction))
+check(commerceSave.investments.completed==construction.investments.completed && commerceSave.merch.lastPeriod==construction.merch.lastPeriod,"Commerce and project state survive saves")
+// Diagnostics use historical game ownership, not current roster membership.
+var diagnosis=make()
+check(diagnosis.teamAnalysis().games==0 && diagnosis.teamAnalysis().cards.count==1,"Preseason analysis avoids invented performance")
+let diagnosticID=diagnosis.clubs[0].lineup[0]
+diagnosis.schedule=[]
+for n in 0..<13 {
+    var g=FranchiseGame(id:n,day:n,away:0,home:1,stage:"Regular season",series:n)
+    g.awayRuns=1;g.homeRuns=8;g.playerTeams=[diagnosticID:0]
+    var row=SeasonStat();row.pa=40;row.ab=38;row.k=18;row.outs=27;row.er=8;row.pbb=10;row.glove.errors=2
+    g.box=[diagnosticID:row];g.starters=[diagnosticID];diagnosis.schedule.append(g)
+}
+let report=diagnosis.teamAnalysis()
+check(report.games==10 && report.previousGames==3 && report.wins==0 && report.runsFor==10 && report.runsAgainst==80,"Diagnostics reconcile latest ten and previous sample with scores")
+check(report.boxGames==10 && report.cards[0].concern && report.cards[2].concern,"Low scoring and fielding errors surface evidence-based concerns")
+diagnosis.players[diagnosis.players.firstIndex{$0.profile.id==diagnosticID}!].club=2
+check(diagnosis.teamAnalysis().cards[0].evidence==report.cards[0].evidence,"Historical team stats survive a player changing clubs")
+let canonical=JSONEncoder();canonical.outputFormatting=[.sortedKeys];let beforeDiagnosis=try canonical.encode(diagnosis)
+_=diagnosis.teamAnalysis();let afterDiagnosis=try canonical.encode(diagnosis);check(afterDiagnosis==beforeDiagnosis,"Reading diagnosis cannot alter RNG or career state")
+// Shared, slow development with role-specific CPU priorities.
+var cpuGrowth=make();let cpuStart=cpuGrowth.players
+for club in 1..<7 {
+    let plan=cpuGrowth.cpuTrainingOrders(club)
+    check(plan.count==6 && plan.allSatisfy{cpuGrowth.player($0.key)!.trainableAbilities.contains($0.value.ability)},"Every CPU club plans six role-appropriate sessions")
+}
+for week in 0..<26{cpuGrowth.advanceTime(week*7);_=cpuGrowth.completeTraining()}
+for club in 1..<7 {
+    let gains=cpuGrowth.roster(club).map{p in p.overallValue-cpuStart.first{$0.profile.id==p.profile.id}!.overallValue}
+    check(gains.contains{$0>0} && gains.max()!<5,"CPU team develops over a season without rapid OVR inflation")
+    check(cpuGrowth.roster(club).contains{p in p.growth.enumerated().contains{![0,5].contains($0.offset) && $0.element>0}},"CPU develops multiple tools beyond contact and pitching")
+}
+var learner=make().roster(0).first{!$0.isPitcher}!,strong=learner
+strong.develop(1,20)
+check(make().plannedTrainingGain(learner,ability:1,intensity:1)>make().plannedTrainingGain(strong,ability:1,intensity:1),"Power grows slower when existing power is stronger")
+for ability in [0,1,3]{learner.develop(ability,50-learner.skill(ability))}
+check(learner.learningFactor(1)<learner.learningFactor(0) && learner.learningFactor(3)<learner.learningFactor(1),"Physical tools and power have distinct learning speeds at equal ability")
+let cpuAfter=cpuGrowth.players.map{$0.growth};_=cpuGrowth.completeTraining()
+check(cpuGrowth.players.map{$0.growth}==cpuAfter,"CPU training cannot settle twice in one week")
+func fixtures(_ f:Franchise)->[String]{f.schedule.map{"\($0.day)/\($0.away)/\($0.home)"}}
+check(fixtures(make(1))==fixtures(make(9876)),"2026 schedule stays fixed across random seeds")
+var futureSchedules=Set<String>()
+for seed in 1...12 {
+    var next=make(UInt64(seed));next.year=2027;next.makeSchedule()
+    var replay=make(UInt64(seed));replay.year=2027;replay.makeSchedule()
+    check(fixtures(next)==fixtures(replay),"Future schedule draw is reproducible from career RNG")
+    futureSchedules.insert(fixtures(next).joined(separator:"|"))
+    check(next.schedule.count==126 && next.schedule.allSatisfy{$0.day<Franchise.offset(8,20)},"Future season retains full schedule before playoffs")
+    for club in 0..<7 {
+        let games=next.schedule.filter{$0.home==club || $0.away==club}
+        check(games.count==36 && games.filter{$0.home==club}.count==18,"Random draw preserves 36 games and home-away balance")
+        for opponent in 0..<7 where opponent != club {check(games.filter{$0.home==opponent || $0.away==opponent}.count==6,"Random draw retains six games per opponent")}
+        for sameDay in Dictionary(grouping:games,by:{$0.day}).values{check(sameDay.count<=2 && Set(sameDay.map{$0.series}).count==1,"No conflicting opponents or excessive daily games")}
+    }
+    let old=fixtures(next);next.year=2028;next.makeSchedule();check(fixtures(next) != old,"New career year receives a different fixture draw")
+}
+check(futureSchedules.count==12,"Separate career seeds create varied future calendars")
+var smartWins=0,weakWins=0,smartRuns=0,weakRuns=0
+for seed in 1...160 {
+    var smart=make(UInt64(seed*3571)),weak=smart
+    smart.options.autoSubs=false;weak.options.autoSubs=false
+    var unused=weak.roster(0).filter{!$0.isPitcher}.sorted{$0.value<$1.value}
+    for slot in 0..<9 {
+        let at=unused.firstIndex{$0.fits(weak.clubs[0].defense[slot])} ?? 0
+        weak.clubs[0].lineup[slot]=unused.remove(at:at).profile.id
+    }
+    let game=smart.nextUserGame!
+    smart.simulate(game.id);weak.simulate(game.id)
+    let a=smart.schedule.first{$0.id==game.id}!,b=weak.schedule.first{$0.id==game.id}!
+    smartWins+=a.winner==0 ? 1:0;weakWins+=b.winner==0 ? 1:0
+    smartRuns+=(a.home==0 ? a.homeRuns!:a.awayRuns!);weakRuns+=(b.home==0 ? b.homeRuns!:b.awayRuns!)
+    check(a.battingOrders[a.away==0 ? 0:1]==smart.clubs[0].lineup,"Actual box preserves selected batting order")
+}
+check(smartWins>weakWins && smartRuns>weakRuns,"Stronger eligible lineup scores and wins more across paired games")
+print("Lineup comparison, 160 games: strong \(smartWins) W / \(smartRuns) runs; weak \(weakWins) W / \(weakRuns) runs")
+print("PASS: \(assertions) franchise assertions")

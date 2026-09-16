@@ -33,6 +33,7 @@ function useNavEntries(): NavEntry[] {
     {
       type: 'dropdown', label: 'Play',
       items: [
+        { href: '/franchise',      label: 'Franchise'      },
         { href: '/win-the-series',  label: 'Win the Series' },
         { href: '/pick-em',         label: 'Pick \'em'      },
         { href: '/pickle',          label: 'Pickle'         },

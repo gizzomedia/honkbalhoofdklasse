@@ -42,6 +42,13 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
+    // Public franchise accounts must not gain access to admin-only pages or APIs.
+    const {data: admin, error: roleError} = await supabase.from('admin_users').select('email').eq('email', user.email ?? '').maybeSingle()
+    if (roleError || !admin) {
+      return pathname.startsWith('/admin/api/')
+        ? NextResponse.json({error:'Forbidden'}, {status:403})
+        : new NextResponse('Geen toegang tot beheer.', {status:403})
+    }
     return response
   }
 

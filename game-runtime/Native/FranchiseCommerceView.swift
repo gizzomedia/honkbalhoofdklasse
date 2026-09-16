@@ -1,0 +1,52 @@
+import AppKit
+extension FranchiseView {
+    func managerMerchandise(){guard let f=career else{return};let shop=f.merch
+        text("WEAR YOUR CLUB. GROW YOUR CLUB.",51,234,40,white,"Impact",1450)
+        text("WEEKLY SALES · STOCK CARRIES OVER · BUY IN BATCHES OF 25",54,289,18,accent,"AvenirNext-DemiBold",1450)
+        for (i,p) in merchandiseProducts.enumerated(){let x:CGFloat=51+CGFloat(i)*507
+            panel(rect(x,331,485,326));text(p.name.uppercased(),x+19,346,29,white,"Impact",443)
+            image(team.logo,rect(x+24,396,87,71));text("\(shop.stock[i]) IN STOCK",x+137,412,30,white,"Impact",322)
+            text("COST €\(p.cost) / UNIT · \(shop.sold[i]) SOLD",x+21,490,18,muted,"AvenirNext-DemiBold",439)
+            button("PRICE: €\(p.prices[shop.pricing[i]]) · \(["VALUE","STANDARD","PREMIUM"][shop.pricing[i]])","merchprice:\(i)",rect(x+20,535,445,42))
+            button("ORDER 25 · €\(p.cost*25)","merchorder:\(i)",rect(x+20,593,445,43),primary:true,enabled:f.clubs[f.user].cash>=p.cost*25 && shop.stock[i]+25<=500)
+        }
+        text("SALES €\(number(shop.revenue)) · STOCK PURCHASES €\(number(shop.purchases)) · INVENTORY AT COST €\(number(zip(shop.stock,merchandiseProducts).reduce(0){$0+$1.0*$1.1.cost}))",54,676,18,accent,"AvenirNext-DemiBold",1450)
+        for (i,line) in shop.lastReport.enumerated(){text(line,55,710+CGFloat(i)*22,17,muted,"AvenirNext-DemiBold",1000)}
+        if shop.lastReport.isEmpty{text("Buy stock to launch. Sales settle at the next weekly training checkpoint.",55,717,19,muted,"AvenirNext-DemiBold",1100)}
+        button(shop.autoRestock ? "AUTO RESTOCK: ON":"AUTO RESTOCK: OFF","merchauto",rect(1135,710,410,44))
+        text("Higher prices reduce demand. Unsold stock ties up cash. Auto restock retains your Settings cash reserve.",54,799,17,muted,"AvenirNext-DemiBold",1460)
+    }
+    func commerceModal()->Bool{guard let f=career else{return false}
+        if modal=="projects"{
+            text("BUILD YOUR CLUB'S NEXT CHAPTER.",113,106,43,white,"Impact",1320)
+            text("ONE CONSTRUCTION AT A TIME · BENEFITS AFTER COMPLETION · WEEKLY OPERATING COSTS",117,182,17,accent,"AvenirNext-DemiBold",1320)
+            for (i,p) in clubProjects.enumerated(){let x:CGFloat=115+CGFloat(i%2)*683,y:CGFloat=237+CGFloat(i/2)*237
+                panel(rect(x,y,653,219));text(p.name.uppercased(),x+17,y+14,25,white,"Impact",619)
+                text(p.benefit,x+19,y+58,19,white,"AvenirNextCondensed-DemiBold",612)
+                let complete=f.investments.completed.contains(p.id),building=f.investments.construction?.id==p.id
+                let status=complete ? (f.investments.funded ? "OPERATING":"PAUSED / UNFUNDED"):building ? "BUILDING · \(max(0,f.investments.construction!.finish-f.careerDay)) DAYS LEFT":"€\(number(p.price)) · \(p.days) DAYS · €\(p.upkeep)/WEEK"
+                text(status,x+19,y+97,18,accent,"AvenirNext-DemiBold",610)
+                text("Requires \(facilities[p.facility].name) level \(p.level)",x+19,y+132,17,muted,"AvenirNext-DemiBold",610)
+                button(complete ? "COMPLETED":building ? "IN PROGRESS":"REVIEW PROJECT","project:"+p.id,rect(x+17,y+170,617,34),enabled:!complete && !building)
+            }
+        }else if modal.hasPrefix("project:"),let p=clubProjects.first(where:{$0.id==String(modal.dropFirst(8))}){
+            text(p.name.uppercased(),113,112,43,white,"Impact",1320)
+            text("€\(number(p.price)) UP FRONT · \(p.days) CALENDAR DAYS",117,213,31,accent,"Impact",1300)
+            paragraph("\(p.benefit). Benefits begin after construction completes. Weekly upkeep is €\(p.upkeep); if the club cannot cover its project upkeep, these benefits pause until a funded weekly settlement. Existing facility upgrades remain active.",119,286,1280,165,26,white)
+            text("REQUIRED: \(facilities[p.facility].name.uppercased()) LEVEL \(p.level) · CURRENT \(f.clubs[f.user].level(p.facility))",120,485,22,muted,"AvenirNext-DemiBold",1290)
+            text("CASH AFTER CONSTRUCTION: €\(number(f.clubs[f.user].cash-p.price))",120,548,25,accent,"AvenirNext-DemiBold",1290)
+            text(f.investments.construction==nil ? "One project can be built at a time.":"Finish the current construction before starting another project.",120,612,22,muted,"AvenirNextCondensed-DemiBold",1290)
+            button("START CONSTRUCTION","projectstart:"+p.id,rect(994,752,489,49),primary:true,enabled:f.investments.construction==nil && !f.investments.completed.contains(p.id) && f.clubs[f.user].cash>=p.price && f.clubs[f.user].level(p.facility)>=p.level)
+        }else{return false}
+        button("BACK","commerceback",rect(113,752,172,49));return true
+    }
+    func commerceAction(_ action:String)->Bool{
+        if action.hasPrefix("merchprice:"),let i=Int(action.dropFirst(11)),merchandiseProducts.indices.contains(i){if var f=career{f.merch.pricing[i]=(f.merch.pricing[i]+1)%3;career=f};save();return true}
+        if action.hasPrefix("merchorder:"),let i=Int(action.dropFirst(11)){if career?.orderMerchandise(i)==true{save();notify("25 units added to stock. Sales settle weekly.")};return true}
+        if action=="merchauto"{career?.merch.autoRestock.toggle();save();return true}
+        if action=="projects" || action.hasPrefix("project:"){modal=action;focus=0;return true}
+        if action.hasPrefix("projectstart:"){if career?.startClubProject(String(action.dropFirst(13)))==true{save();modal="projects";notify("Construction started. Benefits activate when the project is complete.")};return true}
+        if action=="commerceback"{modal=modal.hasPrefix("project:") ? "projects":"";focus=0;return true}
+        return false
+    }
+}

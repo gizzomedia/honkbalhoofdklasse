@@ -1,0 +1,617 @@
+import Foundation
+
+let abilityNames=["Contact","Power","Discipline","Speed","Fielding","Pitching","Control","Stamina","Stealing","Vision","Break","Velocity"]
+let defensePositions=["C","1B","2B","3B","SS","LF","CF","RF","DH"]
+struct SeasonStat:Codable {
+    var pa=0,ab=0,h=0,hr=0,bb=0,k=0,r=0,rbi=0,sb=0,outs=0,er=0,allowed=0,pbb=0,pk=0,games=0
+    var extra:ExtraStats?=nil
+    var fielding:SimFielding?=nil
+    mutating func add(_ b:SeasonStat){if let f=b.fielding{glove.add(f)};pa+=b.pa;ab+=b.ab;h+=b.h;hr+=b.hr;bb+=b.bb;k+=b.k;r+=b.r;rbi+=b.rbi;sb+=b.sb;outs+=b.outs;er+=b.er;allowed+=b.allowed;pbb+=b.pbb;pk+=b.pk;games+=b.games;x.add(b.x)}
+    var avg:String {ab>0 ? String(format:"%.3f",Double(h)/Double(ab)):"—"}
+    var era:String {outs>0 ? String(format:"%.2f",Double(er)*27/Double(outs)):"—"}
+    var ip:String {"\(outs/3).\(outs%3)"}
+}
+struct FranchisePlayer:Codable {
+    var profile:Player,club:Int
+    var growth=Array(repeating:0.0,count:12),fatigue=0.0,morale=65.0
+    var totals=SeasonStat(),loanOwner:Int?=nil
+    var injury:PlayerInjury?=nil,farm:Bool?=nil,farmProgress:FarmProgress?=nil
+    var developmentHistory:[DevelopmentSnapshot]?=nil
+    var isPitcher:Bool{profile.position=="P"}
+    // These are sandbox simulation inputs, never certified real-world OVR ratings.
+    // Unknown evidence uses a shared neutral model prior, not an invented player statistic.
+    func evidence(_ a:Int)->Double? {
+        guard let s=profile.stats else{return nil}
+        let ab=Double(s.ab ?? 0),pa=Double(s.pa ?? 0),outs=Double(s.outs ?? 0)
+        switch a {
+        case 0:guard ab>0,let h=s.hits else{return nil};return 35+Double(h)/ab*110
+        case 1:guard ab>0,let h=s.hr,let d=s.doubles,let t=s.triples else{return nil};return 35+(Double(d+2*t+3*h)/ab)*140
+        case 2:guard pa>0,let b=s.bb else{return nil};return 35+Double(b)/pa*220
+        case 3:guard pa>0,let sb=s.sb,let t=s.triples else{return nil};return 40+Double(sb+2*t)/pa*260
+        case 8:guard pa>0,let sb=s.sb,let cs=s.cs else{return nil};let attempts=Double(sb+cs);return 35+Double(sb)/pa*180+(attempts>0 ? Double(sb)/attempts*25:0)
+        case 9:guard pa>0,let k=s.so else{return nil};return 85-Double(k)/pa*150
+        case 11:guard outs>0,let k=s.pitchK else{return nil};return 32+Double(k)*27/outs*3
+        case 4:guard let po=s.fieldPO,let a=s.fieldA,let e=s.fieldE,po+a+e>0 else{return nil};return 55+(Double(po+a)/Double(po+a+e)-0.95)*400
+        case 5:guard outs>0,let er=s.er,let k=s.pitchK else{return nil};return 75-Double(er)*27/outs*4+Double(k)*27/outs*1.2
+        case 6:guard outs>0,let b=s.pitchBB else{return nil};return 86-Double(b)*27/outs*6
+        case 7:guard outs>0,let app=s.appearances,app>0 else{return nil};return 37+outs/3/Double(app)*7
+        default:return nil
+        }
+    }
+    func skill(_ a:Int)->Double {
+        let raw=evidence(a) ?? 50
+        let pitching=[5,6,7,10,11].contains(a)
+        let sample:Double=pitching ? Double(profile.stats?.outs ?? 0)/3:Double(profile.stats?.pa ?? 0)
+        let weight=sample/(sample+(pitching ? 30:100))
+        return max(15,min(95,50+(raw-50)*weight+development(a)))
+    }
+    var value:Double {
+        let pitching=skill(5)*0.32+skill(6)*0.25+skill(7)*0.2+skill(10)*0.1+skill(11)*0.1+skill(4)*0.03
+        let hitting=skill(0)*0.38+skill(1)*0.27+skill(2)*0.2+skill(3)*0.05+skill(4)*0.04+skill(8)*0.03+skill(9)*0.03
+        if canPitch && canHit{return isPitcher ? pitching*0.8+hitting*0.2:hitting*0.8+pitching*0.2}
+        return isPitcher ? pitching:hitting
+    }
+    var readiness:Double {max(0,100-fatigue)}
+    func fits(_ pos:String)->Bool {
+        if pos=="DH"{return true}
+        if let known=profile.positions{return known.contains(pos)}
+        // Legacy snapshots have no appearance audit; broad IF/OF labels grant no exact position.
+        return !["IF","OF","UTL"].contains(profile.position) && profile.position==pos
+    }
+
+}
+struct FranchiseClub:Codable {
+    var roster:[String]=[],lineup:[String]=[],defense:[String]=defensePositions,rotation:[String]=[]
+    var rotationIndex=0,nextStarter:String?=nil,approach=0,bullpen=0
+    var cash=180000,fans=1150,stadium=0,locker=0,academy=0,ticket=12
+    var income=0,expenses=0
+    var moreFacilities:[Int]?=nil
+    var capacity:Int {1000+stadium*300}
+}
+struct TrainingOrder:Codable {var ability:Int,intensity:Int}
+struct FranchiseGame:Codable {
+    var id:Int,day:Int,away:Int,home:Int,stage:String,series:Int
+    var awayRuns:Int?=nil,homeRuns:Int?=nil,cancelled=false
+    var lines:[[Int]]=[],box:[String:SeasonStat]=[:],starters:[String]=[],attendance=0,gate=0,report:[String]=[]
+    var battingOrders:[[String]]=[],playerTeams:[String:Int]=[:]
+    var played:Bool {awayRuns != nil}
+    var winner:Int? {guard let a=awayRuns,let h=homeRuns else{return nil};return a>h ? away:home}
+}
+struct TableRow {var club:Int,w=0,l=0,rf=0,ra=0;var pct:Double{w+l>0 ? Double(w)/Double(w+l):0}}
+struct FranchiseHistory:Codable {var year:Int,champion:Int,userWins:Int,userLosses:Int}
+struct Franchise:Codable {
+    var version=1,year=2026,user:Int,slot:Int,day=0,lastTrainingWeek = -1
+    var rng:UInt64,players:[FranchisePlayer],clubs:[FranchiseClub]
+    var schedule:[FranchiseGame]=[],training:[String:TrainingOrder]=[:]
+    var draft=false,draftPick=0,draftOrder:[Int]=[],phase="Regular season",seeds:[Int]=[],champion:Int?=nil
+    var inbox:[String]=[],trainingReport:[String]=[],history:[FranchiseHistory]=[],ledger:[String]=[]
+    var settings:FranchiseOptions?=nil,pauseReason:String?=nil,claimedObjectives:[String]?=nil
+    var seasonGrowthBaseline:Double?=nil,seasonFanBaseline:Int?=nil,awardHistory:[String]?=nil,awardsYear:Int?=nil
+    var sponsorContracts:[SponsorContract]?=nil
+    var sponsorMarket:SponsorMarket?=nil
+    var merchandise:MerchandiseState?=nil,clubInvestment:ClubInvestmentState?=nil
+    var managementAutomation:ClubAutomation?=nil,hiredStaff:[ManagerCoach]?=nil
+    var created=Date(),lastSaved=Date()
+    static func make(db:Database,user:Int,slot:Int,fantasy:Bool,seed:UInt64=20260915)->Franchise {
+        let ps=db.players.map{p in FranchisePlayer(profile:p,club:fantasy ? -1:(db.teams.firstIndex{$0.id==p.teamID} ?? 0))}
+        var f=Franchise(user:user,slot:slot,rng:seed,players:ps,clubs:Array(repeating:FranchiseClub(),count:7))
+        f.draft=fantasy
+        for i in 0..<7 {f.clubs[i].roster=ps.filter{$0.club==i}.map{$0.profile.id}}
+        if fantasy {f.phase="Fantasy draft";f.draftOrder=Array(0..<7);f.draftOrder.swapAt(0,user)}
+        else {for i in 0..<7 {f.autoLineup(i)};f.makeSchedule()}
+        f.inbox=[fantasy ? "Welcome to the draft. 25 rounds, seven clubs, snake order. You have the first pick.":"Your franchise begins. Set a lineup, choose your rotation and assign this week's training.","Simulation skills and finances belong to this fictional career. Official player OVRs remain unrated."]
+        f.recordDevelopment();f.refreshSponsorMarket();return f
+    }
+    var trainingDue:Bool {!draft && champion==nil && lastTrainingWeek<day/7}
+    var draftTeam:Int {let round=draftPick/7,index=draftPick%7;return draftOrder[round%2==0 ? index:6-index]}
+    func player(_ id:String)->FranchisePlayer? {players.first{$0.profile.id==id}}
+    func roster(_ club:Int)->[FranchisePlayer] {players.filter{$0.club==club}}
+    mutating func random()->Double {rng=rng &* 6364136223846793005 &+ 1442695040888963407;return Double(rng>>11)/Double(UInt64.max>>11)}
+    mutating func log(_ s:String){inbox.insert(s,at:0);if inbox.count>150 {inbox.removeLast(inbox.count-150)}}
+    static func baseDate(_ year:Int)->Date {
+        var cal=Calendar(identifier:.gregorian);cal.timeZone=TimeZone(secondsFromGMT:0)!
+        let d=cal.date(from:DateComponents(year:year,month:4,day:1,hour:12))!
+        let weekday=cal.component(.weekday,from:d);return cal.date(byAdding:.day,value:(9-weekday)%7,to:d)!
+    }
+    func date(_ offset:Int)->Date {Franchise.baseDate(year).addingTimeInterval(Double(offset)*86400)}
+    func dateLabel(_ offset:Int,format:String="EEE d MMM")->String {let f=DateFormatter();f.locale=Locale(identifier:"en_GB");f.timeZone=TimeZone(secondsFromGMT:0);f.dateFormat=format;return f.string(from:date(offset))}
+    static func offset(_ month:Int,_ day:Int)->Int {var c=Calendar(identifier:.gregorian);c.timeZone=TimeZone(secondsFromGMT:0)!;return c.dateComponents([.day],from:baseDate(2026),to:c.date(from:DateComponents(year:2026,month:month,day:day,hour:12))!).day!}
+    mutating func makeSchedule() {
+        schedule=[]
+        let starts:[(Int,Int)]=[(4,9),(4,16),(4,23),(4,30),(5,7),(5,14),(5,28),(6,4),(6,11),(6,18),(7,11),(7,16),(7,23),(7,30)]
+        var ring=[0,2,3,4,5,6,7,1]
+        func shuffled<T>(_ input:[T],_ draw:()->Double)->[T]{var out=input;for i in stride(from:out.count-1,through:1,by:-1){out.swapAt(i,Int(draw()*Double(i+1)))};return out}
+        if year>2026{ring=shuffled(ring){random()}}
+        var pairRounds=[[(Int,Int)]]()
+        for r in 0..<7 {
+            var pairs=[(Int,Int)]()
+            for i in 0..<4 {let a=ring[i],b=ring[7-i];if a<7 && b<7 {pairs.append(r%2==0 ? (a,b):(b,a))}}
+            pairRounds.append(pairs);let last=ring.removeLast();ring.insert(last,at:1)
+        }
+        let firstLeg=year>2026 ? shuffled(Array(0..<7)){random()}:Array(0..<7)
+        let secondLeg=year>2026 ? shuffled(Array(0..<7)){random()}:Array(0..<7)
+        let weeks=year>2026 ? ([0]+Array(shuffled(Array(1..<16)){random()}.prefix(12))+[16]).sorted():[]
+        for round in 0..<14 {
+            let first=year==2026 ? Self.offset(starts[round].0,starts[round].1):weeks[round]*7+3
+            let dates=year==2026 && round==10 ? [first,first,first+3]:[first,first+2,first+2]
+            for pair in pairRounds[round<7 ? firstLeg[round]:secondLeg[round-7]] {
+                let a=round<7 ? pair.0:pair.1,b=round<7 ? pair.1:pair.0
+                for game in 0..<3 {schedule.append(FranchiseGame(id:schedule.count,day:dates[game],away:game==1 ? a:b,home:game==1 ? b:a,stage:"Regular",series:round*10+a))}
+            }
+        }
+        schedule.sort{($0.day,$0.id)<($1.day,$1.id)}
+    }
+    mutating func autoLineup(_ team:Int) {
+        let rs=roster(team).filter{$0.available(day)}
+        let regularHitters=rs.filter{!$0.isPitcher}
+        let hitters=regularHitters.count>=9 ? regularHitters:rs.filter{$0.canHit}
+        var scores=Array(repeating: -Double.infinity,count:512),paths=Array(repeating:[String](),count:512)
+        scores[0]=0;paths[0]=Array(repeating:"",count:9)
+        for p in hitters.sorted(by:{$0.profile.id<$1.profile.id}) {
+            let contributions=defensePositions.map{pos in p.value-p.fatigue*0.18+(p.fits(pos) ? 1000:0)+(p.profile.position==pos ? 3:0)}
+            for mask in stride(from:510,through:0,by:-1) where scores[mask].isFinite {
+                for slot in 0..<9 where mask & (1<<slot)==0 {
+                    let next=mask | (1<<slot)
+                    let value=scores[mask]+contributions[slot]
+                    if value>scores[next]{scores[next]=value;paths[next]=paths[mask];paths[next][slot]=p.profile.id}
+                }
+            }
+        }
+        let chosen=paths[511]
+        if chosen.count==9 {
+            var remaining=Array(zip(chosen,defensePositions)),ordered=[(String,String)]()
+            // On-base leadoff, best all-round bat second, then run producers.
+            for slot in 0..<9 {
+                func score(_ id:String)->Double {let p=player(id)!
+                    if slot==0{return p.skill(0)*0.60+p.skill(2)*0.35+p.skill(3)*0.05-p.fatigue*0.18}
+                    if [2,3,4].contains(slot){return p.skill(1)*0.50+p.skill(0)*0.35+p.skill(2)*0.15-p.fatigue*0.15}
+                    return p.skill(0)*0.40+p.skill(1)*0.35+p.skill(2)*0.25-p.fatigue*0.17
+                }
+                let best=remaining.indices.max{score(remaining[$0].0)<score(remaining[$1].0)}!
+                ordered.append(remaining.remove(at:best))
+            }
+            clubs[team].lineup=ordered.map{$0.0};clubs[team].defense=ordered.map{$0.1}
+        }
+        let healthy=rs.filter{$0.isPitcher}.sorted{$0.skill(7)*0.5+$0.value*0.5>$1.skill(7)*0.5+$1.value*0.5}
+        let missing=roster(team).filter{p in p.isPitcher && !healthy.contains(where:{$0.profile.id==p.profile.id})}
+        clubs[team].rotation=Array((healthy+missing).prefix(3).map{$0.profile.id});clubs[team].rotationIndex=0
+    }
+    func lineupWarnings(_ team:Int)->[String] {
+        let c=clubs[team];var issues=[String]()
+        if c.lineup.count != 9 || Set(c.lineup).count != 9 {issues.append("Nine different hitters are required.")}
+        if c.rotation.count<3 || Set(c.rotation).count != c.rotation.count {issues.append("Choose three different starting pitchers.")}
+        for (i,id) in c.lineup.enumerated() {
+            guard let p=player(id),p.club==team else{issues.append("A lineup player is no longer at this club.");continue}
+            if !p.fits(c.defense[i]) {issues.append("\(p.profile.name) is out of position at \(c.defense[i]).")}
+            if p.fatigue>65 {issues.append("\(p.profile.name) needs rest (\(Int(p.readiness))% ready).")}
+        }
+        return issues
+    }
+    mutating func setLineup(slot:Int,id:String)->Bool {
+        guard (0..<9).contains(slot),let p=player(id),p.club==user,p.available(day) else{return false}
+        if let old=clubs[user].lineup.firstIndex(of:id) {clubs[user].lineup.swapAt(old,slot)}
+        else {clubs[user].lineup[slot]=id}
+        return true
+    }
+    mutating func moveHitter(_ index:Int,_ change:Int) {let to=index+change;guard (0..<9).contains(index),(0..<9).contains(to) else{return};clubs[user].lineup.swapAt(index,to);clubs[user].defense.swapAt(index,to)}
+    mutating func setRotation(_ slot:Int,_ id:String)->Bool {
+        guard (0..<3).contains(slot),let p=player(id),p.club==user,p.canPitch,p.available(day) else{return false}
+        if let existing=clubs[user].rotation.firstIndex(of:id){clubs[user].rotation.swapAt(slot,existing)}else{clubs[user].rotation[slot]=id};return true
+    }
+    func draftAllowed(_ id:String)->Bool {
+        guard draft,let p=player(id),p.club == -1 else{return false}
+        let rs=roster(draftTeam),open=24-rs.count
+        let arms=rs.filter{$0.isPitcher}.count+(p.isPitcher ? 1:0)
+        let bats=rs.filter{!$0.isPitcher}.count+(p.isPitcher ? 0:1)
+        return arms+open>=3 && bats+open>=9
+    }
+    mutating func selectDraft(_ id:String)->Bool {
+        guard draftAllowed(id),let i=players.firstIndex(where:{$0.profile.id==id && $0.club == -1}) else{return false}
+        let club=draftTeam;players[i].club=club;clubs[club].roster.append(id);draftPick+=1
+        if draftPick>=175 {draft=false;phase="Regular season";for c in 0..<7 {autoLineup(c)};makeSchedule();refreshSponsorMarket();log("Draft complete. All seven clubs have 25 players. Your first training week is ready.")}
+        return true
+    }
+    mutating func cpuDraft() {
+        var safety=0
+        while draft && draftTeam != user && safety<14 {draftBest();safety+=1}
+    }
+    mutating func draftBest() {
+        guard draft else{return};let club=draftTeam,rs=roster(club),r=rs.count
+        let available=players.filter{draftAllowed($0.profile.id)}
+        func desirability(_ p:FranchisePlayer)->Double {
+            let count=rs.filter{$0.isPitcher}.count
+            let gap=defensePositions.filter{$0 != "DH"}.filter{pos in !rs.contains(where:{!$0.isPitcher && $0.fits(pos)})}
+            let need=p.isPitcher ? (count<8):gap.contains(where:{p.fits($0)})
+            return p.value+(need ? (r>14 ? 40:12): -15)
+        }
+        if let p=available.max(by:{desirability($0)<desirability($1)}) {_=selectDraft(p.profile.id)}
+    }
+    func table()->[TableRow] {
+        var rows=(0..<7).map{TableRow(club:$0)}
+        for g in schedule where g.stage=="Regular" && g.played {
+            let a=g.awayRuns!,h=g.homeRuns!
+            rows[g.away].rf+=a;rows[g.away].ra+=h;rows[g.home].rf+=h;rows[g.home].ra+=a
+            if a>h {rows[g.away].w+=1;rows[g.home].l+=1}else{rows[g.home].w+=1;rows[g.away].l+=1}
+        }
+        return rows.sorted {a,b in
+            if a.pct != b.pct {return a.pct>b.pct}
+            let tied=Set(rows.filter{$0.pct==a.pct}.map{$0.club})
+            func mini(_ id:Int)->Int {schedule.filter{$0.stage=="Regular" && $0.played && tied.contains($0.away) && tied.contains($0.home) && $0.winner==id}.count}
+            if mini(a.club) != mini(b.club){return mini(a.club)>mini(b.club)}
+            if a.rf-a.ra != b.rf-b.ra{return a.rf-a.ra>b.rf-b.ra};return a.club<b.club
+        }
+    }
+    mutating func addPlayoffs() {
+        guard seeds.isEmpty else{return};seeds=table().map{$0.club};phase="Semifinals"
+        let days=[Self.offset(8,20),Self.offset(8,22),Self.offset(8,23),Self.offset(8,29),Self.offset(8,30)]
+        for (s,pair) in [(seeds[0],seeds[3]),(seeds[1],seeds[2])].enumerated() {
+            for n in 0..<5 {appendGame(day:days[n],away:n%2==0 ? pair.1:pair.0,home:n%2==0 ? pair.0:pair.1,stage:"Semifinal",series:1000+s)}
+        }
+        let bottom=[(seeds[4],seeds[5]),(seeds[6],seeds[4]),(seeds[5],seeds[6])]
+        let bdays=[Self.offset(8,20),Self.offset(8,22),Self.offset(8,22),Self.offset(8,27),Self.offset(8,29),Self.offset(8,29),Self.offset(9,3),Self.offset(9,5),Self.offset(9,5)]
+        for (s,p) in bottom.enumerated(){for n in 0..<3 {appendGame(day:bdays[s*3+n],away:n%2==0 ? p.1:p.0,home:n%2==0 ? p.0:p.1,stage:"Bottom three",series:2000+s)}}
+        schedule.sort{($0.day,$0.id)<($1.day,$1.id)};log("The regular season is complete. The top four enter best-of-five semifinals. The remaining clubs play the Bottom Three series.")
+    }
+    mutating func appendGame(day:Int,away:Int,home:Int,stage:String,series:Int) {schedule.append(FranchiseGame(id:(schedule.map{$0.id}.max() ?? -1)+1,day:day,away:away,home:home,stage:stage,series:series))}
+    func seriesWinner(_ series:Int,_ wins:Int)->Int? {
+        for c in 0..<7 {if schedule.filter({$0.series==series && $0.winner==c}).count>=wins{return c}};return nil
+    }
+    mutating func updateBracket() {
+        for s in [1000,1001,3000] {
+            let need=s==3000 ? 4:3
+            if let winner=seriesWinner(s,need) {
+                for i in schedule.indices where schedule[i].series==s && !schedule[i].played {schedule[i].cancelled=true}
+                if s==3000 && champion==nil {champion=winner;phase="Season complete";clubs[winner].cash+=35000;clubs[winner].fans+=250;log("The Holland Series has a champion. Review your season, then begin next year with development and club upgrades intact.")}
+            }
+        }
+        if let a=seriesWinner(1000,3),let b=seriesWinner(1001,3),!schedule.contains(where:{$0.series==3000}) {
+            phase="Holland Series"
+            let high=seeds.firstIndex(of:a)!<seeds.firstIndex(of:b)! ? a:b,low=high==a ? b:a
+            let dates=[(9,5),(9,6),(9,10),(9,12),(9,13),(9,19),(9,20)]
+            for (i,d) in dates.enumerated(){appendGame(day:Self.offset(d.0,d.1),away:i%2==0 ? low:high,home:i%2==0 ? high:low,stage:"Holland Series",series:3000)}
+            schedule.sort{($0.day,$0.id)<($1.day,$1.id)};log("The Holland Series is set. First to four wins becomes champion.")
+        }
+    }
+    var nextGame:FranchiseGame? {schedule.first{!$0.played && !$0.cancelled}}
+    var nextUserGame:FranchiseGame? {schedule.first{!$0.played && !$0.cancelled && ($0.away==user || $0.home==user)}}
+    mutating func advanceTime(_ newDay:Int) {
+        let days=max(0,newDay-day)
+        for i in players.indices where players[i].club>=0 {
+            let club=players[i].club,recovery=(players[i].isPitcher ? 9.0:12.0)+Double(clubs[club].locker)*2+(club==user ? coachBonus(3)*10+(hasProject("recovery") ? 2:0):0)
+            players[i].fatigue=max(0,players[i].fatigue-Double(days)*recovery)
+        }
+        day=newDay;completeClubProject()
+        for i in players.indices where players[i].injury != nil && players[i].injury!.untilDay<=day {
+            if players[i].club==user{log("FIT AGAIN: \(players[i].profile.name) has returned to availability.")};players[i].injury=nil
+        }
+    }
+    @discardableResult mutating func completeTraining()->Bool {
+        guard trainingDue else{return false};recordDevelopment();trainingReport=[];runWeeklyAutomation();settleStaffPayroll();settleClubCommerce();refreshSponsorMarket()
+        for club in 0..<7 {
+            let sponsor=2600+clubs[club].fans/2,payroll=2000+roster(club).count*75
+            clubs[club].cash+=sponsor-payroll;clubs[club].income+=sponsor;clubs[club].expenses+=payroll
+            if club==user {ledger.insert("\(dateLabel(day)): community support +€\(sponsor) / payroll −€\(payroll)",at:0)}
+            let orders: [String:TrainingOrder]
+            if club==user {orders=training}
+            else {orders=cpuTrainingOrders(club)}
+            for id in orders.keys.sorted() {
+                guard let o=orders[id],let i=players.firstIndex(where:{$0.profile.id==id && $0.club==club}),o.ability>=0,o.ability<abilityNames.count else{continue}
+                guard players[i].available(day) else{if club==user{trainingReport.append("\(players[i].profile.name): recovering or in farm; individual session skipped.")};continue}
+                let intensity=(club != user || options.autoRest) && players[i].readiness<65 ? 0:o.intensity
+                let cost=[180,350,600][max(0,min(2,intensity))]
+                guard clubs[club].cash>=cost else{if club==user{trainingReport.append("\(players[i].profile.name): training skipped, insufficient cash.")};continue}
+                let p=players[i],actual=plannedTrainingGain(p,ability:o.ability,intensity:intensity)
+                players[i].develop(o.ability,actual);players[i].fatigue=min(100,p.fatigue+Double([3,9,20][max(0,min(2,intensity))]))
+                clubs[club].cash-=cost;clubs[club].expenses+=cost
+                if club==user{trainingReport.append(String(format:"%@ · %@ +%.2f · €%d",p.profile.name,abilityNames[o.ability],actual,cost))}
+            }
+            if clubs[club].cash < -25000 {clubs[club].cash+=40000;clubs[club].fans=Int(Double(clubs[club].fans)*0.90);if club==user {log("The board provided €40,000 emergency funding. Fan confidence fell 10%. Improve your weekly finances.")}}
+        }
+        developFarm();settleObjectives()
+        recordDevelopment()
+        lastTrainingWeek=day/7
+        if trainingReport.isEmpty {trainingReport=["Recovery week: no individual training assigned. Your squad stays fresh."]}
+        log("Week \(day/7+1) training completed. Development and fatigue have been applied.")
+        return true
+    }
+    func trainingCost()->Int {training.values.reduce(0){$0+[180,350,600][max(0,min(2,$1.intensity))]}}
+    mutating func assignTraining(_ id:String,ability:Int,intensity:Int)->Bool {
+        guard let p=player(id),p.club==user,p.trainableAbilities.contains(ability),!p.inFarm,(0..<3).contains(intensity),training[id] != nil || training.count<6 else{return false}
+        training[id]=TrainingOrder(ability:ability,intensity:intensity);return true
+    }
+    func upgradeCost(_ kind:Int)->Int {guard facilities.indices.contains(kind) else{return Int.max};return facilities[kind].price*(clubs[user].level(kind)+1)}
+    @discardableResult mutating func upgrade(_ kind:Int)->Bool {
+        guard facilities.indices.contains(kind) else{return false};let c=clubs[user],level=c.level(kind),cost=upgradeCost(kind)
+        guard level<facilities[kind].maxLevel,c.cash>=cost else{return false}
+        clubs[user].cash-=cost;clubs[user].expenses+=cost;clubs[user].increase(kind)
+        if kind==0{clubs[user].fans+=70};if kind==7{clubs[user].fans+=45}
+        ledger.insert("\(dateLabel(day)): \(facilities[kind].name) upgrade −€\(cost)",at:0)
+        log("\(facilities[kind].name) upgraded to level \(level+1).")
+        settleObjectives();return true
+    }
+    var loanWindowOpen:Bool{
+        var calendar=Calendar(identifier:.gregorian);calendar.timeZone=TimeZone(secondsFromGMT:0)!
+        return !draft && champion==nil && seeds.isEmpty && calendar.component(.month,from:date(day))<7
+    }
+    func loanEligible(_ p:FranchisePlayer)->Bool {
+        guard loanWindowOpen,p.club != user,p.loanOwner==nil,p.available(day) else{return false}
+        if p.club == -1{return true}
+        guard clubs.indices.contains(p.club) else{return false}
+        let c=clubs[p.club],squad=roster(p.club)
+        guard !c.lineup.contains(p.profile.id),!c.rotation.contains(p.profile.id),c.nextStarter != p.profile.id,
+              squad.count>25,!squad.sorted(by:{$0.value>$1.value}).prefix(5).contains(where:{$0.profile.id==p.profile.id}) else{return false}
+        let games=schedule.filter{$0.played && ($0.home==p.club || $0.away==p.club)}.count
+        guard p.totals.x.starts<3,p.totals.x.saves<2,!(games>=5 && p.totals.pa>=games*2) else{return false}
+        let remaining=squad.filter{$0.profile.id != p.profile.id && $0.available(day)}
+        guard remaining.filter({$0.canHit}).count>=10,remaining.filter({$0.canPitch}).count>=6 else{return false}
+        for position in (p.profile.positions ?? []) where position != "DH" && position != "P" {
+            if remaining.filter({$0.fits(position)}).count<2{return false}
+        }
+        return true
+    }
+    func loanCandidates()->[FranchisePlayer] {
+        let eligible=players.filter{loanEligible($0)}
+        var listed=eligible.filter{$0.club == -1}
+        for owner in clubs.indices where owner != user {
+            let alreadyOut=players.filter{$0.loanOwner==owner && $0.club != owner}.count
+            // Clubs offer a small surplus list; core depth is not an unlimited shop.
+            let surplus=eligible.filter{$0.club==owner}.sorted{
+                let a=$0.value+Double($0.totals.pa)*0.15+Double($0.totals.outs)*0.1
+                let b=$1.value+Double($1.totals.pa)*0.15+Double($1.totals.outs)*0.1
+                return a==b ? $0.profile.id<$1.profile.id:a<b
+            }
+            listed += surplus.prefix(max(0,2-alreadyOut))
+        }
+        return listed.sorted{$0.value>$1.value}
+    }
+    func loanPrice(_ id:String)->Int {guard let p=player(id) else{return 0};return Int(7000+p.value*190)*max(25,100-day/2)/100}
+    @discardableResult mutating func loan(_ id:String)->Bool {
+        guard champion==nil,!draft,players.filter({$0.club==user && $0.loanOwner != nil}).count<3,
+              loanCandidates().contains(where:{$0.profile.id==id}),let i=players.firstIndex(where:{$0.profile.id==id}) else{return false}
+        let cost=loanPrice(id);guard clubs[user].cash>=cost else{return false}
+        let owner=players[i].club
+        clubs[user].cash-=cost;clubs[user].expenses+=cost;clubs[user].roster.append(id)
+        if owner>=0{clubs[owner].cash+=cost;clubs[owner].income+=cost;clubs[owner].roster.removeAll{$0==id}}
+        players[i].loanOwner=owner;players[i].club=user
+        ledger.insert("\(dateLabel(day)): loan of \(players[i].profile.name) −€\(cost)",at:0);log("\(players[i].profile.name) joins on a season-long loan. Set their role in Lineup or Pitching.")
+        return true
+    }
+    func starter(_ club:Int)->String {
+        let c=clubs[club]
+        if let id=c.nextStarter,let p=player(id),p.club==club,p.canPitch{return id}
+        let rot=c.rotation.filter{player($0)?.club==club}
+        if !rot.isEmpty{return rot[c.rotationIndex%rot.count]}
+        return roster(club).first(where:{$0.isPitcher})?.profile.id ?? c.lineup[0]
+    }
+    func teamDefense(_ club:Int)->Double {
+        let c=clubs[club]
+        return c.lineup.enumerated().reduce(0){sum,item in
+            guard let p=player(item.element) else{return sum}
+            return sum+p.skill(4)-p.fatigue*0.13-(p.fits(c.defense[item.offset]) ? 0:22)
+        }/9
+    }
+    // Exact same plate-appearance model used by full games and decision-effect tests.
+    func probabilities(batter:FranchisePlayer,pitcher:FranchisePlayer,defense:Double,approach:Int,pitchLoad:Double)->(walk:Double,strike:Double,hit:Double,homer:Double) {
+        let morale=(batter.morale-65)*0.035
+        let c=batter.skill(0)-batter.fatigue*0.18+morale,p=batter.skill(1)-batter.fatigue*0.11
+        let arm=pitcher.skill(5)*0.65+pitcher.skill(10)*0.2+pitcher.skill(11)*0.15-pitcher.fatigue*0.20-max(0,pitchLoad-(32+pitcher.skill(7)*0.28))*0.40
+        let control=pitcher.skill(6)-pitcher.fatigue*0.14
+        let walk=max(0.025,min(0.23,0.087+(batter.skill(2)-control)*0.0017+(approach==1 ? 0.018:0)))
+        let strike=max(0.07,min(0.37,0.19+(arm-c)*0.0021+(50-batter.skill(9))*0.0006+(approach==2 ? 0.035:0)))
+        let hit=max(0.11,min(0.43,0.255+(c-arm)*0.0025+(50-defense)*0.0011+(approach==2 ? -0.012:0)))
+        let homer=max(0.002,min(0.10,0.014+(p-50)*0.0010+(50-arm)*0.0003+(approach==2 ? 0.009:0)))
+        return(walk,strike,hit,homer)
+    }
+    @discardableResult mutating func step()->String {
+        guard !draft else{return "Finish your draft first."}
+        guard champion==nil else{return "Season complete. Begin next season when ready."}
+        if schedule.filter({$0.stage=="Regular" && !$0.played}).isEmpty && seeds.isEmpty {addPlayoffs()}
+        updateBracket()
+        guard let game=nextGame else{return "No scheduled games remain."}
+        if trainingDue{if options.automaticTraining{_=completeTraining()}else{return "Weekly training is ready."}}
+        while game.day/7>lastTrainingWeek {
+            advanceTime((lastTrainingWeek+1)*7)
+            if options.automaticTraining{_=completeTraining()}else{return "Weekly training is ready."}
+        }
+        advanceTime(game.day)
+        if game.home==user || game.away==user{prepareManagedTeam()}
+        if game.home==user || game.away==user,let reason=userBlockers().first{pauseReason=reason;return reason}
+        simulate(game.id)
+        if schedule.filter({$0.stage=="Regular" && !$0.played}).isEmpty && seeds.isEmpty {addPlayoffs()}
+        updateBracket();settleObjectives();archiveAwards()
+        if options.pauseLowFunds && clubs[user].cash<15000{pauseReason="Club funds below €15,000. Review finances before continuing."}
+        return "Game complete. Your changes apply to the next game."
+    }
+    mutating func simulate(_ gameID:Int) {
+        guard let gi=schedule.firstIndex(where:{$0.id==gameID}),!schedule[gi].played,!schedule[gi].cancelled else{return}
+        let g=schedule[gi],teams=[g.away,g.home]
+        for c in teams where c != user {let cursor=clubs[c].rotationIndex;autoLineup(c);clubs[c].rotationIndex=cursor;repairUnavailable(c)}
+        let starterIDs=teams.map{starter($0)}
+        var batterIDs=teams.map{clubs[$0].lineup}
+        let initialOrders=batterIDs
+        var usedHitters=Set(batterIDs.flatMap{$0}),subCount=[0,0],substitutions=[[String](),[String]()]
+        guard batterIDs.allSatisfy({$0.count==9}) else{log("Lineup requires nine players before simulation.");return}
+        var activePitcher=starterIDs,loads=[0.0,0.0],orders=[0,0],score=[0,0],lines=[[Int](),[Int]()],box=[String:SeasonStat](),report=[String]()
+        var currentInning=1,walkoff=false
+        var defense=teams.map{teamDefense($0)}
+        var usedPitchers=Set(starterIDs)
+        var winningPitcher=starterIDs[0],losingPitcher=starterIDs[1],entryLead=[0,0]
+        func add(_ id:String,_ edit:(inout SeasonStat)->Void){var row=box[id] ?? SeasonStat();edit(&row);box[id]=row}
+        for id in starterIDs{add(id){$0.x.starts=1}}
+        while currentInning<=9 || score[0]==score[1] {
+            for side in 0..<2 {
+                if side==1 && currentInning>=9 && score[1]>score[0] {break}
+                var outs=0,bases:[String?]=[nil,nil,nil],halfRuns=0,appearances=0
+                var responsibility=[String:String]()
+                let field=1-side,club=teams[field]
+                func fielder(_ position:String)->String {
+                    if position=="P"{return activePitcher[field]}
+                    guard let index=clubs[club].defense.firstIndex(of:position) else{return activePitcher[field]}
+                    return batterIDs[field][index]
+                }
+                func recordDefensiveOut(){
+                    for position in ["P","C","1B","2B","3B","SS","LF","CF","RF"] {
+                        let id=fielder(position),wrong=player(id)?.fits(position)==false
+                        add(id){$0.glove.games=1;$0.glove.outs+=1;if wrong{$0.glove.outOfPositionOuts+=1}}
+                    }
+                }
+                var unearned=Set<String>()
+                if currentInning>=10 {bases[1]=batterIDs[side][(orders[side]+8)%9]}
+                while outs<3 && appearances<150 {
+                    if let pp=player(activePitcher[field]) {
+                        let starting=activePitcher[field]==starterIDs[field]
+                        let limit=starting ? (clubs[club].bullpen==1 ? 66.0:82.0)+pp.skill(7)*0.2-pp.fatigue*0.3:23.0+pp.skill(7)*0.12-pp.fatigue*0.15
+                        let lateStarter=starting && currentInning>=8
+                        let closerSituation = !starting && currentInning==9 && outs==0 && score[field]>score[side] && score[field]-score[side]<=3
+                        if loads[field]>=max(12,limit) || lateStarter || (closerSituation && (box[activePitcher[field]]?.outs ?? 0)>=3) {
+                            var candidates=roster(club).filter{$0.canPitch && $0.available(day) && !usedPitchers.contains($0.profile.id) && !batterIDs.flatMap{$0}.contains($0.profile.id)}
+                            let bullpen=candidates.filter{!clubs[club].rotation.contains($0.profile.id)}
+                            if !bullpen.isEmpty{candidates=bullpen}
+                            if let relief=candidates.max(by:{$0.value-$0.fatigue*0.55-Double($0.totals.outs)*0.015<$1.value-$1.fatigue*0.55-Double($1.totals.outs)*0.015}) {
+                                usedPitchers.insert(relief.profile.id);activePitcher[field]=relief.profile.id;loads[field]=0;entryLead[field]=score[field]-score[side]
+                                add(relief.profile.id){$0.x.reliefGames=1}
+                                report.append("Pitching change: \(relief.profile.name) enters in inning \(currentInning).")
+                            }
+                        }
+                    }
+
+                    let slot=orders[side]%9
+                    if currentInning>=7,subCount[side]<2,(teams[side] != user || options.autoSubs),let old=player(batterIDs[side][slot]) {
+                        let position=clubs[teams[side]].defense[slot]
+                        let bench=roster(teams[side]).filter{!$0.isPitcher && $0.available(day) && !usedHitters.contains($0.profile.id) && $0.fits(position)}
+                        if let sub=bench.max(by:{$0.value-$0.fatigue*0.25<$1.value-$1.fatigue*0.25}),random()<0.22,
+                           old.fatigue>20 || sub.value>old.value || abs(score[0]-score[1])>=5 {
+                            batterIDs[side][slot]=sub.profile.id;usedHitters.insert(sub.profile.id);subCount[side]+=1;substitutions[side].append(sub.profile.id)
+                            defense[side]+=(sub.skill(4)-old.skill(4))/9
+                            report.append("\(currentInning)\(side==0 ? "▲":"▼") PINCH HIT: \(sub.profile.name) replaces \(old.profile.name).")
+                        }
+                    }
+                    let bid=batterIDs[side][slot],pid=activePitcher[field]
+                    if let runner=bases[0],bases[1]==nil,let r=player(runner),random()<max(0.008,(r.skill(8)-20)*0.0012) {
+                        let chance=max(0.45,min(0.9,0.55+r.skill(8)*0.003+(r.skill(3)-50)*0.001-(player(pid)!.skill(6)-50)*0.001))
+                        if random()<chance{bases[1]=runner;bases[0]=nil;add(runner){$0.sb+=1}}
+                        else{bases[0]=nil;outs+=1;add(runner){$0.x.cs+=1};add(pid){$0.outs+=1};add(fielder("C")){$0.glove.assists+=1};add(fielder("2B")){$0.glove.putouts+=1};recordDefensiveOut();if outs>=3{break}}
+                    }
+                    guard let b=player(bid),let p=player(pid) else{break}
+                    let probs=probabilities(batter:b,pitcher:p,defense:defense[field],approach:clubs[teams[side]].approach,pitchLoad:loads[field])
+                    let roll=random(),walk=roll<probs.walk,strike=roll>=probs.walk && roll<probs.walk+probs.strike
+                    let hit=roll>=probs.walk+probs.strike && roll<probs.walk+probs.strike+probs.hit
+                    add(bid){$0.pa+=1;if substitutions[side].contains(bid){$0.x.pinchPA+=1}};add(pid){$0.x.pitches+=4};loads[field]+=3.9;appearances+=1;orders[side]+=1
+                    func run(_ id:String,creditRBI:Bool=true) {halfRuns+=1;score[side]+=1;add(id){$0.r+=1};if creditRBI{add(bid){$0.rbi+=1}};if let owner=responsibility[id],!unearned.contains(id){add(owner){$0.er+=1}};if score[side]==score[field]+1{winningPitcher=activePitcher[side];losingPitcher=responsibility[id] ?? pid}}
+                    if walk {
+                        responsibility[bid]=pid
+                        add(bid){$0.bb+=1};add(pid){$0.pbb+=1}
+                        if bases[0] != nil {if bases[1] != nil {if let id=bases[2]{run(id)};bases[2]=bases[1]};bases[1]=bases[0]};bases[0]=bid
+                    } else if strike {
+                        add(bid){$0.ab+=1;$0.k+=1};add(pid){$0.pk+=1;$0.outs+=1};outs+=1;add(fielder("C")){$0.glove.putouts+=1};recordDefensiveOut()
+                    } else if hit {
+                        responsibility[bid]=pid
+                        add(bid){$0.ab+=1;$0.h+=1};add(pid){$0.allowed+=1}
+                        let type=random(),hr=type<probs.homer/max(0.01,probs.hit)
+                        let basesHit=hr ? 4:(type<0.04+(b.skill(3)-40)*0.001 ? 3:(type<0.28+(b.skill(1)-50)*0.002 ? 2:1))
+                        if hr{add(bid){$0.hr+=1};add(pid){$0.x.pitchHR+=1}}else if basesHit==2{add(bid){$0.x.doubles+=1}}else if basesHit==3{add(bid){$0.x.triples+=1}}
+                        var next:[String?]=[nil,nil,nil]
+                        for n in (0..<3).reversed() {if let id=bases[n] {let extra=(basesHit==1 && n==1 && (player(id)?.skill(3) ?? 50)>60 && random()<0.45) ? 1:0;let to=n+basesHit+extra;if to>=3{run(id)}else{next[to]=id}}}
+                        if basesHit==4{run(bid)}else{next[basesHit-1]=bid};bases=next
+                        if hr && (teams[side]==user || currentInning>=8){report.append("\(currentInning)\(side==0 ? "▲":"▼")  \(b.profile.name) homers. \(score[0])–\(score[1]).")}
+                    } else {
+                        let positions=["SS","2B","3B","1B","P","C","LF","CF","RF"],position=positions[min(8,Int(random()*9))],fid=fielder(position)
+                        let error=random()<(player(fid)?.fieldingErrorChance(at:position) ?? 0.02)
+                        add(bid){$0.ab+=1}
+                        if error {
+                            add(fid){$0.glove.games=1;$0.glove.errors+=1};responsibility[bid]=pid;unearned.insert(bid)
+                            if outs==2{for id in bases.compactMap({$0}){unearned.insert(id)}}
+                            if let runner=bases[2]{run(runner,creditRBI:false)}
+                            bases=[bid,bases[0],bases[1]]
+                            report.append("FIELDING ERROR: \(player(fid)?.profile.name ?? fid) at \(position). Batter reaches without a hit.")
+                        }else{
+                            add(pid){$0.outs+=1};outs+=1;recordDefensiveOut()
+                            if ["SS","2B","3B","P","C"].contains(position){add(fid){$0.glove.assists+=1};add(fielder("1B")){$0.glove.putouts+=1}}
+                            else{add(fid){$0.glove.putouts+=1}}
+                            if outs<3,let id=bases[2],random()<0.15 {run(id);bases[2]=nil;add(bid){$0.ab-=1;$0.x.sf+=1}}
+                        }
+                    }
+                    if side==1 && currentInning>=9 && score[1]>score[0]{walkoff=true;break}
+                }
+                lines[side].append(halfRuns)
+                if walkoff{break}
+            }
+            if walkoff{break};currentInning+=1
+            if currentInning>40 { // Exhaustion safety: a real deciding half-inning with normal box-score accounting.
+                let id=batterIDs[1][orders[1]%9],pid=activePitcher[0];score[1]+=1;lines[1].append(1);lines[0].append(0)
+                add(id){$0.pa+=1;$0.ab+=1;$0.h+=1;$0.hr+=1;$0.r+=1;$0.rbi+=1};add(pid){$0.er+=1;$0.allowed+=1;$0.x.pitchHR+=1};winningPitcher=activePitcher[1];losingPitcher=pid;break
+            }
+        }
+        let winning=score[0]>score[1] ? g.away:g.home,losing=winning==g.home ? g.away:g.home
+        let winSide=winning==g.away ? 0:1
+        if winningPitcher==starterIDs[winSide],(box[winningPitcher]?.outs ?? 0)<15 {
+            if let relief=box.keys.filter({player($0)?.club==winning && $0 != starterIDs[winSide] && (box[$0]?.outs ?? 0)>0}).max(by:{box[$0]!.outs<box[$1]!.outs}){winningPitcher=relief}
+        }
+        add(winningPitcher){$0.x.wins+=1};add(losingPitcher){$0.x.losses+=1}
+        let closer=activePitcher[winSide]
+        if closer != winningPitcher,closer != starterIDs[winSide],(box[closer]?.outs ?? 0)>0,((entryLead[winSide]>0 && entryLead[winSide]<=3) || (box[closer]?.outs ?? 0)>=9){add(closer){$0.x.saves+=1}}
+        for id in box.keys {box[id]?.games=1}
+        for i in players.indices {
+            let id=players[i].profile.id
+            if let row=box[id] {players[i].totals.add(row);players[i].fatigue=min(100,players[i].fatigue+Double(row.outs)*2.3+Double(row.pbb+row.allowed)*0.8+(row.pa>0 ? 13.0:0))}
+            if players[i].club==winning {players[i].morale=min(90,players[i].morale+1.0)}
+            if players[i].club==losing {players[i].morale=max(35,players[i].morale-0.7)}
+        }
+        for c in teams {clubs[c].rotationIndex+=1;clubs[c].nextStarter=nil}
+        let demand=projectedDemand(g.home,price:clubs[g.home].ticket,stage:g.stage)
+        let attendance=max(80,min(clubs[g.home].capacity,Int(demand*(0.9+random()*0.2))))
+        let gate=attendance*(clubs[g.home].ticket+3+clubs[g.home].level(7)),matchCost=2200+clubs[g.home].stadium*200
+        clubs[g.home].cash+=gate-matchCost;clubs[g.home].income+=gate;clubs[g.home].expenses+=matchCost
+        clubs[g.home].fans=max(350,clubs[g.home].fans+ticketFanEffect(clubs[g.home].ticket))
+        clubs[winning].fans+=22+(g.stage=="Regular" ? 0:18);clubs[losing].fans=max(350,clubs[losing].fans-8)
+        schedule[gi].battingOrders=[initialOrders[0]+substitutions[0],initialOrders[1]+substitutions[1]];schedule[gi].playerTeams=Dictionary(uniqueKeysWithValues:box.keys.map{($0,player($0)!.club)})
+        schedule[gi].awayRuns=score[0];schedule[gi].homeRuns=score[1];schedule[gi].lines=lines;schedule[gi].box=box;schedule[gi].starters=starterIDs;schedule[gi].attendance=attendance;schedule[gi].gate=gate
+        report.insert("Starters: \(player(starterIDs[0])?.profile.name ?? "") / \(player(starterIDs[1])?.profile.name ?? "")",at:0)
+        report.append("\(attendance) fans · €\(gate) matchday income. Fatigue and morale updated.");schedule[gi].report=report
+        checkInjuries(Set(box.keys))
+        if teams.contains(user){log("\(dateLabel(g.day)): \(winning==user ? "WIN":"LOSS") \(score[teams.firstIndex(of:user)!])–\(score[1-teams.firstIndex(of:user)!]). Open Calendar for the box score.");if g.home==user{ledger.insert("\(dateLabel(g.day)): matchday +€\(gate) / operation −€\(matchCost)",at:0)}}
+    }
+    @discardableResult mutating func nextSeason()->Bool {
+        guard let champion else{return false};let record=table().first{$0.club==user}!
+        recordDevelopment()
+        history.append(.init(year:year,champion:champion,userWins:record.w,userLosses:record.l))
+        for i in players.indices {
+            if let owner=players[i].loanOwner {players[i].club=owner;players[i].loanOwner=nil;players[i].farm=false}
+            players[i].totals=SeasonStat();players[i].fatigue=0;players[i].injury=nil;players[i].morale=65
+            players[i].applyAgeProgression(nextYear:year+1)
+        }
+        for c in 0..<7{clubs[c].roster=roster(c).map{$0.profile.id};clubs[c].cash+=25000;clubs[c].income=0;clubs[c].expenses=0;clubs[c].nextStarter=nil;autoLineup(c)}
+        seasonGrowthBaseline=roster(user).reduce(0){$0+$1.growth.reduce(0,+)};seasonFanBaseline=clubs[user].fans;claimedObjectives=[];pauseReason=nil
+        year+=1;day=0;lastTrainingWeek = -1;seeds=[];self.champion=nil;phase="Regular season";training=training.filter{player($0.key)?.club==user};makeSchedule()
+        trainingReport=[];ledger=[];renewSponsorYear();refreshSponsorMarket();recordDevelopment();log("Welcome to \(year). Club upgrades and player development carry over. Loans have ended; lineups have been refreshed.");return true
+    }
+    func validate()->Bool {
+        guard version==1,(0..<7).contains(user),(1...3).contains(slot),clubs.count==7,players.count>=175,Set(players.map{$0.profile.id}).count==players.count else{return false}
+        guard players.allSatisfy({(-1..<7).contains($0.club) && (8...12).contains($0.growth.count) && $0.fatigue.isFinite && $0.growth.allSatisfy{$0.isFinite}}),Set(schedule.map{$0.id}).count==schedule.count else{return false}
+        guard schedule.allSatisfy({(0..<7).contains($0.away) && (0..<7).contains($0.home) && $0.away != $0.home && (($0.awayRuns==nil)==($0.homeRuns==nil))}) else{return false}
+        guard (0...12).contains(clubs[user].stadium),(0...10).contains(clubs[user].locker),(0...10).contains(clubs[user].academy),day>=0,training.count<=6 else{return false}
+        guard clubs.enumerated().allSatisfy({i,c in Set(c.roster)==Set(players.filter{$0.club==i}.map{$0.profile.id}) && c.roster.count==Set(c.roster).count && (0...12).contains(c.stadium) && (0...10).contains(c.locker) && (0...10).contains(c.academy) && (3..<9).allSatisfy{(0...facilities[$0].maxLevel).contains(c.level($0))} && (8...22).contains(c.ticket) && (0...2).contains(c.approach) && (0...1).contains(c.bullpen)}) else{return false}
+        guard training.allSatisfy({id,o in player(id)?.club==user && (0..<abilityNames.count).contains(o.ability) && (0..<3).contains(o.intensity)}) else{return false}
+        if draft{return draftOrder.count==7 && Set(draftOrder)==Set(0..<7) && (0..<175).contains(draftPick) && players.filter{$0.club>=0}.count==draftPick}
+        return clubs.enumerated().allSatisfy {i,c in c.lineup.count==9 && c.defense.count==9 && Set(c.defense)==Set(defensePositions) && Set(c.lineup).count==9 && c.lineup.allSatisfy{player($0)?.club==i} && c.rotation.count==3 && Set(c.rotation).count==3 && c.rotation.allSatisfy{player($0)?.club==i}}
+    }
+}
+
+struct FranchiseStore {
+    let directory:URL
+    func path(_ slot:Int)->URL {directory.appendingPathComponent("franchise-\(slot).json")}
+    func save(_ career:Franchise)throws {
+        guard career.validate() else{throw NSError(domain:"Franchise",code:1,userInfo:[NSLocalizedDescriptionKey:"Save validation failed; previous save was preserved."])}
+        try Foundation.FileManager().createDirectory(at:directory,withIntermediateDirectories:true)
+        let dest=path(career.slot),backup=dest.appendingPathExtension("bak")
+        let data=try JSONEncoder().encode(career)
+        if Foundation.FileManager().fileExists(atPath:dest.path),let old=try? Data(contentsOf:dest),let valid=try? JSONDecoder().decode(Franchise.self,from:old),valid.validate(){try old.write(to:backup,options:.atomic)}
+        try data.write(to:dest,options:.atomic)
+    }
+    func load(_ slot:Int)throws->Franchise {
+        let p=path(slot)
+        if let d=try? Data(contentsOf:p),let c=try? JSONDecoder().decode(Franchise.self,from:d),c.validate(){return c}
+        if let d=try? Data(contentsOf:p.appendingPathExtension("bak")),let c=try? JSONDecoder().decode(Franchise.self,from:d),c.validate(){return c}
+        throw NSError(domain:"Franchise",code:2,userInfo:[NSLocalizedDescriptionKey:"No valid career save in this slot."])
+    }
+}

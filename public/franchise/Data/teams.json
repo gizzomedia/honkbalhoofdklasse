@@ -1,0 +1,151 @@
+[
+  {
+    "id": "twins",
+    "name": "Oosterhout Twins",
+    "sourceName": "OOSTERHOUT TWINS",
+    "abbr": "TWI",
+    "color": "#ee7e1a",
+    "city": "Oosterhout",
+    "logo": "Assets/Logos/twins.png",
+    "photos": [
+      "Assets/Photos/twins-00.jpg",
+      "Assets/Photos/twins-01.jpg",
+      "Assets/Photos/twins-02.jpg",
+      "Assets/Photos/twins-03.jpg",
+      "Assets/Photos/twins-04.jpg",
+      "Assets/Photos/twins-05.jpg",
+      "Assets/Photos/twins-06.jpg",
+      "Assets/Photos/twins-07.jpg",
+      "Assets/Photos/twins-08.jpg",
+      "Assets/Photos/twins-09.jpg",
+      "Assets/Photos/twins-10.jpg",
+      "Assets/Photos/twins-11.jpg",
+      "Assets/Photos/twins-12.jpg",
+      "Assets/Photos/twins-13.jpg",
+      "Assets/Photos/twins-14.jpg",
+      "Assets/Photos/twins-15.jpg",
+      "Assets/Photos/twins-16.jpg",
+      "Assets/Photos/twins-17.jpg"
+    ]
+  },
+  {
+    "id": "neptunus",
+    "name": "Curaçao Neptunus",
+    "sourceName": "CURAÇAO NEPTUNUS",
+    "abbr": "NEP",
+    "color": "#121b31",
+    "city": "Rotterdam",
+    "logo": "Assets/Logos/neptunus.png",
+    "photos": [
+      "Assets/Photos/neptunus-00.jpg",
+      "Assets/Photos/neptunus-01.jpg",
+      "Assets/Photos/neptunus-02.jpg",
+      "Assets/Photos/neptunus-03.jpg",
+      "Assets/Photos/neptunus-04.jpg",
+      "Assets/Photos/neptunus-05.jpg",
+      "Assets/Photos/neptunus-06.jpg",
+      "Assets/Photos/neptunus-07.jpg",
+      "Assets/Photos/neptunus-08.jpg",
+      "Assets/Photos/neptunus-09.jpg",
+      "Assets/Photos/neptunus-10.jpg"
+    ]
+  },
+  {
+    "id": "hcaw",
+    "name": "HCAW",
+    "sourceName": "HCAW",
+    "abbr": "HCA",
+    "color": "#f5b51a",
+    "city": "Bussum",
+    "logo": "Assets/Logos/hcaw.png",
+    "photos": [
+      "Assets/Photos/hcaw-00.jpg",
+      "Assets/Photos/hcaw-01.jpg",
+      "Assets/Photos/hcaw-02.jpg",
+      "Assets/Photos/hcaw-03.jpg",
+      "Assets/Photos/hcaw-04.jpg",
+      "Assets/Photos/hcaw-05.jpg",
+      "Assets/Photos/hcaw-06.jpg",
+      "Assets/Photos/hcaw-07.jpg",
+      "Assets/Photos/hcaw-08.jpg",
+      "Assets/Photos/hcaw-09.jpg",
+      "Assets/Photos/hcaw-10.jpg"
+    ]
+  },
+  {
+    "id": "kinheim",
+    "name": "Kinheim",
+    "sourceName": "KINHEIM",
+    "abbr": "KIN",
+    "color": "#c0232e",
+    "city": "Haarlem",
+    "logo": "Assets/Logos/kinheim.png",
+    "photos": [
+      "Assets/Photos/kinheim-00.jpg",
+      "Assets/Photos/kinheim-01.jpg",
+      "Assets/Photos/kinheim-02.jpg",
+      "Assets/Photos/kinheim-03.jpg",
+      "Assets/Photos/kinheim-04.jpg",
+      "Assets/Photos/kinheim-05.jpg",
+      "Assets/Photos/kinheim-06.jpg",
+      "Assets/Photos/kinheim-07.jpg",
+      "Assets/Photos/kinheim-08.jpg",
+      "Assets/Photos/kinheim-09.jpg",
+      "Assets/Photos/kinheim-10.jpg",
+      "Assets/Photos/kinheim-11.jpg",
+      "Assets/Photos/kinheim-12.jpg",
+      "Assets/Photos/kinheim-13.jpg",
+      "Assets/Photos/kinheim-14.jpg",
+      "Assets/Photos/kinheim-15.jpg",
+      "Assets/Photos/kinheim-16.jpg",
+      "Assets/Photos/kinheim-17.jpg",
+      "Assets/Photos/kinheim-18.jpg"
+    ]
+  },
+  {
+    "id": "pioniers",
+    "name": "Hoofddorp Pioniers",
+    "sourceName": "HOOFDDORP PIONIERS",
+    "abbr": "PIO",
+    "color": "#e41d30",
+    "city": "Hoofddorp",
+    "logo": "Assets/Logos/pioniers.png",
+    "photos": [
+      "Assets/Photos/pioniers-00.jpg",
+      "Assets/Photos/pioniers-01.jpg",
+      "Assets/Photos/pioniers-02.jpg"
+    ]
+  },
+  {
+    "id": "pirates",
+    "name": "Amsterdam Pirates",
+    "sourceName": "AMSTERDAM PIRATES",
+    "abbr": "PIR",
+    "color": "#ffc425",
+    "city": "Amsterdam",
+    "logo": "Assets/Logos/pirates.png",
+    "photos": [
+      "Assets/Photos/pirates-00.jpg",
+      "Assets/Photos/pirates-01.jpg",
+      "Assets/Photos/pirates-02.jpg",
+      "Assets/Photos/pirates-03.jpg",
+      "Assets/Photos/pirates-04.jpg",
+      "Assets/Photos/pirates-05.jpg"
+    ]
+  },
+  {
+    "id": "uvv",
+    "name": "UVV",
+    "sourceName": "UVV",
+    "abbr": "UVV",
+    "color": "#db002f",
+    "city": "Utrecht",
+    "logo": "Assets/Logos/uvv.png",
+    "photos": [
+      "Assets/Photos/uvv-00.jpg",
+      "Assets/Photos/uvv-01.jpg",
+      "Assets/Photos/uvv-02.jpg",
+      "Assets/Photos/uvv-03.jpg"
+    ]
+  }
+]

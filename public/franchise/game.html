@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hoofdklasse Franchise</title><link rel="stylesheet" href="/franchise/game.css"></head><body>
+<div id="stage"><canvas id="game" aria-label="Hoofdklasse Franchise"></canvas><div id="controls" role="group" aria-label="Game controls"></div></div>
+<div id="system"><span id="sync" role="status">Game laden…</span><button id="account">Account & saves</button><button id="fullscreen" aria-label="Volledig scherm">⛶</button></div>
+<p id="announcer" class="sr-only" aria-live="polite"></p>
+<dialog id="account-dialog"><h1>CAREER SAVES</h1><p id="identity"></p><p id="save-detail"></p><label>Carrièreslot <select id="save-slot"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label><div class="actions"><button id="export">Download save</button><button id="import">Importeer Mac-save</button><input type="file" id="save-file" accept=".json" hidden><a href="/franchise">Account</a><button id="retry">Opnieuw synchroniseren</button><button id="resolve" hidden>Cloudversie laden (lokale kopie bewaren)</button><button id="close-account">Terug naar game</button></div><p id="account-message" role="status"></p></dialog>
+<script type="module" src="/franchise/runtime.js"></script></body></html>

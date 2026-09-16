@@ -1,0 +1,7 @@
+game-runtime
+.git
+node_modules
+scripts
+supabase
+.env*
+public/franchise/test-captures

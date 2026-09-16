@@ -40,6 +40,9 @@ self.addEventListener('fetch', e => {
   // API routes: always network, never cache
   if (url.pathname.startsWith('/api/')) return
 
+  // Account-specific franchise responses and callback URLs must never enter page cache.
+  if (url.pathname.startsWith('/franchise')) return
+
   // Next.js internals: let them through
   if (url.pathname.startsWith('/_next/')) {
     e.respondWith(
