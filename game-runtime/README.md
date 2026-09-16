@@ -69,6 +69,8 @@ generated automatically.
   a substitute for a real-account login/save/load test after deployment.
 - Supabase transaction test confirms revision conflicts, exact UInt64 storage,
   account isolation and denial of direct writes. All test rows were rolled back.
+- Live guest-only test confirms the configured account entrance, anonymous API
+  protection, engine/assets and local save/reload without account mocks.
 - Next.js production build succeeds.
 
 ## Limits to verify before claiming full release parity
