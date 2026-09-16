@@ -2,13 +2,13 @@ import {Renderer} from './renderer.js';
 import {openStorage} from './storage.js';
 import {saveRequestBody} from './transport.js';
 const $=id=>document.getElementById(id),worker=new Worker('/franchise/engine-worker.js',{type:'module'});
-let sequence=0,busy=false,frame,storage,user=null,cloudAvailable=false,blocked=false,conflictSlot=null,disposed=false;
+let sequence=0,busy=false,frame,storage,user=null,cloudAvailable=false,blocked=false,conflictSlot=null,disposed=false,ready=false;
 const waiting=new Map(),dirty=new Set(),inputQueue=[];let syncInFlight=false;
 function call(request){return new Promise((resolve,reject)=>{const id=++sequence;waiting.set(id,{resolve,reject});worker.postMessage({id,request});});}
 worker.onmessage=({data:{id,result}})=>{const p=waiting.get(id);if(!p)return;waiting.delete(id);result.error?p.reject(Error(result.error)):p.resolve(result);};
 worker.onerror=e=>{for(const p of waiting.values())p.reject(Error(e.message));waiting.clear();fail('Game-engine gestopt. Je laatste opgeslagen carrière blijft behouden.');};
 function status(s){$('sync').textContent=s;$('save-detail').textContent=s;}
-function fail(s){blocked=true;status(s);call({op:'pause'}).catch(()=>{});}
+function fail(s){blocked=true;status(s);if(ready)call({op:'pause'}).catch(()=>{});}
 const renderer=new Renderer($('game'),$('controls'),send);
 async function persist(files){
   for(const [name,payload]of Object.entries(files||{})){
@@ -18,7 +18,7 @@ async function persist(files){
     if(user)dirty.add(slot);
   }
 }
-async function send(req){if(disposed||blocked&&!['pause','draw','export','validate'].includes(req.op))return;if(busy){if(req.op!=='tick'&&!(req.op==='pointer'&&!req.click))inputQueue.push(req);return;}
+async function send(req){if(!ready||disposed||blocked&&!['pause','draw','export','validate'].includes(req.op))return;if(busy){if(req.op!=='tick'&&!(req.op==='pointer'&&!req.click))inputQueue.push(req);return;}
   busy=true;try{const result=await call(req);await persist(result.files);if(result.commands){frame=result;renderer.paint(result);}if(Object.keys(result.files||{}).length)status(user?'Lokaal opgeslagen · cloud wordt bijgewerkt':'Lokaal opgeslagen · log in voor cloudopslag');}
   catch(e){fail('Opslaan of laden mislukt: '+e.message);}finally{busy=false;const next=inputQueue.shift();if(next)queueMicrotask(()=>send(next));}
 }
@@ -53,7 +53,7 @@ async function boot(){
   const account=await session();user=account.user;
   const namespace=user?.id||'guest';await exclusiveSession(namespace);storage=await openStorage(namespace);
   await loadCloud();const data={};await Promise.all(['teams','players','staff'].map(async n=>{const r=await fetch('/franchise/Data/'+n+'.json');if(!r.ok)throw Error('Speldata ontbreekt');data['Data/'+n+'.json']=await r.text();}));
-  await renderer.fonts();frame=await call({op:'init',data,files:await storage.files()});renderer.resize();renderer.paint(frame);
+  await renderer.fonts();frame=await call({op:'init',data,files:await storage.files()});renderer.resize();renderer.paint(frame);ready=true;
   $('identity').textContent=user?'Ingelogd als '+user.email:'Gast · saves staan alleen in deze browser. Exporteer ze voordat je browsergegevens wist.';
   if(!blocked)status(user?(cloudAvailable?'Account gekoppeld · cloudopslag actief':'Cloud niet beschikbaar · lokaal spelen mogelijk'):'Gast · lokale opslag');
   setInterval(()=>{if(!document.hidden&&!$('account-dialog').open&&!blocked)send({op:'tick'});},100);
@@ -64,10 +64,11 @@ $('controls').addEventListener('pointerdown',e=>{if(e.target===$('controls')){co
 $('controls').addEventListener('pointerleave',()=>send({op:'pointer',x:-1,y:-1}));
 document.addEventListener('keydown',e=>{if($('account-dialog').open)return;const codes={Escape:53,Enter:36,' ':49,ArrowLeft:123,ArrowRight:124,ArrowDown:125,ArrowUp:126};if(e.key==='Tab')return;if(e.key==='F11'){e.preventDefault();$('fullscreen').click();return;}if(codes[e.key]){e.preventDefault();send({op:'key',code:codes[e.key],characters:e.key,shift:e.shiftKey});}});
 window.addEventListener('resize',()=>renderer.resize());
-document.addEventListener('visibilitychange',()=>{if(document.hidden)call({op:'pause'}).catch(()=>{});});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&ready)call({op:'pause'}).catch(()=>{});});
 window.addEventListener('online',sync);
 window.addEventListener('beforeunload',e=>{if(busy||dirty.size){e.preventDefault();e.returnValue='';}});
 window.addEventListener('pagehide',()=>{disposed=true;releaseLock?.();});
+window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
 document.addEventListener('asseterror',e=>status('Afbeelding kon niet laden: '+e.detail));
 $('fullscreen').onclick=async()=>{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();};
 $('account').onclick=async()=>{await send({op:'pause'});$('resolve').hidden=!conflictSlot;$('account-dialog').showModal();};

@@ -1,7 +1,9 @@
 import {gunzipSync}from 'node:zlib';
-import {chromium,expect}from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import os from 'node:os';
+import {chromium,webkit,firefox,expect}from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import os from 'node:os';
+const engine=process.env.FRANCHISE_BROWSER||'chrome';
+const browserType=({chrome:chromium,webkit,firefox})[engine];if(!browserType)throw Error('Unknown test browser');
 const profile=await fs.mkdtemp(path.join(os.tmpdir(),'hk-franchise-cloud-test-'));
-const context=await chromium.launchPersistentContext(profile,{channel:'chrome',headless:true,viewport:{width:1600,height:930}});
+const context=await browserType.launchPersistentContext(profile,{...(engine==='chrome'?{channel:'chrome'}:{}),headless:true,viewport:{width:1600,height:930}});
 let cloud=null,revision=0,writes=0,conflict=false;const user={id:'test-user-only',email:'test@example.invalid'};
 await context.route('**/api/franchise/**',async route=>{const req=route.request(),url=req.url();
  if(url.endsWith('/session'))return route.fulfill({json:{user}});
