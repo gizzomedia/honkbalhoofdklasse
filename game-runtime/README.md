@@ -84,3 +84,18 @@ ratings and data-coverage limitations remain exactly as documented in its UI.
 Cloud accepts raw saves up to 16 MB, with gzip transport to keep growing careers
 within hosting request limits. Oversize saves report an error; local saves remain
 available for export. No career data is truncated.
+
+## Photo delivery
+
+`npm run franchise:photos` produces content-hashed WebP derivatives without
+modifying the original JPEGs. Full-screen derivatives retain the source resolution
+(quality 92); card derivatives are bounded to 960 pixels (quality 90). The renderer
+selects the appropriate variant, decodes asynchronously and retains the previous
+photo until the replacement is ready. Club/card sequences preload the next image.
+Decoded photos are limited to a working set of 24; hashed files use a one-year
+immutable HTTP cache. Missing derivatives fall back to the original JPEG.
+
+All 72 full-size derivatives total 47.8 MB versus 173.5 MB of original JPEGs;
+all 72 card variants total 5.3 MB. These totals describe the asset library, not a
+single page download. `npm run franchise:test:images` checks variants, delayed
+download continuity, cache bounds and fallback.

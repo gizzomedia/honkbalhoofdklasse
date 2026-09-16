@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
+        source: '/franchise/PhotosWeb/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
         source: '/sw.js',
         headers: [
           { key: 'Content-Type',  value: 'application/javascript; charset=utf-8' },
