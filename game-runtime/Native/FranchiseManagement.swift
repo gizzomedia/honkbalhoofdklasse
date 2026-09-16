@@ -89,7 +89,7 @@ extension Franchise {
         clubs[user].defense.swapAt(slot,other);return true
     }
     mutating func recordDevelopment(){
-        for i in players.indices where players[i].club==user {
+        for i in players.indices where players[i].club>=0 {
             let skills=abilityNames.indices.map{players[i].skill($0)},point=DevelopmentSnapshot(year:year,day:day,overall:players[i].overallValue,skills:skills)
             var history=players[i].developmentHistory ?? []
             if let last=history.last,last.year==year,last.day==day,abs(last.overall-point.overall)<0.00001,last.skills==skills{continue}
@@ -196,9 +196,10 @@ extension Franchise {
         }.prefix(12))
         guard !pool.isEmpty else{return [:]}
         var orders=[String:TrainingOrder]()
-        for n in 0..<min(6,pool.count){let p=pool[(day/7*3+n)%pool.count]
+        for n in 0..<min(6,pool.count){let p=pool[(day/56*6+n)%pool.count]
             let targets:[Int:Double]=p.isPitcher ? [5:72,6:70,10:66,11:63,7:clubs[club].rotation.contains(p.profile.id) ? 70:60,4:58]:[0:72,1:68,2:68,9:68,4:65,3:60,8:58]
-            let ability=p.abilities.max{a,b in (targets[a,default:60]-p.skill(a))*p.learningFactor(a)<(targets[b,default:60]-p.skill(b))*p.learningFactor(b)} ?? (p.isPitcher ? 5:0)
+            let weights:[Int:Double]=p.isPitcher ? [5:0.32,6:0.25,7:0.20,10:0.10,11:0.10,4:0.03]:[0:0.38,1:0.27,2:0.20,3:0.05,4:0.04,8:0.03,9:0.03]
+            let ability=p.abilities.max{a,b in (targets[a,default:60]-p.skill(a))*p.learningFactor(a)*weights[a,default:0.03]<(targets[b,default:60]-p.skill(b))*p.learningFactor(b)*weights[b,default:0.03]} ?? (p.isPitcher ? 5:0)
             orders[p.profile.id]=TrainingOrder(ability:ability,intensity:p.readiness<65 ? 0:1)
         }
         return orders

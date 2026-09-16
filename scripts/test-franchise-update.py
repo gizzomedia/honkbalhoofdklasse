@@ -1,0 +1,7 @@
+from pathlib import Path
+import subprocess
+root=Path(__file__).resolve().parents[1];work=root/'game-runtime/.test-native/update';work.mkdir(parents=True,exist_ok=True)
+(work/'main.swift').write_text((root/'game-runtime/Tests/franchise-update.swift.txt').read_text())
+files=list((root/'game-runtime/Generated').glob('*.swift'))+[root/'game-runtime/Adapter/Platform.swift',work/'main.swift']
+subprocess.run(['swiftc','-O','-module-cache-path',str(work/'cache'),*map(str,files),'-o',str(work/'run')],check=True)
+subprocess.run([str(work/'run'),str(root/'public/franchise'),str(work/'season.json')],check=True)

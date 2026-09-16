@@ -1,0 +1,42 @@
+[
+  {
+    "brand": "zeeman",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/22/Zeeman_logo.svg",
+    "sha256": "bca9d3466d542f7314a7a082749026078d97777fe283813d63e4dfdbc1f5ec3c"
+  },
+  {
+    "brand": "demarini",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/1/13/Demarini_complete_logo.svg",
+    "sha256": "9a4a4f2934467e31cfe373713126d74a813f4ce23d66b77fa7192021289206e2"
+  },
+  {
+    "brand": "hema",
+    "source": "https://static.hema.nl/on/demandware.static/Sites-HemaNL-Site/-/default/dwf3cbbfc2/images/logo.svg",
+    "sha256": "e526fe97b87bc9385ca1060e6108b97e78096efa5f4923494ac2008930755473"
+  },
+  {
+    "brand": "mizuno",
+    "source": "https://emea.mizuno.com/on/demandware.static/-/Library-Sites-sharedLibrary_Mizuno/default/dw5ad15025/Campaigns2025/120th-logo.svg",
+    "sha256": "b221058e338912a1f30d8f39fac97cf08432f586869ad21cf17a99103534539c"
+  },
+  {
+    "brand": "thenorthface",
+    "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/thenorthface.svg",
+    "sha256": "fbcb2a20eb4ca93a32d1bba6edd128a0a717b088417ee62bd5788dc5e6e187e8"
+  },
+  {
+    "brand": "vans",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Vans_company_logo.svg",
+    "sha256": "010d5dd36a2962c1acf259e82a55ddfca1a16fac2242321fd4ad5ffbcb192951"
+  },
+  {
+    "brand": "hugoboss",
+    "source": "https://www.hugoboss.com/on/demandware.static/Sites-US-Site/-/default/dw916bf199/svg/all_svgs.svg",
+    "sha256": "7bb1d18626a32977b463f5742dfe682abecbedd060a8cf794ea846f1efbf6f57"
+  },
+  {
+    "brand": "slugger",
+    "source": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Louisville-slugger-logo.jpg",
+    "sha256": "f328e14ea2af7142dc18f0d659b89201ed32edd26c3e85241c6ddac16f5789de"
+  }
+]

@@ -1,0 +1,80 @@
+import Foundation
+import Darwin
+setbuf(stdout,nil)
+let root=URL(fileURLWithPath:CommandLine.arguments[1])
+for name in ["teams","players","staff"]{Database.input["Data/\(name).json"]=try String(contentsOf:root.appendingPathComponent("Data/\(name).json"),encoding:.utf8)}
+let db=Database(root:root)
+var checks=0
+func check(_ yes:Bool,_ message:String){checks+=1;if !yes{fatalError(message)}}
+func make(_ seed:UInt64=901)->Franchise{var f=Franchise.make(db:db,user:0,slot:1,fantasy:false,seed:seed);f.options.injuryFrequency=0;f.options.pauseLowFunds=false;f.automation.lineup=true;f.automation.rotation=true;return f}
+var base=make()
+// Save compatibility: missing optional trade fields and CPU histories must decode.
+let data=try JSONEncoder().encode(base),loaded=try JSONDecoder().decode(Franchise.self,from:data)
+check(loaded.gmStrictness==1,"default GM strictness")
+var accepted:(Int,String,String)?=nil,declined:(Int,String,String)?=nil
+for c in 1..<7 {for a in base.roster(0){for b in base.roster(c){
+    if base.tradeValidation(club:c,give:[a.profile.id],take:[b.profile.id]) != nil{continue}
+    var f=base;let reply=f.proposeTrade(club:c,give:[a.profile.id],take:[b.profile.id])
+    if reply.hasPrefix("ACCEPTED"){check(f.validate(),"every accepted deal remains save-valid")}
+    if reply.hasPrefix("ACCEPTED") && accepted==nil{accepted=(c,a.profile.id,b.profile.id)}
+    if reply.hasPrefix("DECLINED") && declined==nil{declined=(c,a.profile.id,b.profile.id)}
+}}}
+check(accepted != nil && declined != nil,"GM accepts fair packages and declines bad ones")
+let deal=accepted!;var traded=base
+let oldLineup=traded.clubs[0].lineup
+_=traded.proposeTrade(club:deal.0,give:[deal.1],take:[deal.2])
+check(traded.player(deal.1)?.club==deal.0 && traded.player(deal.2)?.club==0,"both sides transfer")
+check(traded.players.count==base.players.count,"no duplicated/deleted players")
+check(traded.clubs[0].lineup.allSatisfy{traded.player($0)?.club==0},"lineup ownership repaired")
+check(traded.clubs[0].rotation.allSatisfy{traded.player($0)?.club==0},"rotation ownership repaired")
+for (i,id) in oldLineup.enumerated() where id != deal.1{check(traded.clubs[0].lineup[i]==id,"unaffected lineup order retained")}
+check(traded.tradeValidation(club:deal.0,give:[deal.1],take:[deal.2]) != nil,"cannot resubmit transferred players")
+check(base.tradeValidation(club:1,give:[deal.1,deal.1],take:[deal.2]) != nil,"duplicates invalid")
+let no=declined!;var denied=base;_=denied.proposeTrade(club:no.0,give:[no.1],take:[no.2]);check(denied.tradeValidation(club:no.0,give:[no.1],take:[no.2]) != nil,"repeat rejection cannot be spammed same day")
+var strict=base,relaxed=base;strict.options.tradeStrictness=2;relaxed.options.tradeStrictness=0
+var strictCount=0,relaxedCount=0
+for a in base.roster(0){for b in base.roster(1){var x=strict,y=relaxed;if x.proposeTrade(club:1,give:[a.profile.id],take:[b.profile.id]).hasPrefix("ACCEPTED"){strictCount+=1};if y.proposeTrade(club:1,give:[a.profile.id],take:[b.profile.id]).hasPrefix("ACCEPTED"){relaxedCount+=1}}}
+check(relaxedCount>strictCount,"strictness affects acceptance")
+var leaders=[Int](),cpuGrowing=[Int](),cpuMax=[Double]()
+for seed in 1...12 {
+    var f=make(UInt64(seed)*997);let before=Dictionary(uniqueKeysWithValues:f.players.map{($0.profile.id,$0.overallValue)})
+    var steps=0
+    while f.champion==nil && steps<230{f.pauseReason=nil;_=f.step();steps+=1}
+    check(f.champion != nil,"season completes")
+    let cpu=f.players.filter{$0.club != f.user && $0.club>=0},gains=cpu.map{$0.overallValue-before[$0.profile.id]!}
+    check(cpu.allSatisfy{($0.developmentHistory?.count ?? 0)>1},"CPU history visible")
+    let improved=gains.filter{$0>=0.5}.count
+    check(improved>=15,"meaningful CPU growth")
+    check((gains.max() ?? 0)<6,"CPU growth remains gradual")
+    leaders.append(f.players.map{$0.totals.sb}.max() ?? 0);cpuGrowing.append(improved);cpuMax.append(gains.max() ?? 0)
+    if seed==1{try JSONEncoder().encode(f).write(to:URL(fileURLWithPath:CommandLine.arguments[2]))}
+}
+print("SB leaders across 12 seasons:",leaders,"mean",Double(leaders.reduce(0,+))/12)
+print("CPU players +0.5 OVR or more:",cpuGrowing,"maximum gains:",cpuMax)
+check(Double(leaders.reduce(0,+))/12>=18 && Double(leaders.reduce(0,+))/12<=33,"steal leader calibration")
+// Sponsor fees remain contractual and payment is never duplicated on reload.
+var sponsored=base
+let entry=sponsored.receivedSponsorBrands().first!,offer=sponsored.sponsorOffer(entry,slot:1),cash=sponsored.clubs[0].cash
+check(offer.annual>=27000,"entry-level jersey sponsorship funds meaningful upgrades")
+check(sponsored.signSponsor(entry.id,slot:1),"sign sponsorship")
+check(sponsored.clubs[0].cash==cash+offer.firstPayment,"first payment applied once")
+let restored=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(sponsored))
+check(restored.sponsors.first!.annual==offer.annual && restored.clubs[0].cash==sponsored.clubs[0].cash,"contract and cash survive save")
+check(!sponsored.signSponsor(entry.id,slot:2),"brand cannot occupy two slots")
+check(sponsorBrands.count>=23,"expanded brand catalog")
+// Actual interface loop: bulk playoffs must advance without result modal and stop with a champion.
+let view=FranchiseView(frame:.zero,db:db,saveDirectory:URL(fileURLWithPath:"/"))
+var playoffs=make(77)
+while playoffs.seeds.isEmpty{_=playoffs.step()}
+view.career=playoffs;view.page="hub";view.startSimulation("playoffseries")
+let series=view.simSeriesTarget!;var ticks=0
+while view.autoSim && ticks<4000{view.tick();ticks+=1}
+check(view.career!.seriesWinner(series,series==3000 ? 4:3) != nil,"series simulation ends with series decided")
+check(view.modal != "playoffnight","bulk series bypasses game modal")
+view.startSimulation("postseason");ticks=0
+while view.autoSim && ticks<7000{view.tick();ticks+=1}
+check(view.career!.champion != nil,"whole playoffs finishes")
+check(view.career!.day>playoffs.day,"calendar advances in bulk playoffs")
+view.career=playoffs;view.startSimulation("postseason");view.act("stop");let day=view.career!.day;for _ in 0..<20{view.tick()};check(view.career!.day==day && !view.autoSim,"manual stop works")
+view.career=base;view.tab=6;view.tradeClub=deal.0;view.tradeGive=[deal.1];view.tradeTake=[deal.2];view.drawTrades();check(view.areas.contains{$0.action=="tradesubmit"},"trade menu actions rendered")
+print("PASS: \(checks) franchise update checks; strict accepts \(strictCount), relaxed \(relaxedCount)")

@@ -1,7 +1,7 @@
-# Hoofdklasse Franchise — browser port of 0.6.1
+# Hoofdklasse Franchise — 0.6.2
 
 The original Swift simulation and management screen bodies run in WebAssembly.
-`Native/` pins the desktop source. `scripts/generate-franchise.py` replaces only
+`Native/` holds the maintained Swift source (the original 0.6.1 reference is archived). `scripts/generate-franchise.py` replaces only
 platform primitives and I/O, producing `Generated/`. `Adapter/Platform.swift`
 records drawing commands and supplies a lossless string save store. The browser
 worker runs Swift; Canvas2D paints the original 1600×900 layout with the original
@@ -55,7 +55,7 @@ preview uses `http://127.0.0.1:3100/franchise/auth`. Keep the existing admin cal
 Google uses the site's existing provider. No test email or new real account is
 generated automatically.
 
-## Verification completed
+## Original 0.6.1 port verification (before gameplay updates)
 
 - 5,430 original simulation assertions on the platform-adapted code.
 - 160 original UI action assertions (font/logo checks use bundled files).
@@ -99,3 +99,32 @@ All 72 full-size derivatives total 47.8 MB versus 173.5 MB of original JPEGs;
 all 72 card variants total 5.3 MB. These totals describe the asset library, not a
 single page download. `npm run franchise:test:images` checks variants, delayed
 download continuity, cache bounds and fallback.
+
+## 0.6.2 franchise update
+
+- Permanent 1–3 player trades replace the loan menu. Saved GM strictness affects
+  value thresholds; age, positional coverage, active roster minimums and star
+  premiums matter. Repeated identical offers are blocked for the current day.
+  Existing legacy loans finish normally. Unaffected lineup slots are retained.
+- CPU clubs use eight-week development cohorts and emphasize impactful skills.
+  All clubs retain ability/OVR history; league rosters show fractional OVR growth.
+  Training rates and fatigue constraints remain shared with the human club.
+- Steal attempt frequency follows observed 2026 SB/CS per PA, shrunk for small
+  samples. Development and score margin also affect attempts.
+- New sponsorship fees range from €16k to €300k before placement/term modifiers;
+  existing signed contracts keep their agreed terms. Eight additional logo assets
+  expand the catalog to 23 brands, with sources in Assets/Sponsors/update-sources.json.
+- Overview includes game-day countdown. Playoffs offer a game, one series or the
+  remaining postseason; simulation progresses visibly and can be stopped.
+- Save schema remains compatible with 0.6.1; optional new fields permit old saves.
+  API engineVersion 0.6.1 denotes this compatibility envelope. Old native versions
+  do not understand trade history, so continued play should use the updated game.
+
+Validation: `python3 scripts/test-franchise-update.py` covers trades, strictness,
+roster repair, sponsorship payment persistence, 12 full seasons and real UI tick
+loops through postseason series and final. Across seeds tested, SB leaders were
+22–28 (mean 25.9); 69 CPU players gained at least 0.5 OVR and the maximum seasonal
+gain was 2.74. Injury-free fixtures isolate balance, not a claim every live season
+will produce identical outcomes. The original simulation suite passed 5,425
+assertions; UI suite passed 168. Original reference fixture outcomes intentionally
+differ after these simulation changes.

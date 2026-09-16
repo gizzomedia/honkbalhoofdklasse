@@ -1,5 +1,5 @@
 import {ImageCache} from './image-cache.js';
-// Canvas adapter for the unmodified Swift screen bodies (1600 x 900).
+// Canvas adapter for the shared Swift screen bodies (1600 x 900).
 export class Renderer {
   constructor(canvas, controls, send) { this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.controls=controls; this.send=send; this.cache=new ImageCache(()=>this.frame&&this.paint(this.frame),path=>document.dispatchEvent(new CustomEvent('asseterror',{detail:path}))); this.images=this.cache.images; this.frame=null; this.areaKey=''; }
   async fonts() {

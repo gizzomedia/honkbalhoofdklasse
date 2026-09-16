@@ -24,6 +24,7 @@ struct FarmProgress:Codable {var weeks=0,games=0,gain=0.0,focus=0}
 struct FranchiseOptions:Codable {
     var automaticTraining=true,autoRest=true,autoSubs=true,pauseInjury=true,pausePlayoffs=true,pauseLowFunds=true
     var injuryFrequency=1,trainingPreset=0
+    var tradeStrictness:Int?=nil
 }
 struct ClubObjective {var key:String,title:String,detail:String,progress:Double,reward:Int,done:Bool}
 struct Facility {
