@@ -63,10 +63,12 @@ generated automatically.
   commerce, completed season, next season and fantasy draft. UInt64 values match
   exactly; floating point comparisons allow an absolute tolerance of 1e-9.
 - All 50 reference scenes execute in Wasm and render through Canvas2D.
-- Isolated Chrome tests cover creation, tutorial, positions, development, stats,
-  rosters, player cards, simulate/pause, lossless download and reload.
-- Mocked account tests cover sync revisions, restore and conflicts. These are not
-  a substitute for a real-account login/save/load test after deployment.
+- Isolated Chrome, Firefox and WebKit tests cover creation, tutorial, positions,
+  development, stats, rosters, player cards, simulate/pause, lossless download
+  and reload, including mouse/keyboard input during engine loading.
+- Mocked account tests in all three engines cover sync revisions, restore and
+  conflicts. Real Google login, account save, changed-state sync and cloud restore
+  were also verified on the Vercel preview with the user-authorized account.
 - Supabase transaction test confirms revision conflicts, exact UInt64 storage,
   account isolation and denial of direct writes. All test rows were rolled back.
 - Live guest-only test confirms the configured account entrance, anonymous API
@@ -76,8 +78,8 @@ generated automatically.
 ## Limits to verify before claiming full release parity
 
 Canvas and AppKit rasterize fonts differently; the drawing coordinates and font
-assets are shared, but pixel identity is not claimed. Safari/Firefox and real
-account login/save/restore still require deployment testing. The original game's
+assets are shared, but pixel identity is not claimed. WebKit tests do not replace
+a full Safari/device performance matrix. The original game's
 ratings and data-coverage limitations remain exactly as documented in its UI.
 Cloud accepts raw saves up to 16 MB, with gzip transport to keep growing careers
 within hosting request limits. Oversize saves report an error; local saves remain
