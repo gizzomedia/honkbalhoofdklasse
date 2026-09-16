@@ -67,6 +67,8 @@ generated automatically.
   rosters, player cards, simulate/pause, lossless download and reload.
 - Mocked account tests cover sync revisions, restore and conflicts. These are not
   a substitute for a real-account login/save/load test after deployment.
+- Supabase transaction test confirms revision conflicts, exact UInt64 storage,
+  account isolation and denial of direct writes. All test rows were rolled back.
 - Next.js production build succeeds.
 
 ## Limits to verify before claiming full release parity
