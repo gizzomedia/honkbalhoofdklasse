@@ -3,6 +3,7 @@ import Foundation
 struct TradeRecord:Codable {
     var year:Int,day:Int,club:Int,give:[String],take:[String],accepted:Bool,reason:String
 }
+struct TradeCounterOffer:Codable {var year:Int,issued:Int,expires:Int,club:Int,give:[String],take:[String]}
 extension Franchise {
     var gmStrictness:Int{max(0,min(2,options.tradeStrictness ?? 1))}
     func tradeValue(_ p:FranchisePlayer,for club:Int)->Double {
@@ -31,16 +32,13 @@ extension Franchise {
     }
     @discardableResult mutating func proposeTrade(club:Int,give:[String],take:[String])->String {
         if let reason=tradeValidation(club:club,give:give,take:take){return reason}
-        let offered=give.compactMap{player($0)}.map{tradeValue($0,for:club)}.sorted(by:>),requested=take.compactMap{player($0)}.map{tradeValue($0,for:club)}.sorted(by:>)
-        // Additional reserves have diminishing value: three bench players cannot cheaply buy a star.
-        func package(_ values:[Double])->Double{values.enumerated().reduce(0){$0+$1.element*[1.0,0.65,0.4][$1.offset]}}
+        counterOffer=nil
+        let accepted=cpuAcceptsTrade(club:club,give:give,take:take)
         let star=take.compactMap{player($0)}.contains{$0.rating>=86}
-        let required=package(requested)*[0.90,1.08,1.27][gmStrictness]*(star ? 1.18:1)
-        let accepted=package(offered)>=required
         let reason=accepted ? "ACCEPTED. Players have changed clubs permanently. Review your lineup and rotation.":(star ? "DECLINED. Their GM wants a premium for a franchise player. Offer an impact player or target a different return.":"DECLINED. The return does not improve their roster enough. Age, ability and positional needs all matter.")
         let record=TradeRecord(year:year,day:day,club:club,give:give,take:take,accepted:accepted,reason:reason)
         tradeHistory=Array(((tradeHistory ?? [])+[record]).suffix(100))
-        guard accepted else{log("TRADE: "+reason);return reason}
+        guard accepted else{counterOffer=makeCounterOffer(club:club,give:give,take:take);let response=reason+(counterOffer==nil ? "":" A counteroffer is ready for review; valid for seven days.");log("TRADE: "+response);return response}
         for i in players.indices {
             let id=players[i].profile.id
             if give.contains(id){players[i].club=club;training.removeValue(forKey:id)}
@@ -56,6 +54,37 @@ extension Franchise {
         }
         log("TRADE ACCEPTED: "+give.compactMap{player($0)?.profile.name}.joined(separator:", ")+" for "+take.compactMap{player($0)?.profile.name}.joined(separator:", ")+".")
         recordDevelopment();return reason
+    }
+    func cpuAcceptsTrade(club:Int,give:[String],take:[String])->Bool {
+        let offered=give.compactMap{player($0)}.map{tradeValue($0,for:club)}.sorted(by:>),requested=take.compactMap{player($0)}.map{tradeValue($0,for:club)}.sorted(by:>)
+        // Additional reserves have diminishing value: three bench players cannot cheaply buy a star.
+        func package(_ values:[Double])->Double{values.enumerated().reduce(0){$0+$1.element*[1.0,0.65,0.4][$1.offset]}}
+        let star=take.compactMap{player($0)}.contains{$0.rating>=86}
+        let required=package(requested)*[0.90,1.08,1.27][gmStrictness]*(star ? 1.18:1)
+        return package(offered)>=required
+    }
+    func makeCounterOffer(club:Int,give:[String],take:[String])->TradeCounterOffer? {
+        func candidate(_ offered:[String],_ requested:[String])->TradeCounterOffer? {
+            guard tradeValidation(club:club,give:offered,take:requested)==nil,cpuAcceptsTrade(club:club,give:offered,take:requested) else{return nil}
+            return TradeCounterOffer(year:year,issued:day,expires:day+7,club:club,give:offered,take:requested)
+        }
+        let extras=roster(user).filter{!give.contains($0.profile.id) && $0.available(day) && $0.loanOwner==nil}.sorted{tradeValue($0,for:club)<tradeValue($1,for:club)}
+        if give.count<3 {
+            for p in extras {if let offer=candidate(give+[p.profile.id],take){return offer}}
+            if give.count==1 {for i in extras.indices {for j in extras.indices where j>i {if let offer=candidate(give+[extras[i].profile.id,extras[j].profile.id],take){return offer}}}}
+        }
+        if take.count>1 {for id in take{if let offer=candidate(give,take.filter{$0 != id}){return offer}}}
+        else if let target=player(take[0]) {
+            let alternatives=roster(club).filter{$0.profile.id != target.profile.id && $0.isPitcher==target.isPitcher && $0.rating<=target.rating}.sorted{$0.rating>$1.rating}
+            for p in alternatives {if let offer=candidate(give,[p.profile.id]){return offer}}
+        }
+        return nil
+    }
+    @discardableResult mutating func acceptCounterOffer()->String {
+        guard let offer=counterOffer,offer.year==year,offer.expires>=day else{counterOffer=nil;return "This counteroffer has expired. Submit a new proposal."}
+        if let reason=tradeValidation(club:offer.club,give:offer.give,take:offer.take){counterOffer=nil;return reason}
+        guard cpuAcceptsTrade(club:offer.club,give:offer.give,take:offer.take) else{counterOffer=nil;return "Roster needs or GM settings have changed. Please submit a fresh proposal."}
+        return proposeTrade(club:offer.club,give:offer.give,take:offer.take)
     }
     func stealAttemptChance(_ p:FranchisePlayer,scoreMargin:Int)->Double {
         let pa=Double(p.profile.stats?.pa ?? 0),sb=Double(p.profile.stats?.sb ?? 0),cs=Double(p.profile.stats?.cs ?? 0)

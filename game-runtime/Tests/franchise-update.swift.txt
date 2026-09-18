@@ -41,7 +41,7 @@ for seed in 1...12 {
     var steps=0
     while f.champion==nil && steps<230{f.pauseReason=nil;_=f.step();steps+=1}
     check(f.champion != nil,"season completes")
-    let cpu=f.players.filter{$0.club != f.user && $0.club>=0},gains=cpu.map{$0.overallValue-before[$0.profile.id]!}
+    let cpu=f.players.filter{$0.club != f.user && $0.club>=0},gains=cpu.compactMap{p -> Double? in before[p.profile.id].map{p.overallValue-$0}}
     check(cpu.allSatisfy{($0.developmentHistory?.count ?? 0)>1},"CPU history visible")
     let improved=gains.filter{$0>=0.5}.count
     check(improved>=15,"meaningful CPU growth")

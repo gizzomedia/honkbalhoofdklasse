@@ -1,4 +1,4 @@
-# Hoofdklasse Franchise — 0.6.2
+# Hoofdklasse Franchise — 0.6.3
 
 The original Swift simulation and management screen bodies run in WebAssembly.
 `Native/` holds the maintained Swift source (the original 0.6.1 reference is archived). `scripts/generate-franchise.py` replaces only
@@ -128,3 +128,18 @@ gain was 2.74. Injury-free fixtures isolate balance, not a claim every live seas
 will produce identical outcomes. The original simulation suite passed 5,425
 assertions; UI suite passed 168. Original reference fixture outcomes intentionally
 differ after these simulation changes.
+
+## 0.6.3: club building
+
+See RELEASE-0.6.3.md for counteroffers, Settings-only GM strictness, annual
+fictional youth intake/scouting, club-specific board expectations, the visible
+club complex with upgrade previews, and player career-stat archives.
+`python3 scripts/test-franchise-growth.py` covers persistence, migration,
+spending guards, talent ceilings, CPU intake, board review idempotency and
+counteroffer execution/expiry. The native regression harness now compares CPU
+incumbents with their own baselines; new academy players have separate tests.
+
+Release validation: 5,476 simulation assertions, 168 UI assertions, 53 focused
+growth/archive/upgrade checks, isolated Chrome/Firefox/WebKit workflows, and a
+successful Next.js production build. Browser flows cover purchase and save/reload,
+career-stat filters, scouting/signing, counteroffers and Settings-only GM control.

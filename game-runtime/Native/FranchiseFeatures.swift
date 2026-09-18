@@ -59,8 +59,9 @@ extension FranchisePlayer {
     mutating func develop(_ ability:Int,_ amount:Double){if growth.count<abilityNames.count{growth += Array(repeating:0,count:abilityNames.count-growth.count)};growth[ability]+=amount}
     var rating:Int {Int(overallValue.rounded())}
     var evidenceCount:Int{abilities.filter{evidence($0) != nil}.count}
-    var ratingLabel:String{evidenceCount==0 ? "EST": "OVR*"}
+    var ratingLabel:String{youth != nil ? "YTH":(evidenceCount==0 ? "EST": "OVR*")}
     func evidenceText(_ a:Int)->String {
+        if youth != nil{return "Fictional academy player · career skill development"}
         guard let s=profile.stats else{return "No matching 2026 data · estimated baseline"}
         switch a {
         case 0:return "2026 H/AB: \(s.hits.map(String.init) ?? "?")/\(s.ab.map(String.init) ?? "?")"
@@ -138,7 +139,7 @@ extension Franchise {
             let focus=players[i].farmProgress?.focus ?? (players[i].isPitcher ? 5:0)
             let age=year-(players[i].profile.birthYear ?? year-28)
             let gain=0.14*(age<25 ? 1.25:0.8)*(1+Double(clubs[club].level(8))*0.1+(club==user ? coachBonus(2):0))*players[i].learningFactor(focus)
-            let actual=min(0.35,gain,max(0,95-players[i].skill(focus)))
+            let actual=min(0.35,gain,max(0,players[i].abilityCeiling(focus)-players[i].skill(focus)))
             players[i].develop(focus,actual)
             var progress=players[i].farmProgress ?? FarmProgress(focus:focus);progress.weeks+=1;progress.games+=3;progress.gain+=actual;players[i].farmProgress=progress
             clubs[club].cash-=cost;clubs[club].expenses+=cost
@@ -176,17 +177,7 @@ extension Franchise {
             return category==0 ? p.totals.pa>0 || p.totals.outs>0:(!p.isPitcher && p.totals.pa>0)
         }.sorted{a,b in let av=awardScore(a,category),bv=awardScore(b,category);return av==bv ? a.profile.id<b.profile.id:av>bv}.prefix(3).map{$0}
     }
-    var objectives:[ClubObjective]{
-        let development=roster(user).reduce(0){$0+$1.growth.reduce(0,+)}-(seasonGrowthBaseline ?? 0)
-        let fanGain=clubs[user].fans-(seasonFanBaseline ?? 1150)
-        let rows=table(),record=rows.first{$0.club==user}!
-        let data:[(String,String,String,Double,Int,Bool)]=[
-            ("development","Develop your squad","Earn 8 total ability points this season",development/8,6000,development>=8),
-            ("fans","Grow the club","Add 250 supporters this season",Double(fanGain)/250,5000,fanGain>=250),
-            ("playoffs","Reach the semifinals","Finish the regular season in the top four",Double(record.w)/20,12000,seeds.prefix(4).contains(user)),
-            ("budget","Build a sustainable club","Finish the season with at least €180,000",Double(clubs[user].cash)/180000,8000,champion != nil && clubs[user].cash>=180000)]
-        return data.map{ClubObjective(key:$0.0,title:$0.1,detail:$0.2,progress:max(0,min(1,$0.3)),reward:$0.4,done:$0.5 || (claimedObjectives ?? []).contains($0.0))}
-    }
+    var objectives:[ClubObjective]{boardObjectives}
     mutating func settleObjectives(){for o in objectives where o.done && !(claimedObjectives ?? []).contains(o.key){if claimedObjectives==nil{claimedObjectives=[]};claimedObjectives!.append(o.key);clubs[user].cash+=o.reward;clubs[user].income+=o.reward;log("OBJECTIVE: \(o.title) completed. Board reward +€\(o.reward).")}}
     mutating func archiveAwards(){guard champion != nil,awardsYear != year else{return};awardsYear=year
         let names=["MVP","Beste Werper","Home Run Leader","Stolen Base Leader","Batting Title"]
@@ -199,7 +190,7 @@ extension Franchise {
     mutating func refreshProfiles(_ db:Database){
         let profiles=Dictionary(uniqueKeysWithValues:db.players.map{($0.id,$0)})
         for i in players.indices{if let profile=profiles[players[i].profile.id]{players[i].profile=profile}}
-        migrateSponsors();recordDevelopment()
+        migrateSponsors();prepareFranchiseYear();recordDevelopment()
     }
 }
 

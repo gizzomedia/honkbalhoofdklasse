@@ -11,6 +11,8 @@ final class FranchiseView {
     var rosterPage=0,poolPage=0,poolFilter=0,selectedPlayer="",lineupSlot=0,rotationSlot=0
     var trainingAbility=0,trainingIntensity=1,calendarMonth=4,calendarYear=2026,selectedDay=0,boxGame:Int?=nil,boxTeam=0
     var autoSim=false,simStopDay=0,simAccumulator=0.0,toast="",toastUntil=0.0,modal="",statsPitching=false,statsTeamOnly=true,statsFielding=false
+    var careerStatsDetail=false
+    var clubVisual=true,clubFacility=0,careerStatsRole=0,careerStatsScope=0,careerStatsPage=0
     var trainingRole = -1,profilePitching=false,profilePerformance=false
     var trainingFilter=0,trainingSort=1,statsPage=0,statsSort="H",statsAscending=false,statsQualified=false
     var simTargetGame:Int?=nil
@@ -69,7 +71,7 @@ final class FranchiseView {
     }
     func hit(_ action:String,_ label:String,_ r:NSRect){areas.append(.init(rect:r,action:action,label:label))}
     func footer(_ s:String="ARROWS / TAB  Navigate    ENTER  Select    ESC  Clubhouse    SPACE  Stop simulation"){
-        fill(rect(0,844,1600,56),ink);line(48,844,1504);text(s,48,862,16,muted,"AvenirNext-DemiBold",1290);text("FRANCHISE  0.6.2",1370,862,15,accent,"AvenirNextCondensed-Heavy",190)
+        fill(rect(0,844,1600,56),ink);line(48,844,1504);text(s,48,862,16,muted,"AvenirNext-DemiBold",1290);text("FRANCHISE  0.6.3",1370,862,15,accent,"AvenirNextCondensed-Heavy",190)
     }
     func heading(_ label:String){image("Assets/Logos/league.png",rect(43,14,132,93));text(label,205,27,19,muted,"AvenirNext-DemiBold",930);fill(rect(0,0,1600,5),accent)}
     func number(_ n:Int)->String{let f=NumberFormatter();f.numberStyle = .decimal;f.locale=Locale(identifier:"en_GB");return f.string(from:NSNumber(value:n)) ?? String(n)}
@@ -231,6 +233,8 @@ final class FranchiseView {
     func drawModal(){
         fill(rect(0,0,1600,900),ink.withAlphaComponent(0.91));areas=[]
         panel(rect(79,76,1442,748));fill(rect(79,76,1442,5),accent)
+        if careerStatsModal(){return}
+        if growthModal(){return}
         if commerceModal(){return}
         if sponsorModal(){return}
         if managementModal(){return}
@@ -326,6 +330,7 @@ final class FranchiseView {
         if guideAction(action){return}
         if !["simweek","simdate","step","simclub","simseries","simplayoff","simmonth","simplayoffseries","simpostseason"].contains(action){stop()}
         if action != "fieldpos"{positionMenu=false}
+        if youthAction(action){return}
         if tradeAction(action){return}
         if commerceAction(action){return}
         if sponsorAction(action){return}
@@ -350,7 +355,7 @@ final class FranchiseView {
         if action.hasPrefix("intensity:"){trainingIntensity=Int(action.dropFirst(10)) ?? 1;return}
         if action.hasPrefix("trainassign:"){let id=String(action.dropFirst(12));if career?.assignTraining(id,ability:trainingAbility,intensity:trainingIntensity)==true{save();notify("Training plan saved. Applied once at the weekly checkpoint.")};return}
         if action.hasPrefix("trainremove:"){career?.training.removeValue(forKey:String(action.dropFirst(12)));save();return}
-        if action.hasPrefix("upgrade:"){let i=Int(action.dropFirst(8)) ?? 0;if career?.upgrade(i)==true{save();modal="";notify("\(facilities[i].name) upgraded. \(career!.facilityEffect(i,level:career!.clubs[career!.user].level(i)))")};return}
+        if action.hasPrefix("upgrade:"){let i=Int(action.dropFirst(8)) ?? 0;if career?.upgrade(i)==true{clubVisual=true;clubFacility=i;save();modal="";notify("\(facilities[i].name) upgraded. \(career!.facilityEffect(i,level:career!.clubs[career!.user].level(i)))")};return}
         if action.hasPrefix("signloan:"){if career?.loan(String(action.dropFirst(9)))==true{save();modal="";notify("Loan signed. Assign the player to your lineup or rotation.")}else{notify("Loan could not be completed. Check funds and loan slots.")};return}
         if action.hasPrefix("draftpick:"){if career?.selectDraft(String(action.dropFirst(10)))==true{career?.cpuDraft();modal="";poolPage=0;save();if career?.draft==false{page="hub";tab=0;beginCareerTour(automatic:true)}};return}
         switch action {

@@ -13,7 +13,8 @@
     "franchise:test:browser": "node scripts/test-franchise-browser.mjs && node scripts/test-franchise-cloud.mjs",
     "franchise:photos": "node scripts/optimize-franchise-photos.mjs",
     "franchise:test:images": "node scripts/test-franchise-images.mjs",
-    "franchise:test:update": "python3 scripts/test-franchise-update.py"
+    "franchise:test:update": "python3 scripts/test-franchise-update.py",
+    "franchise:test:growth": "python3 scripts/test-franchise-growth.py"
   },
   "dependencies": {
     "@bjorn3/browser_wasi_shim": "^0.4.2",

@@ -4,7 +4,7 @@ extension FranchiseView {
         if tradeClub==f.user{tradeClub=(f.user+1)%7}
         text("BUILD A DEAL. EARN THE YES.",51,233,40,white,"Impact",1450)
         text(f.loanWindowOpen ? "PERMANENT TRADES · 1–3 PLAYERS EACH WAY · DEADLINE 1 JULY":"TRADE WINDOW CLOSED · REOPENS NEXT SEASON",54,287,17,accent,"AvenirNext-DemiBold",965)
-        button("GM: "+["RELAXED","BALANCED","STRICT"][f.gmStrictness],"tradestrict",rect(1155,279,390,39))
+        if let offer=f.counterOffer,offer.year==f.year,offer.expires>=f.day{button("COUNTER FROM "+db.teams[offer.club].abbr,"tradecounter",rect(1155,279,390,39),primary:true)}
         for (n,c) in db.teams.indices.filter({$0 != f.user}).enumerated(){button(db.teams[c].abbr,"tradeclub:\(c)",rect(51+CGFloat(n)*252,333,233,40),primary:c==tradeClub)}
         for side in 0..<2 {
             let owner=side==0 ? f.user:tradeClub,x:CGFloat=51+CGFloat(side)*759,selected=side==0 ? tradeGive:tradeTake
@@ -30,10 +30,13 @@ extension FranchiseView {
         button("SUBMIT OFFER →","tradesubmit",rect(1184,779,361,50),primary:true,enabled:issue==nil)
     }
     func tradeAction(_ action:String)->Bool {
-        if action=="tradestrict",var f=career{f.options.tradeStrictness=(f.gmStrictness+1)%3;career=f;tradeReply="";save();return true}
+        if action=="tradestrict",tab==15,var f=career{f.options.tradeStrictness=(f.gmStrictness+1)%3;career=f;tradeReply="";save();notify(["Relaxed: CPU clubs accept a smaller return.","Balanced: CPU clubs value quality, age and roster needs.","Strict: CPU clubs demand a larger return. Pending deals are checked again."][f.gmStrictness]);return true}
         if action.hasPrefix("tradeclub:"),let c=Int(action.dropFirst(10)),db.teams.indices.contains(c),c != career?.user{tradeClub=c;tradeTake=[];tradePages[1]=0;tradeReply="";return true}
         if action.hasPrefix("tradepick:"){let parts=action.split(separator:":",maxSplits:2).map(String.init);guard parts.count==3,let side=Int(parts[1]),(0...1).contains(side) else{return true};var ids=side==0 ? tradeGive:tradeTake;let id=parts[2];if ids.contains(id){ids.removeAll{$0==id}}else if ids.count<3{ids.append(id)};if side==0{tradeGive=ids}else{tradeTake=ids};tradeReply="";return true}
         if action.hasPrefix("tradepage:"){let parts=action.split(separator:":");if parts.count==3,let side=Int(parts[1]),let delta=Int(parts[2]),(0...1).contains(side){tradePages[side]=max(0,tradePages[side]+delta)};return true}
+        if action=="tradecounter"{modal="tradecounter";return true}
+        if action=="counteraccept",var f=career{tradeReply=f.acceptCounterOffer();career=f;modal="";tab=6;tradeGive=[];tradeTake=[];save();notify(tradeReply);return true}
+        if action=="counterdecline"{career?.counterOffer=nil;save();modal="";return true}
         if action=="tradesubmit",var f=career{tradeReply=f.proposeTrade(club:tradeClub,give:tradeGive,take:tradeTake);career=f;if tradeReply.hasPrefix("ACCEPTED"){tradeGive=[];tradeTake=[]};save();return true}
         return false
     }

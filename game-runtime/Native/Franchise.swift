@@ -17,6 +17,8 @@ struct FranchisePlayer:Codable {
     var totals=SeasonStat(),loanOwner:Int?=nil
     var injury:PlayerInjury?=nil,farm:Bool?=nil,farmProgress:FarmProgress?=nil
     var developmentHistory:[DevelopmentSnapshot]?=nil
+    var youth:YouthOrigin?=nil
+    var seasonArchive:[PlayerSeasonRecord]?=nil
     var isPitcher:Bool{profile.position=="P"}
     // These are sandbox simulation inputs, never certified real-world OVR ratings.
     // Unknown evidence uses a shared neutral model prior, not an invented player statistic.
@@ -39,6 +41,7 @@ struct FranchisePlayer:Codable {
         }
     }
     func skill(_ a:Int)->Double {
+        if let y=youth,y.skills.indices.contains(a){return max(15,min(y.ceilings[a],y.skills[a]+development(a)))}
         let raw=evidence(a) ?? 50
         let pitching=[5,6,7,10,11].contains(a)
         let sample:Double=pitching ? Double(profile.stats?.outs ?? 0)/3:Double(profile.stats?.pa ?? 0)
@@ -90,6 +93,8 @@ struct Franchise:Codable {
     var sponsorContracts:[SponsorContract]?=nil
     var sponsorMarket:SponsorMarket?=nil
     var tradeHistory:[TradeRecord]?=nil
+    var counterOffer:TradeCounterOffer?=nil
+    var academyIntake:YouthIntake?=nil,boardPlan:BoardPlan?=nil,boardReviews:[BoardReview]?=nil,boardConfidence:Int?=nil
     var merchandise:MerchandiseState?=nil,clubInvestment:ClubInvestmentState?=nil
     var managementAutomation:ClubAutomation?=nil,hiredStaff:[ManagerCoach]?=nil
     var created=Date(),lastSaved=Date()
@@ -101,7 +106,7 @@ struct Franchise:Codable {
         if fantasy {f.phase="Fantasy draft";f.draftOrder=Array(0..<7);f.draftOrder.swapAt(0,user)}
         else {for i in 0..<7 {f.autoLineup(i)};f.makeSchedule()}
         f.inbox=[fantasy ? "Welcome to the draft. 25 rounds, seven clubs, snake order. You have the first pick.":"Your franchise begins. Set a lineup, choose your rotation and assign this week's training.","Simulation skills and finances belong to this fictional career. Official player OVRs remain unrated."]
-        f.recordDevelopment();f.refreshSponsorMarket();return f
+        f.recordDevelopment();f.refreshSponsorMarket();f.prepareFranchiseYear();return f
     }
     var trainingDue:Bool {!draft && champion==nil && lastTrainingWeek<day/7}
     var draftTeam:Int {let round=draftPick/7,index=draftPick%7;return draftOrder[round%2==0 ? index:6-index]}
@@ -209,7 +214,7 @@ struct Franchise:Codable {
     mutating func selectDraft(_ id:String)->Bool {
         guard draftAllowed(id),let i=players.firstIndex(where:{$0.profile.id==id && $0.club == -1}) else{return false}
         let club=draftTeam;players[i].club=club;clubs[club].roster.append(id);draftPick+=1
-        if draftPick>=175 {draft=false;phase="Regular season";for c in 0..<7 {autoLineup(c)};makeSchedule();refreshSponsorMarket();log("Draft complete. All seven clubs have 25 players. Your first training week is ready.")}
+        if draftPick>=175 {draft=false;phase="Regular season";for c in 0..<7 {autoLineup(c)};makeSchedule();refreshSponsorMarket();prepareFranchiseYear();log("Draft complete. All seven clubs have 25 players. Your first training week is ready.")}
         return true
     }
     mutating func cpuDraft() {
@@ -308,7 +313,7 @@ struct Franchise:Codable {
             }
             if clubs[club].cash < -25000 {clubs[club].cash+=40000;clubs[club].fans=Int(Double(clubs[club].fans)*0.90);if club==user {log("The board provided €40,000 emergency funding. Fan confidence fell 10%. Improve your weekly finances.")}}
         }
-        developFarm();settleObjectives()
+        recruitCPUYouth();developFarm();settleObjectives()
         recordDevelopment()
         lastTrainingWeek=day/7
         if trainingReport.isEmpty {trainingReport=["Recovery week: no individual training assigned. Your squad stays fresh."]}
@@ -574,7 +579,7 @@ struct Franchise:Codable {
     }
     @discardableResult mutating func nextSeason()->Bool {
         guard let champion else{return false};let record=table().first{$0.club==user}!
-        recordDevelopment()
+        recordDevelopment();reviewBoardSeason();archivePlayerSeasons()
         history.append(.init(year:year,champion:champion,userWins:record.w,userLosses:record.l))
         for i in players.indices {
             if let owner=players[i].loanOwner {players[i].club=owner;players[i].loanOwner=nil;players[i].farm=false}
@@ -584,9 +589,10 @@ struct Franchise:Codable {
         for c in 0..<7{clubs[c].roster=roster(c).map{$0.profile.id};clubs[c].cash+=25000;clubs[c].income=0;clubs[c].expenses=0;clubs[c].nextStarter=nil;autoLineup(c)}
         seasonGrowthBaseline=roster(user).reduce(0){$0+$1.growth.reduce(0,+)};seasonFanBaseline=clubs[user].fans;claimedObjectives=[];pauseReason=nil
         year+=1;day=0;lastTrainingWeek = -1;seeds=[];self.champion=nil;phase="Regular season";training=training.filter{player($0.key)?.club==user};makeSchedule()
-        trainingReport=[];ledger=[];renewSponsorYear();refreshSponsorMarket();recordDevelopment();log("Welcome to \(year). Club upgrades and player development carry over. Loans have ended; lineups have been refreshed.");return true
+        trainingReport=[];ledger=[];counterOffer=nil;renewSponsorYear();refreshSponsorMarket();prepareFranchiseYear();recordDevelopment();log("Welcome to \(year). Club upgrades and player development carry over. Loans have ended; lineups have been refreshed.");return true
     }
     func validate()->Bool {
+        guard growthStateValid() && careerArchiveValid() else{return false}
         guard version==1,(0..<7).contains(user),(1...3).contains(slot),clubs.count==7,players.count>=175,Set(players.map{$0.profile.id}).count==players.count else{return false}
         guard players.allSatisfy({(-1..<7).contains($0.club) && (8...12).contains($0.growth.count) && $0.fatigue.isFinite && $0.growth.allSatisfy{$0.isFinite}}),Set(schedule.map{$0.id}).count==schedule.count else{return false}
         guard schedule.allSatisfy({(0..<7).contains($0.away) && (0..<7).contains($0.home) && $0.away != $0.home && (($0.awayRuns==nil)==($0.homeRuns==nil))}) else{return false}

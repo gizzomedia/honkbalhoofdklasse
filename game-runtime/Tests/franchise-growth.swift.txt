@@ -1,0 +1,109 @@
+import Foundation
+import Darwin
+setbuf(stdout,nil)
+let root=URL(fileURLWithPath:CommandLine.arguments[1])
+for name in ["teams","players","staff"]{Database.input["Data/\(name).json"]=try String(contentsOf:root.appendingPathComponent("Data/\(name).json"),encoding:.utf8)}
+let db=Database(root:root)
+var checks=0
+func check(_ yes:Bool,_ message:String){checks+=1;if !yes{fatalError(message)}}
+func make(_ user:Int=0)->Franchise{var f=Franchise.make(db:db,user:user,slot:1,fantasy:false,seed:31415);f.options.injuryFrequency=0;f.options.pauseLowFunds=false;f.automation.lineup=true;f.automation.rotation=true;return f}
+var f=make(),old=f
+check(f.academyIntake?.candidates.count==21,"three candidates per club")
+check(Set(f.academyIntake!.candidates.map{$0.player.profile.name}).count==21,"class names unique")
+let oldRNG=f.rng,ids=f.academyIntake!.candidates.map{$0.player.profile.id}
+f.prepareFranchiseYear();check(f.rng==oldRNG && ids==f.academyIntake!.candidates.map{$0.player.profile.id},"no reroll on reload or revisiting")
+let candidate=f.academyIntake!.candidates.first{$0.club==f.user}!,id=candidate.player.profile.id,cash=f.clubs[0].cash
+check(f.scoutYouth(id) && f.scoutYouth(id),"two scouting levels")
+check(!f.scoutYouth(id) && f.clubs[0].cash==cash-2300,"scouting charges once per level")
+let report=f.academyIntake!.candidates.first{$0.player.profile.id==id}!
+check(report.scouting==2 && f.youthEstimate(report) != old.youthEstimate(candidate),"scouting narrows uncertainty")
+check(f.signYouth(id,for:0) && !f.signYouth(id,for:0),"sign only once")
+check(f.player(id)!.inFarm && f.player(id)!.profile.stats==nil && f.player(id)!.ratingLabel=="YTH","fictional identity explicit")
+check(f.validate(),"signed career save-valid")
+let prior=f.player(id)!.skill(5)
+f.developFarm();check(f.player(id)!.skill(5)>prior,"youth develops through actual farm training")
+let idx=f.players.firstIndex{$0.profile.id==id}!
+f.players[idx].growth=Array(repeating:1000,count:12)
+check(f.players[idx].skill(5)==f.players[idx].abilityCeiling(5),"potential ceiling caps skill")
+let growth=f.players[idx].growth[5];f.developFarm();check(f.players[idx].growth[5]==growth,"cannot train past ceiling")
+let restored=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(f));check(restored.validate() && restored.player(id)?.youth?.ceilings==f.player(id)?.youth?.ceilings,"youth save round-trip")
+var invalid=f;invalid.players[idx].youth!.ceilings=[];check(!invalid.validate(),"malformed youth arrays rejected")
+var noFunds=old;noFunds.clubs[0].cash=0;check(!noFunds.scoutYouth(id) && !noFunds.signYouth(id,for:0),"cash guards")
+var cpu=old;cpu.recruitCPUYouth();let count=cpu.players.count;check(count>old.players.count,"CPU recruits when it has space")
+cpu.recruitCPUYouth();check(cpu.players.count==count && cpu.validate(),"CPU intake idempotent and save-valid")
+check(make(1).currentBoardPlan.style==2 && make(5).currentBoardPlan.style==2,"contenders aim for title")
+check(make(6).currentBoardPlan.style==0 && make(0).currentBoardPlan.style==1,"different club objectives")
+var board=old;board.claimedObjectives=["fans","budget","development"];board.champion=1
+let start=board.clubs[0].cash;board.reviewBoardSeason();board.reviewBoardSeason()
+check(board.clubs[0].cash==start+10000 && board.boardReviews?.count==1 && board.boardConfidence==68,"board review and grant settle once")
+check(board.nextSeason(),"next season")
+check(board.academyIntake?.year==2027 && board.boardPlan?.year==2027 && board.academyIntake!.candidates.allSatisfy{!ids.contains($0.player.profile.id)},"annual class and board refresh")
+var finished=old;finished.champion=1;let cashEnd=finished.clubs[0].cash
+check(!finished.scoutYouth(id) && finished.clubs[0].cash==cashEnd,"cannot spend on an expired season class")
+// Legacy saves gain new systems without losing an existing loan or changing user money.
+let legacyRaw=try Data(contentsOf:URL(fileURLWithPath:CommandLine.arguments[2]));var legacy=try JSONDecoder().decode(Franchise.self,from:legacyRaw)
+let money=legacy.clubs[legacy.user].cash,oldYear=legacy.year,oldDay=legacy.day
+legacy.refreshProfiles(db);check(legacy.validate() && legacy.year==oldYear && legacy.day==oldDay && legacy.clubs[legacy.user].cash==money && legacy.academyIntake != nil,"old-career migration")
+// Find a genuine rejected proposal that prompts a counter, without assuming player names.
+var negotiation:Franchise?=nil
+outer:for a in old.roster(0).sorted(by:{$0.rating<$1.rating}).prefix(12){for b in old.roster(1).sorted(by:{$0.rating>$1.rating}).prefix(12){
+ var attempt=old
+ let result=attempt.proposeTrade(club:1,give:[a.profile.id],take:[b.profile.id])
+ if result.hasPrefix("DECLINED") && attempt.counterOffer != nil{negotiation=attempt;break outer}
+}}
+check(negotiation != nil,"CPU can make a concrete counteroffer")
+var offerGame=negotiation!,offer=offerGame.counterOffer!
+check(offer.give.count<=3 && offer.take.count<=3 && offerGame.tradeValidation(club:offer.club,give:offer.give,take:offer.take)==nil,"counter respects roster/package constraints")
+let saved=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(offerGame));check(saved.counterOffer?.give==offer.give,"counter survives reload")
+var expired=offerGame;expired.day=offer.expires+1;check(!expired.acceptCounterOffer().hasPrefix("ACCEPTED") && expired.counterOffer==nil,"expired counter rejected")
+check(offerGame.acceptCounterOffer().hasPrefix("ACCEPTED") && offerGame.counterOffer==nil && offerGame.validate(),"accepted counter executes safely")
+check(offer.give.allSatisfy{offerGame.player($0)?.club==offer.club} && offer.take.allSatisfy{offerGame.player($0)?.club==0},"counter transfers exact listed players")
+// Settings-only strictness; modal wiring and all generated screen areas.
+let view=FranchiseView(frame:.zero,db:db,saveDirectory:URL(fileURLWithPath:"/"));view.career=old;view.page="hub";view.tab=6;view.draw(.zero)
+check(!view.areas.contains{$0.action=="tradestrict"},"GM control absent from Trades")
+view.tab=15;view.draw(.zero);check(view.areas.contains{$0.action=="tradestrict"},"GM control present in Settings")
+view.act("tradestrict");check(view.career!.gmStrictness==2,"settings change persists")
+view.tab=11;view.draw(.zero);check(view.areas.contains{$0.action=="youthhub"},"farm links to scouting")
+view.act("youthhub");view.draw(.zero);check(view.areas.contains{$0.action=="youthscout:"+id},"scouting modal controls")
+view.act("youthcontract:"+id);view.draw(.zero);check(view.areas.contains{$0.action=="youthsign:"+id},"academy contract signing control")
+view.career=negotiation!;view.modal="tradecounter";view.draw(.zero);check(view.areas.contains{$0.action=="counteraccept"},"counter agreement control")
+// Career archive: regular/postseason separation, exact counting, year rollover and old saves.
+var careerTest=old
+let batter=careerTest.clubs[0].lineup[0],bi=careerTest.players.firstIndex{$0.profile.id==batter}!
+var regular=SeasonStat();regular.games=1;regular.ab=4;regular.pa=4;regular.h=2;regular.sb=1;regular.glove.errors=1
+var post=SeasonStat();post.games=1;post.ab=2;post.pa=3;post.h=1;post.hr=1;post.bb=1;post.outs=5;post.er=1
+careerTest.players[bi].totals=regular;careerTest.players[bi].totals.add(post)
+careerTest.schedule=[FranchiseGame(id:0,day:1,away:0,home:1,stage:"Regular",series:0,awayRuns:3,homeRuns:1,box:[batter:regular],playerTeams:[batter:0]),FranchiseGame(id:1,day:2,away:2,home:1,stage:"Final",series:1,awayRuns:4,homeRuns:2,box:[batter:post],playerTeams:[batter:2])]
+let record=careerTest.playerSeasonRecord(careerTest.players[bi])
+check(record.clubs==[0,2] && record.completeSplits && record.regular.h==2 && record.postseason.hr==1,"career records actual clubs and postseason separately")
+let beforeArchive=careerTest.rng;careerTest.archivePlayerSeasons();careerTest.archivePlayerSeasons()
+check(careerTest.players[bi].seasonArchive?.count==1 && careerTest.rng==beforeArchive,"archive is idempotent and consumes no randomness")
+careerTest.champion=1;check(careerTest.nextSeason(),"archive rollover succeeds")
+check(careerTest.players[bi].totals.pa==0 && careerTest.players[bi].seasonArchive?.first?.all.h==3,"rollover preserves stats before reset")
+careerTest.players[bi].totals=regular
+var sum=SeasonStat();for r in careerTest.playerCareerRecords(careerTest.players[bi]){sum.add(r.all)}
+check(sum.h==5 && sum.ab==10 && sum.avg=="0.500" && sum.outs==5 && sum.ip=="1.2","career rates use counts, innings use outs")
+let careerReload=try JSONDecoder().decode(Franchise.self,from:JSONEncoder().encode(careerTest))
+check(careerReload.validate() && careerReload.players[bi].seasonArchive?.first?.postseason.hr==1,"archive survives save and reload")
+check(legacy.players.allSatisfy{$0.seasonArchive==nil},"legacy history not fabricated")
+view.career=careerTest;view.modal="profile:"+batter;view.draw(.zero)
+check(view.areas.contains{$0.action=="careerstats:"+batter},"profile opens career stats")
+view.act("careerstats:"+batter);view.draw(.zero)
+check(view.areas.contains{$0.action=="careerstatscope"} && view.areas.contains{$0.action=="careerstatrole"},"career batting pitching fielding and scope controls")
+// Upgrade preview must not alter money, RNG or facilities; purchase changes actual effects.
+view.career=old;view.modal="";view.tab=5;Canvas.commands=[];view.draw(.zero)
+check(view.areas.contains{$0.action=="clubfocus:8"},"all nine facilities selectable on complex")
+view.act("facility:0");Canvas.commands=[];view.draw(.zero)
+check(view.career!.clubs[0].capacity==1000 && view.career!.clubs[0].cash==old.clubs[0].cash && view.career!.rng==old.rng,"upgrade preview does not buy or mutate career")
+view.act("upgrade:0");view.draw(.zero)
+check(view.career!.clubs[0].capacity==1300 && view.career!.clubs[0].cash==old.clubs[0].cash-28000 && view.clubVisual,"purchase updates seats, cash and visible complex")
+Canvas.commands=[];view.clubComplex(view.rect(0,0,1000,500),old.clubs[0],selected:0,projects:old.investments)
+let initialDrawing=try JSONSerialization.data(withJSONObject:Canvas.commands,options:.sortedKeys)
+Canvas.commands=[];view.clubComplex(view.rect(0,0,1000,500),view.career!.clubs[0],selected:0,projects:old.investments)
+check(initialDrawing != (try JSONSerialization.data(withJSONObject:Canvas.commands,options:.sortedKeys)),"stadium upgrade changes drawn grandstands")
+var construction=old;construction.clubs[0].stadium=1;check(construction.startClubProject("terrace"),"start visible project")
+check(view.clubProjectCaption(construction).contains("21 DAYS LEFT"),"construction countdown follows saved finish date")
+construction.day+=21;construction.completeClubProject()
+check(view.clubProjectCaption(construction).contains("1 COMPLETED"),"complex recognises completed project")
+let out=URL(fileURLWithPath:CommandLine.arguments[3]);try JSONEncoder().encode(negotiation!).write(to:out)
+print("PASS: \(checks) youth/scouting/board/counteroffer/migration/UI checks")

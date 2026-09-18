@@ -175,7 +175,7 @@ extension FranchisePlayer {
     // Physical tools develop more slowly; strong existing skills have less headroom.
     func learningFactor(_ ability:Int)->Double {
         let pace:Double=[1,10].contains(ability) ? 0.80:([3,11].contains(ability) ? 0.65:1.0)
-        return pace*max(0.20,min(1.15,(95-skill(ability))/45))
+        return pace*max(0.20,min(1.15,(abilityCeiling(ability)-skill(ability))/45))
     }
 }
 extension Franchise {
@@ -187,7 +187,7 @@ extension Franchise {
         let specialist=[2,9,6].contains(ability) ? Double(clubs[club].level(4))*0.06:([0,1].contains(ability) ? Double(clubs[club].level(5))*0.08:([5,10,11].contains(ability) ? Double(clubs[club].level(6))*0.08:0))
         let coach=club==user ? coachBonus([5,6,7,10,11].contains(ability) ? 1:0):0
         let gain=[0.14,0.24,0.36][max(0,min(2,adjustedIntensity))]*(1+Double(clubs[club].academy)*0.12+specialist+coach)*ageFactor*fatigueFactor*p.learningFactor(ability)
-        return min(0.55,gain,max(0,95-p.skill(ability)))
+        return min(0.55,gain,max(0,p.abilityCeiling(ability)-p.skill(ability)))
     }
     func cpuTrainingOrders(_ club:Int)->[String:TrainingOrder] {
         guard club != user,clubs.indices.contains(club) else{return [:]}
